@@ -211,6 +211,7 @@ macro_rules! define_collection {
         };
 
         // impl ExpressionsForOperation for $pascal_case
+        #[cfg(not(feature = "in_dev_op2"))]
         const _: () = {
             use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
             use $crate::sqlx_query_builder::{
@@ -300,6 +301,7 @@ macro_rules! define_collection {
         };
 
         // impl OnInsert for $pascal_case
+        #[cfg(not(feature = "in_dev_op2"))]
         const _: () = {
             use $crate::sqlx_query_builder::statements::insert_statement::IteratorSpec;
             use $crate::operations::operations_expressions_crossover::OnInsert;
@@ -359,6 +361,7 @@ macro_rules! define_collection {
         };
 
         // impl OnUpdate for $pascal_case
+        #[cfg(not(feature = "in_dev_op2"))]
         const _: () = {
             use $crate::operations::operations_expressions_crossover::OnUpdate;
             use $crate::update_mod::Update;
@@ -408,7 +411,9 @@ macro_rules! define_collection {
 
         // members
         pub mod [<$pascal_case:snake _members>] {
+            #[cfg(not(feature = "in_dev_op2"))]
             use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+            #[cfg(not(feature = "in_dev_op2"))]
             use $crate::sqlx_query_builder::{
                 basic_expressions::{AliasedScopedColumn, ScopedColumn},
                 sanitize_combinator::Sanitize,
@@ -431,40 +436,50 @@ macro_rules! define_collection {
                 }
             }
 
-            impl ExpressionsForOperation for id {
-                type Identifier = &'static str;
-                fn identifier(&self) -> Self::Identifier {
-                    "id"
-                }
-                type Scoped = ScopedColumn<&'static str, &'static str>;
-                fn scoped(&self) -> Self::Scoped {
-                    ScopedColumn {
-                        table: stringify!($pascal_case),
-                        col: "id",
+            #[cfg(not(feature = "in_dev_op2"))]
+            mod impl_expressions_for_operation_for_id {
+                use super::*;
+                use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+                use $crate::sqlx_query_builder::{
+                    basic_expressions::{AliasedScopedColumn, ScopedColumn},
+                    sanitize_combinator::Sanitize,
+                };
+
+                impl ExpressionsForOperation for id {
+                    type Identifier = &'static str;
+                    fn identifier(&self) -> Self::Identifier {
+                        "id"
                     }
-                }
-                type ScopedAliased = AliasedScopedColumn<
-                    &'static str,
-                    &'static str,
-                    Sanitize<(&'static str, &'static str)>,
-                >;
-                fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
-                    AliasedScopedColumn {
-                        table: stringify!($pascal_case),
-                        column: "id",
-                        alias: Sanitize((alias, "id")),
+                    type Scoped = ScopedColumn<&'static str, &'static str>;
+                    fn scoped(&self) -> Self::Scoped {
+                        ScopedColumn {
+                            table: stringify!($pascal_case),
+                            col: "id",
+                        }
                     }
-                }
-                type NumScopedAliased = AliasedScopedColumn<
-                    &'static str,
-                    &'static str,
-                    Sanitize<(&'static str, usize, &'static str)>,
-                >;
-                fn num_scoped_aliased(&self, num: usize, alias: &'static str) -> Self::NumScopedAliased {
-                    AliasedScopedColumn {
-                        table: stringify!($pascal_case),
-                        column: "id",
-                        alias: Sanitize((alias, num, "id")),
+                    type ScopedAliased = AliasedScopedColumn<
+                        &'static str,
+                        &'static str,
+                        Sanitize<(&'static str, &'static str)>,
+                    >;
+                    fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
+                        AliasedScopedColumn {
+                            table: stringify!($pascal_case),
+                            column: "id",
+                            alias: Sanitize((alias, "id")),
+                        }
+                    }
+                    type NumScopedAliased = AliasedScopedColumn<
+                        &'static str,
+                        &'static str,
+                        Sanitize<(&'static str, usize, &'static str)>,
+                    >;
+                    fn num_scoped_aliased(&self, num: usize, alias: &'static str) -> Self::NumScopedAliased {
+                        AliasedScopedColumn {
+                            table: stringify!($pascal_case),
+                            column: "id",
+                            alias: Sanitize((alias, num, "id")),
+                        }
                     }
                 }
             }
@@ -519,6 +534,7 @@ macro_rules! define_collection {
 
                 impl $member {
                     #[allow(dead_code)]
+                    #[cfg(not(feature = "in_dev_op2"))]
                     pub fn bind(value: $type) ->
                     $crate::operations::operations_expressions_crossover::NamedBind<
                         super::[<$pascal_case Handler>],
@@ -534,7 +550,16 @@ macro_rules! define_collection {
                     }
                 }
 
-                impl ExpressionsForOperation for $member {
+                #[cfg(not(feature = "in_dev_op2"))]
+                mod [<impl_expressions_for_operation_for_ $member>] {
+                    use super::*;
+                    use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+                    use $crate::sqlx_query_builder::{
+                        basic_expressions::{AliasedScopedColumn, ScopedColumn},
+                        sanitize_combinator::Sanitize,
+                    };
+
+                    impl ExpressionsForOperation for $member {
                     type Identifier = &'static str;
                     fn identifier(&self) -> Self::Identifier {
                         stringify!($member)
@@ -571,6 +596,7 @@ macro_rules! define_collection {
                         }
                     }
                 }
+            }
             )*
 
             $(
