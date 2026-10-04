@@ -127,25 +127,27 @@ mod std_impls {
     }
 
     #[cfg(not(feature = "in_dev_op2"))]
-    use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+    mod impl_expressions_for_operation_for_empty {
+        use super::Empty;
+        use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
-    #[cfg(not(feature = "in_dev_op2"))]
-    impl ExpressionsForOperation for Empty {
-        type Identifier = ();
-        fn identifier(&self) -> Self::Identifier {
-            ()
-        }
-        type Scoped = ();
-        fn scoped(&self) -> Self::Scoped {
-            ()
-        }
-        type ScopedAliased = ();
-        fn scoped_aliased(&self, _: &'static str) -> Self::ScopedAliased {
-            ()
-        }
-        type NumScopedAliased = ();
-        fn num_scoped_aliased(&self, _: usize, _: &'static str) -> Self::NumScopedAliased {
-            ()
+        impl ExpressionsForOperation for Empty {
+            type Identifier = ();
+            fn identifier(&self) -> Self::Identifier {
+                ()
+            }
+            type Scoped = ();
+            fn scoped(&self) -> Self::Scoped {
+                ()
+            }
+            type ScopedAliased = ();
+            fn scoped_aliased(&self, _: &'static str) -> Self::ScopedAliased {
+                ()
+            }
+            type NumScopedAliased = ();
+            fn num_scoped_aliased(&self, _: usize, _: &'static str) -> Self::NumScopedAliased {
+                ()
+            }
         }
     }
 
@@ -193,16 +195,20 @@ pub struct NextItem<Id, OrderedByFields> {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-impl<B, L, W, O, F> OperationOutput for FetchMany<B, L, W, O, F>
-where
-    B: Collection,
-    L: LinkFetch,
-    O: FromRowData,
-{
-    type Output = ManyOutput<
-        LinkedOutput<<B::Id as CollectionId>::IdData, B::OutputData, L::Output>,
-        NextItem<<B::Id as CollectionId>::IdData, O::RData>,
-    >;
+mod impl_operation_output_for_fetch_many {
+    use super::*;
+
+    impl<B, L, W, O, F> OperationOutput for FetchMany<B, L, W, O, F>
+    where
+        B: Collection,
+        L: LinkFetch,
+        O: FromRowData,
+    {
+        type Output = ManyOutput<
+            LinkedOutput<<B::Id as CollectionId>::IdData, B::OutputData, L::Output>,
+            NextItem<<B::Id as CollectionId>::IdData, O::RData>,
+        >;
+    }
 }
 
 pub trait SealedFirstItemTrait {}
@@ -229,30 +235,35 @@ impl<B> FirstItemTrait<B> for () {
 impl<T0, T1> SealedFirstItemTrait for (T0, T1) {}
 
 #[cfg(not(feature = "in_dev_op2"))]
-impl<B, First> FirstItemTrait<B> for (<B::Id as CollectionId>::IdData, First)
-where
-    B: Collection<Id: ExpressionsForOperation + SingleColumnId>,
-    First: SelfPrescribedInsert,
-{
-    type WhereClause = ManyColumnsLargerOrEqual<
-        (
-            Nest<First::InsertId>,
-            Nest<<B::Id as ExpressionsForOperation>::Scoped>,
-        ),
-        (
-            Nest<First::InsertValue>,
-            Nest<Bind<<B::Id as CollectionId>::IdData>>,
-        ),
-    >;
+mod impl_first_item_trait_for_tuple {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, SelfPrescribedInsert};
 
-    fn where_clause(self, base_id: B::Id) -> Self::WhereClause
+    impl<B, First> FirstItemTrait<B> for (<B::Id as CollectionId>::IdData, First)
     where
-        B: Collection,
+        B: Collection<Id: ExpressionsForOperation + SingleColumnId>,
+        First: SelfPrescribedInsert,
     {
-        let (idents, values) = self.1.on_insert();
-        ManyColumnsLargerOrEqual {
-            ids: (Nest(idents), Nest(base_id.scoped())),
-            values: (Nest(values), Nest(Bind(self.0))),
+        type WhereClause = ManyColumnsLargerOrEqual<
+            (
+                Nest<First::InsertId>,
+                Nest<<B::Id as ExpressionsForOperation>::Scoped>,
+            ),
+            (
+                Nest<First::InsertValue>,
+                Nest<Bind<<B::Id as CollectionId>::IdData>>,
+            ),
+        >;
+
+        fn where_clause(self, base_id: B::Id) -> Self::WhereClause
+        where
+            B: Collection,
+        {
+            let (idents, values) = self.1.on_insert();
+            ManyColumnsLargerOrEqual {
+                ids: (Nest(idents), Nest(base_id.scoped())),
+                values: (Nest(values), Nest(Bind(self.0))),
+            }
         }
     }
 }
@@ -260,157 +271,166 @@ where
 impl<T0, T1> SealedFirstItemTrait for Option<(T0, T1)> {}
 
 #[cfg(not(feature = "in_dev_op2"))]
-impl<B, First> FirstItemTrait<B> for Option<(<B::Id as CollectionId>::IdData, First)>
-where
-    (<B::Id as CollectionId>::IdData, First): FirstItemTrait<B>,
-    B: Collection<Id: SingleColumnId>,
-{
-    type WhereClause =
-        Option<<(<B::Id as CollectionId>::IdData, First) as FirstItemTrait<B>>::WhereClause>;
+mod impl_first_item_trait_for_option_tuple {
+    use super::*;
 
-    fn where_clause(self, base_id: B::Id) -> Self::WhereClause
+    impl<B, First> FirstItemTrait<B> for Option<(<B::Id as CollectionId>::IdData, First)>
     where
-        B: Collection,
+        (<B::Id as CollectionId>::IdData, First): FirstItemTrait<B>,
+        B: Collection<Id: SingleColumnId>,
     {
-        self.map(|first| first.where_clause(base_id))
+        type WhereClause =
+            Option<<(<B::Id as CollectionId>::IdData, First) as FirstItemTrait<B>>::WhereClause>;
+
+        fn where_clause(self, base_id: B::Id) -> Self::WhereClause
+        where
+            B: Collection,
+        {
+            self.map(|first| first.where_clause(base_id))
+        }
     }
 }
 
 // was: `for FetchMany<Base, Links, Wheres, OrderBy, (<Base::Id as CollectionId>::IdData, First)>`
 #[cfg(not(feature = "in_dev_op2"))]
-impl<S, Base, Links, Wheres, OrderBy, First2> Operation<S>
-    for FetchMany<Base, Links, Wheres, OrderBy, First2>
-where
-    S: DatabaseExt,
-    S: ExecutorTrait,
-    Base: Send,
-    OrderBy: Send,
-    Wheres: Send + OptionalExpression,
-    for<'q> Join<Wheres>: Expression<'q, S>,
-    Links: Send + LinkFetch<Output: Send>,
-    Links::Wheres: OptionalExpression,
-    for<'q> Join<Links::Wheres>: Expression<'q, S>,
-    Links::SelectItems: Send + ExpressionsForOperation<ScopedAliased: OptionalExpression>,
-    for<'q> Join<<Links::SelectItems as ExpressionsForOperation>::ScopedAliased>: Expression<'q, S>,
-    Links::SelectItems: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
-    Links::Join: OptionalExpression,
-    for<'q> Join<Links::Join>: Expression<'q, S>,
-    Links::Op: Operation<S>,
-    Links::OpInput: Send,
-    Base: Collection<OutputData: Send, Id: Send>,
-    Base:
-        TableExpressions<PascalCase: for<'q> Expression<'q, S>, ScopedAliased: OptionalExpression>,
-    for<'q> Join<Base::ScopedAliased>: Expression<'q, S>,
-    Base: FromRowData<RData = Base::OutputData>,
-    Base: for<'r> FromRowAlias<'r, S::Row>,
-    Base::InheritJoin: OptionalExpression,
-    for<'q> Join<Base::InheritJoin>: Expression<'q, S>,
-    Base::Id: Send + CollectionId<IdData: Send>,
-    Base::Id: FromRowData<RData = <Base::Id as CollectionId>::IdData>,
-    Base::Id: for<'r> FromRowAlias<'r, S::Row>,
-    First2: Send + FirstItemTrait<Base, WhereClause: Send + OptionalExpression>,
-    for<'q> Join<<First2 as FirstItemTrait<Base>>::WhereClause>: Expression<'q, S>,
-    Base::Id:
-        ExpressionsForOperation<ScopedAliased: OptionalExpression, Scoped: OptionalExpression>,
-    for<'q> Join<<Base::Id as ExpressionsForOperation>::ScopedAliased>: Expression<'q, S>,
-    for<'q> Join<<Base::Id as ExpressionsForOperation>::Scoped>: Expression<'q, S>,
-    Links: LinkFetch<Output: Send>,
-    i64: for<'q> Encode<'q, S> + Type<S>,
-    OrderBy: Send + Clone,
-    OrderBy: ExpressionsForOperation<Scoped: OptionalExpression>,
-    for<'q> Join<<OrderBy as ExpressionsForOperation>::Scoped>: Expression<'q, S>,
-    OrderBy: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
-{
-    async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output {
-        // let db = S::singleton();
-        let id = self.base.id();
-        let link_items = self.links.non_aggregating_select_items();
-        let query_builder = StatementBuilder::<S>::new(SelectStatement {
-            select_items: (
-                Nest(id.scoped_aliased("i")),
-                Nest(self.base.scoped_aliased("b")),
-                Nest(link_items.scoped_aliased("l")),
-            ),
-            from: self.base.table_name_pascal_case(),
-            joins: (
-                Nest(self.base.inherit_join()),
-                Nest(self.links.non_duplicating_join_expressions()),
-            ),
-            group_by: (),
-            order: (Nest(self.cursor_order_by.scoped()),),
-            wheres: (
-                Nest(self.wheres),
-                Nest(self.links.where_expressions()),
-                Nest(self.cursor_first_item.where_clause(self.base.id())),
-            ),
-            limit: Bind(self.limit + 1),
-        });
+mod impl_operation_for_fetch_many {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
-        let (stmt, arg) = query_builder.unwrap();
+    impl<S, Base, Links, Wheres, OrderBy, First2> Operation<S>
+        for FetchMany<Base, Links, Wheres, OrderBy, First2>
+    where
+        S: DatabaseExt,
+        S: ExecutorTrait,
+        Base: Send,
+        OrderBy: Send,
+        Wheres: Send + OptionalExpression,
+        for<'q> Join<Wheres>: Expression<'q, S>,
+        Links: Send + LinkFetch<Output: Send>,
+        Links::Wheres: OptionalExpression,
+        for<'q> Join<Links::Wheres>: Expression<'q, S>,
+        Links::SelectItems: Send + ExpressionsForOperation<ScopedAliased: OptionalExpression>,
+        for<'q> Join<<Links::SelectItems as ExpressionsForOperation>::ScopedAliased>: Expression<'q, S>,
+        Links::SelectItems: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
+        Links::Join: OptionalExpression,
+        for<'q> Join<Links::Join>: Expression<'q, S>,
+        Links::Op: Operation<S>,
+        Links::OpInput: Send,
+        Base: Collection<OutputData: Send, Id: Send>,
+        Base:
+            TableExpressions<PascalCase: for<'q> Expression<'q, S>, ScopedAliased: OptionalExpression>,
+        for<'q> Join<Base::ScopedAliased>: Expression<'q, S>,
+        Base: FromRowData<RData = Base::OutputData>,
+        Base: for<'r> FromRowAlias<'r, S::Row>,
+        Base::InheritJoin: OptionalExpression,
+        for<'q> Join<Base::InheritJoin>: Expression<'q, S>,
+        Base::Id: Send + CollectionId<IdData: Send>,
+        Base::Id: FromRowData<RData = <Base::Id as CollectionId>::IdData>,
+        Base::Id: for<'r> FromRowAlias<'r, S::Row>,
+        First2: Send + FirstItemTrait<Base, WhereClause: Send + OptionalExpression>,
+        for<'q> Join<<First2 as FirstItemTrait<Base>>::WhereClause>: Expression<'q, S>,
+        Base::Id:
+            ExpressionsForOperation<ScopedAliased: OptionalExpression, Scoped: OptionalExpression>,
+        for<'q> Join<<Base::Id as ExpressionsForOperation>::ScopedAliased>: Expression<'q, S>,
+        for<'q> Join<<Base::Id as ExpressionsForOperation>::Scoped>: Expression<'q, S>,
+        Links: LinkFetch<Output: Send>,
+        i64: for<'q> Encode<'q, S> + Type<S>,
+        OrderBy: Send + Clone,
+        OrderBy: ExpressionsForOperation<Scoped: OptionalExpression>,
+        for<'q> Join<<OrderBy as ExpressionsForOperation>::Scoped>: Expression<'q, S>,
+        OrderBy: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
+    {
+        async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output {
+            // let db = S::singleton();
+            let id = self.base.id();
+            let link_items = self.links.non_aggregating_select_items();
+            let query_builder = StatementBuilder::<S>::new(SelectStatement {
+                select_items: (
+                    Nest(id.scoped_aliased("i")),
+                    Nest(self.base.scoped_aliased("b")),
+                    Nest(link_items.scoped_aliased("l")),
+                ),
+                from: self.base.table_name_pascal_case(),
+                joins: (
+                    Nest(self.base.inherit_join()),
+                    Nest(self.links.non_duplicating_join_expressions()),
+                ),
+                group_by: (),
+                order: (Nest(self.cursor_order_by.scoped()),),
+                wheres: (
+                    Nest(self.wheres),
+                    Nest(self.links.where_expressions()),
+                    Nest(self.cursor_first_item.where_clause(self.base.id())),
+                ),
+                limit: Bind(self.limit + 1),
+            });
 
-        tracing::info!(sql_stmt = %stmt, "fetch many");
+            let (stmt, arg) = query_builder.unwrap();
 
-        let mut all = S::fetch_all(
-            &mut *pool,
-            Executable {
-                string: &stmt,
-                arguments: arg,
-            },
-        )
-        .await
-        .unwrap();
+            tracing::info!(sql_stmt = %stmt, "fetch many");
 
-        let has_more = if all.len() == (self.limit + 1) as usize {
-            let last = all
-                .pop()
-                .expect("bug: len is usize + 1, should have last item to pop");
-            let next = self
-                .cursor_order_by
-                .str_alias(RowStrAliased::new(&last, "b"))
-                .unwrap();
-            let id = id.str_alias(RowStrAliased::new(&last, "i")).unwrap();
-            Some(NextItem {
-                id,
-                ordered_by_field: next,
-            })
-        } else {
-            None
-        };
+            let mut all = S::fetch_all(
+                &mut *pool,
+                Executable {
+                    string: &stmt,
+                    arguments: arg,
+                },
+            )
+            .await
+            .unwrap();
 
-        let mut input = self.links.operation_initialize_input();
-
-        let all = all
-            .into_iter()
-            .map(|e| {
-                let id = id.str_alias(RowStrAliased::new(&e, "i")).unwrap();
-                let link = link_items.str_alias(RowStrAliased::new(&e, "l")).unwrap();
-                self.links.operation_fix_on_many(&link, &mut input);
-                return LinkedOutput {
+            let has_more = if all.len() == (self.limit + 1) as usize {
+                let last = all
+                    .pop()
+                    .expect("bug: len is usize + 1, should have last item to pop");
+                let next = self
+                    .cursor_order_by
+                    .str_alias(RowStrAliased::new(&last, "b"))
+                    .unwrap();
+                let id = id.str_alias(RowStrAliased::new(&last, "i")).unwrap();
+                Some(NextItem {
                     id,
-                    attributes: self.base.str_alias(RowStrAliased::new(&e, "b")).unwrap(),
-                    links: link,
-                };
-            })
-            .collect::<Vec<_>>();
+                    ordered_by_field: next,
+                })
+            } else {
+                None
+            };
 
-        let mut po = self
-            .links
-            .operation_construct(input)
-            .exec_operation(&mut *pool)
-            .await;
+            let mut input = self.links.operation_initialize_input();
 
-        let all = all
-            .into_iter()
-            .map(|e| LinkedOutput {
-                id: e.id,
-                attributes: e.attributes,
-                links: self.links.take_many(e.links, &mut po),
-            })
-            .collect::<Vec<_>>();
+            let all = all
+                .into_iter()
+                .map(|e| {
+                    let id = id.str_alias(RowStrAliased::new(&e, "i")).unwrap();
+                    let link = link_items.str_alias(RowStrAliased::new(&e, "l")).unwrap();
+                    self.links.operation_fix_on_many(&link, &mut input);
+                    return LinkedOutput {
+                        id,
+                        attributes: self.base.str_alias(RowStrAliased::new(&e, "b")).unwrap(),
+                        links: link,
+                    };
+                })
+                .collect::<Vec<_>>();
 
-        ManyOutput {
-            items: all,
-            next_item: has_more,
+            let mut po = self
+                .links
+                .operation_construct(input)
+                .exec_operation(&mut *pool)
+                .await;
+
+            let all = all
+                .into_iter()
+                .map(|e| LinkedOutput {
+                    id: e.id,
+                    attributes: e.attributes,
+                    links: self.links.take_many(e.links, &mut po),
+                })
+                .collect::<Vec<_>>();
+
+            ManyOutput {
+                items: all,
+                next_item: has_more,
+            }
         }
     }
 }
