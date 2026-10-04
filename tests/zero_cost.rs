@@ -4,8 +4,9 @@ use linked_sql::links::{DefaultRelationKey, Link, relation_one_to_many::OneToMan
 use linked_sql::operations::{
     CollectionOutput, LinkedOutput, Operation,
     fetch_many::{FetchMany, ManyOutput},
-    operations_expressions_crossover::ExpressionsForOperation,
 };
+#[cfg(not(feature = "in_dev_op2"))]
+use linked_sql::operations::operations_expressions_crossover::ExpressionsForOperation;
 use linked_sql::sqlx_query_builder::basic_expressions::{Bind, ColumnContains};
 use linked_sql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
 use sqlx::Sqlite;

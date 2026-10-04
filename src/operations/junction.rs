@@ -14,7 +14,6 @@ use crate::{
     links::relation_many_to_many::ManyToMany,
     operations::{
         LinkedOutput, Operation, OperationOutput, fetch_one::FetchOne,
-        operations_expressions_crossover::{ExpressionsForOperation, TableExpressions},
     },
     sqlx_query_builder::{
         basic_expressions::{Bind, ColumnEqual},
@@ -26,6 +25,14 @@ use crate::{
         select_statement::SelectStatement,
     },
 };
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod crossover_imports {
+    pub use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
+}
+
+#[cfg(not(feature = "in_dev_op2"))]
+use crossover_imports::*;
 
 pub trait ManyToManyJunctionNames {
     fn junction_table_as_str(&self) -> String;
@@ -217,56 +224,67 @@ impl<Key, From, To> InsertJunctionAndFetch<Key, From, To> {
     }
 }
 
-impl<Key, From, To> OperationOutput for InsertJunctionAndFetch<Key, From, To>
-where
-    From: Collection,
-    To: Collection,
-{
-    type Output = LinkedOutput<<To::Id as CollectionId>::IdData, To::OutputData, ()>;
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_output_for_insert_junction_and_fetch {
+    use super::*;
+
+    impl<Key, From, To> OperationOutput for InsertJunctionAndFetch<Key, From, To>
+    where
+        From: Collection,
+        To: Collection,
+    {
+        type Output = LinkedOutput<<To::Id as CollectionId>::IdData, To::OutputData, ()>;
+    }
 }
 
-impl<S, Key, From, To> Operation<S> for InsertJunctionAndFetch<Key, From, To>
-where
-    S: DatabaseExt + ExecutorTrait,
-    Key: Clone + AsRef<str> + Send,
-    From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
-    <From as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
-    <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-    To: Collection<Id: SingleColumnId> + TableNameExpression + TableExpressions<
-        ScopedAliased: for<'q> Expression<'q, S>,
-        PascalCase: for<'q> Expression<'q, S>,
-    > + Members + Clone + Send,
-    <To as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
-    <To::Id as CollectionId>::IdData:
-        ::std::convert::From<i64> + Send + 'static + for<'q> Encode<'q, S> + Type<S> + Copy,
-    To::Id: Send
-        + ExpressionsForOperation<
-            Scoped: for<'q> Expression<'q, S>,
-            ScopedAliased: for<'q> Expression<'q, S>,
-        >
-        + for<'r> FromRowAlias<'r, S::Row, RData = <To::Id as CollectionId>::IdData>,
-    To: for<'r> FromRowAlias<'r, S::Row, RData = To::OutputData>,
-    To::OutputData: Send,
-    ColumnEqual<<To::Id as ExpressionsForOperation>::Scoped, Bind<<To::Id as CollectionId>::IdData>>: Send,
-    i64: for<'q> Encode<'q, S> + Type<S> + Send,
-{
-    async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output {
-        InsertJunctionRow::new(self.link.clone(), self.from_id, self.to_id)
-            .exec_operation(&mut *pool)
-            .await;
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_for_insert_junction_and_fetch {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
-        let to_id = <To::Id as CollectionId>::IdData::from(self.to_id);
-        FetchOne {
-            base: self.link.to.clone(),
-            links: (),
-            wheres: ColumnEqual {
-                col: self.link.to.id().scoped(),
-                eq: Bind(to_id),
-            },
+    impl<S, Key, From, To> Operation<S> for InsertJunctionAndFetch<Key, From, To>
+    where
+        S: DatabaseExt + ExecutorTrait,
+        Key: Clone + AsRef<str> + Send,
+        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        <From as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
+        <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
+        To: Collection<Id: SingleColumnId> + TableNameExpression + TableExpressions<
+            ScopedAliased: for<'q> Expression<'q, S>,
+            PascalCase: for<'q> Expression<'q, S>,
+        > + Members + Clone + Send,
+        <To as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
+        <To::Id as CollectionId>::IdData:
+            ::std::convert::From<i64> + Send + 'static + for<'q> Encode<'q, S> + Type<S> + Copy,
+        To::Id: Send
+            + ExpressionsForOperation<
+                Scoped: for<'q> Expression<'q, S>,
+                ScopedAliased: for<'q> Expression<'q, S>,
+            >
+            + for<'r> FromRowAlias<'r, S::Row, RData = <To::Id as CollectionId>::IdData>,
+        To: for<'r> FromRowAlias<'r, S::Row, RData = To::OutputData>,
+        To::OutputData: Send,
+        ColumnEqual<<To::Id as ExpressionsForOperation>::Scoped, Bind<<To::Id as CollectionId>::IdData>>: Send,
+        i64: for<'q> Encode<'q, S> + Type<S> + Send,
+    {
+        async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output {
+            InsertJunctionRow::new(self.link.clone(), self.from_id, self.to_id)
+                .exec_operation(&mut *pool)
+                .await;
+
+            let to_id = <To::Id as CollectionId>::IdData::from(self.to_id);
+            FetchOne {
+                base: self.link.to.clone(),
+                links: (),
+                wheres: ColumnEqual {
+                    col: self.link.to.id().scoped(),
+                    eq: Bind(to_id),
+                },
+            }
+            .exec_operation(&mut *pool)
+            .await
+            .expect("linked row should exist")
         }
-        .exec_operation(&mut *pool)
-        .await
-        .expect("linked row should exist")
     }
 }
 
