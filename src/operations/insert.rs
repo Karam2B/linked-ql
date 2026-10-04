@@ -7,10 +7,6 @@ use crate::{
     operations::{
         CollectionOutput, LinkedOutput, Operation, OperationOutput,
         insert_id_mode::AutoGenerate,
-        operations_expressions_crossover::{
-            ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert,
-            TableExpressions,
-        },
     },
     sqlx_query_builder::{
         Expression, Join, StatementBuilder,
@@ -18,6 +14,17 @@ use crate::{
         statements::insert_statement::{InsertStatement, IteratorSpec, One},
     },
 };
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod crossover_imports {
+    pub use crate::operations::operations_expressions_crossover::{
+        ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert,
+        TableExpressions,
+    };
+}
+
+#[cfg(not(feature = "in_dev_op2"))]
+use crossover_imports::*;
 
 pub trait InsertLinkConsumeData {
     type Link: InsertOneLink;
@@ -212,232 +219,256 @@ pub struct InsertEntity<Attributes, Link> {
     pub link: Link,
 }
 
-impl<H, PreL, L> OperationOutput for InsertOne<H, InsertEntity<H::InputData, PreL>, AbortOperation>
-where
-    PreL: InsertLinkConsumeData<Link = L>,
-    L: InsertOneLink,
-    H: Collection,
-{
-    type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_output_for_insert_one_with_entity {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert, TableExpressions};
+
+    impl<H, PreL, L> OperationOutput for InsertOne<H, InsertEntity<H::InputData, PreL>, AbortOperation>
+    where
+        PreL: InsertLinkConsumeData<Link = L>,
+        L: InsertOneLink,
+        H: Collection,
+    {
+        type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
+    }
 }
 
-// one item, with links
-impl<S, Base, LinkPreSplit, Link> Operation<S>
-    for InsertOne<Base, InsertEntity<Base::InputData, LinkPreSplit>, AbortOperation>
-where
-    S: DatabaseExt,
-    S: ExecutorTrait,
-    // Base::Id: OnInsert<Id, InsertId:Send+Clone+ for<'q> Expression<'q, S>,InsertExpression : for<'q> Expression<'q, S>>,
-    // Id: Send,
-    LinkPreSplit: Send + InsertLinkConsumeData<Link = Link>,
-    Link: Send,
-    Link: InsertOneLink,
-    Base: TableExpressions<
-            PascalCase: for<'q> Expression<'q, S>,
-            Identifier: OptionalExpression,
-        >,
-    for<'q> Join<Base::Identifier>: Expression<'q, S>,
-    Base: OnInsert<Base::InputData, InsertExpression: OptionalExpression>,
-    for<'q> Join<<Base as OnInsert<Base::InputData>>::InsertExpression>: Expression<'q, S>,
-    Base: Collection,
-    Base: Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
-    Base: Send,
-    Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
-    Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
-    for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
-    Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
-    Link::PreOp: Operation<S, Output: Send>,
-    Link::PreOpData: Send,
-    Link::InsertSets: SelfPrescribedInsert<
-            InsertId: Send + OptionalExpression,
-            InsertValue: Send + OptionalExpression,
-        >,
-    for<'q> Join<<Link::InsertSets as SelfPrescribedInsert>::InsertId>: Expression<'q, S>,
-    for<'q> Join<<Link::InsertSets as SelfPrescribedInsert>::InsertValue>: Expression<'q, S>,
-    Link::InsertValuesData: Send,
-    Link::PostOpData: Send,
-    Link::InsertReturning: IdentifierOnly<Identifier: OptionalExpression>,
-    for<'q> Join<<Link::InsertReturning as IdentifierOnly>::Identifier>: Expression<'q, S>,
-    Link::FromRow: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
-    Link::TakeInput: Send,
-    Link::PostOp: Operation<S, Output: Send>,
-    Link::Output: Send,
-    Link::PreOpToInsertValue: Send,
-    Link::PreOpToTake: Send,
-    Link::PreOpToPostOp: Send,
-{
-    fn exec_operation(self, pool: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_for_insert_one_with_entity {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert, TableExpressions};
+
+    // one item, with links
+    impl<S, Base, LinkPreSplit, Link> Operation<S>
+        for InsertOne<Base, InsertEntity<Base::InputData, LinkPreSplit>, AbortOperation>
     where
-        S: sqlx::Database,
-        Self: Sized,
+        S: DatabaseExt,
+        S: ExecutorTrait,
+        // Base::Id: OnInsert<Id, InsertId:Send+Clone+ for<'q> Expression<'q, S>,InsertExpression : for<'q> Expression<'q, S>>,
+        // Id: Send,
+        LinkPreSplit: Send + InsertLinkConsumeData<Link = Link>,
+        Link: Send,
+        Link: InsertOneLink,
+        Base: TableExpressions<
+                PascalCase: for<'q> Expression<'q, S>,
+                Identifier: OptionalExpression,
+            >,
+        for<'q> Join<Base::Identifier>: Expression<'q, S>,
+        Base: OnInsert<Base::InputData, InsertExpression: OptionalExpression>,
+        for<'q> Join<<Base as OnInsert<Base::InputData>>::InsertExpression>: Expression<'q, S>,
+        Base: Collection,
+        Base: Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
+        Base: Send,
+        Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
+        Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
+        for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
+        Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
+        Link::PreOp: Operation<S, Output: Send>,
+        Link::PreOpData: Send,
+        Link::InsertSets: SelfPrescribedInsert<
+                InsertId: Send + OptionalExpression,
+                InsertValue: Send + OptionalExpression,
+            >,
+        for<'q> Join<<Link::InsertSets as SelfPrescribedInsert>::InsertId>: Expression<'q, S>,
+        for<'q> Join<<Link::InsertSets as SelfPrescribedInsert>::InsertValue>: Expression<'q, S>,
+        Link::InsertValuesData: Send,
+        Link::PostOpData: Send,
+        Link::InsertReturning: IdentifierOnly<Identifier: OptionalExpression>,
+        for<'q> Join<<Link::InsertReturning as IdentifierOnly>::Identifier>: Expression<'q, S>,
+        Link::FromRow: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
+        Link::TakeInput: Send,
+        Link::PostOp: Operation<S, Output: Send>,
+        Link::Output: Send,
+        Link::PreOpToInsertValue: Send,
+        Link::PreOpToTake: Send,
+        Link::PreOpToPostOp: Send,
     {
-        async move {
-            let (link, link_data) = self.data.link.consume_data();
-            let pre_op = link
-                .pre_operation_init(link_data.pre_op_data)
-                .exec_operation(&mut *pool)
-                .await;
+        fn exec_operation(self, pool: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+        where
+            S: sqlx::Database,
+            Self: Sized,
+        {
+            async move {
+                let (link, link_data) = self.data.link.consume_data();
+                let pre_op = link
+                    .pre_operation_init(link_data.pre_op_data)
+                    .exec_operation(&mut *pool)
+                    .await;
 
-            let (pre_op_to_insert_value, pre_op_to_take, pre_op_to_post_op) =
-                link.pre_op_split(pre_op).expect("constraint violation");
+                let (pre_op_to_insert_value, pre_op_to_take, pre_op_to_post_op) =
+                    link.pre_op_split(pre_op).expect("constraint violation");
 
-            let base_id = self.handler.id();
+                let base_id = self.handler.id();
 
-            // let (id_insert_id, id_insert_val) = base_id.on_insert_with_id(self.id);
+                // let (id_insert_id, id_insert_val) = base_id.on_insert_with_id(self.id);
 
-            let insert_sets = link
-                .insert_value(link_data.insert_value_data, pre_op_to_insert_value)
-                .on_insert();
+                let insert_sets = link
+                    .insert_value(link_data.insert_value_data, pre_op_to_insert_value)
+                    .on_insert();
 
-            let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
-                table_name: self.handler.table_name_pascal_case(),
-                identifiers: Join {
-                    start: "",
-                    separator: ", ",
-                    items: (Nest(self.handler.identifier()), Nest(insert_sets.0)),
-                },
-                values: One(Join {
-                    start: "",
-                    separator: ", ",
-                    items: (
-                        Nest(self.handler.on_insert(self.data.attributes)),
-                        Nest(insert_sets.1),
+                let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
+                    table_name: self.handler.table_name_pascal_case(),
+                    identifiers: Join {
+                        start: "",
+                        separator: ", ",
+                        items: (Nest(self.handler.identifier()), Nest(insert_sets.0)),
+                    },
+                    values: One(Join {
+                        start: "",
+                        separator: ", ",
+                        items: (
+                            Nest(self.handler.on_insert(self.data.attributes)),
+                            Nest(insert_sets.1),
+                        ),
+                    }),
+                    returning: (
+                        Nest(base_id.identifier()),
+                        Nest(self.handler.identifier()),
+                        Nest(link.insert_returning().identifier_only()),
                     ),
-                }),
-                returning: (
-                    Nest(base_id.identifier()),
-                    Nest(self.handler.identifier()),
-                    Nest(link.insert_returning().identifier_only()),
-                ),
-            })
-            .unwrap();
+                })
+                .unwrap();
 
-            let row = S::fetch_optional(
-                &mut *pool,
-                Executable {
-                    string: &stmt,
-                    arguments: arg,
-                },
-            )
-            .await
-            .unwrap()
-            // .map_err(|e| {
-            //     if let Some(e) = e.as_database_error() {
-            //         if e.is_check_violation() || e.is_unique_violation() || e.is_foreign_key_violation() {
-            //             return ConstraintViolation(e.constraint().map(|c| c.to_string()));
-            //         }
-            //     }
-            //         tracing::error!(sqlx_error = ?e, "bug: must clear all sqlx errors, hard to know where this error was originated!");
-            //         panic!()
-            // })?
-            .unwrap();
+                let row = S::fetch_optional(
+                    &mut *pool,
+                    Executable {
+                        string: &stmt,
+                        arguments: arg,
+                    },
+                )
+                .await
+                .unwrap()
+                // .map_err(|e| {
+                //     if let Some(e) = e.as_database_error() {
+                //         if e.is_check_violation() || e.is_unique_violation() || e.is_foreign_key_violation() {
+                //             return ConstraintViolation(e.constraint().map(|c| c.to_string()));
+                //         }
+                //     }
+                //         tracing::error!(sqlx_error = ?e, "bug: must clear all sqlx errors, hard to know where this error was originated!");
+                //         panic!()
+                // })?
+                .unwrap();
 
-            let id = base_id.no_alias(&row).unwrap();
-            let attributes = self.handler.no_alias(&row).unwrap();
+                let id = base_id.no_alias(&row).unwrap();
+                let attributes = self.handler.no_alias(&row).unwrap();
 
-            let links = {
-                let ii = link.from_row().no_alias(&row).unwrap();
-                let (post_op_input_2, from_row_take_input) =
-                    link.from_row_result(link_data.post_op_data, ii, pre_op_to_post_op);
-                let po = post_op_input_2.exec_operation(&mut *pool).await;
-                let po = link.post_op_output(po).expect("constraint violation");
-                link.take(po, from_row_take_input, pre_op_to_take)
-            };
+                let links = {
+                    let ii = link.from_row().no_alias(&row).unwrap();
+                    let (post_op_input_2, from_row_take_input) =
+                        link.from_row_result(link_data.post_op_data, ii, pre_op_to_post_op);
+                    let po = post_op_input_2.exec_operation(&mut *pool).await;
+                    let po = link.post_op_output(po).expect("constraint violation");
+                    link.take(po, from_row_take_input, pre_op_to_take)
+                };
 
-            LinkedOutput {
-                id,
-                attributes,
-                links,
+                LinkedOutput {
+                    id,
+                    attributes,
+                    links,
+                }
             }
         }
     }
 }
 
-impl<Base, I> OperationOutput for InsertOne<Base, IteratorSpec<I>, AbortOperation>
-where
-    Base: Collection,
-    I: IntoIterator<Item = Base::InputData>,
-{
-    type Output = Vec<CollectionOutput<<Base::Id as CollectionId>::IdData, Base::OutputData>>;
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_output_for_insert_one_with_iterator {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnInsert, TableExpressions};
+
+    impl<Base, I> OperationOutput for InsertOne<Base, IteratorSpec<I>, AbortOperation>
+    where
+        Base: Collection,
+        I: IntoIterator<Item = Base::InputData>,
+    {
+        type Output = Vec<CollectionOutput<<Base::Id as CollectionId>::IdData, Base::OutputData>>;
+    }
 }
 
-// many items, no links
-impl<S, Base, I> Operation<S> for InsertOne<Base, IteratorSpec<I>, AbortOperation>
-where
-    S: DatabaseExt,
-    S: ExecutorTrait,
-    I: Send + IntoIterator<Item = Base::InputData>,
-    Base::Id: OnInsert<
-            AutoGenerate,
-            InsertId: Send + Clone + OptionalExpression,
-            InsertExpression: OptionalExpression,
-        >,
-    for<'q> Join<<Base::Id as OnInsert<AutoGenerate>>::InsertId>: Expression<'q, S>,
-    for<'q> Join<<Base::Id as OnInsert<AutoGenerate>>::InsertExpression>: Expression<'q, S>,
-    Base: TableExpressions<
-            PascalCase: for<'q> Expression<'q, S>,
-            Identifier: OptionalExpression,
-        >,
-    for<'q> Join<Base::Identifier>: Expression<'q, S>,
-    Base::InputData: for<'q> Expression<'q, S>,
-    Base: Sync,
-    Base: OnInsert<IteratorSpec<I>>,
-    Base: Collection,
-    Base:
-        Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send> + Sync>,
-    Base: Send,
-    Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
-    Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
-    for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
-    Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
-{
-    fn exec_operation(self, pool: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_for_insert_one_with_iterator {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnInsert, TableExpressions};
+
+    // many items, no links
+    impl<S, Base, I> Operation<S> for InsertOne<Base, IteratorSpec<I>, AbortOperation>
     where
-        S: sqlx::Database,
-        Self: Sized,
+        S: DatabaseExt,
+        S: ExecutorTrait,
+        I: Send + IntoIterator<Item = Base::InputData>,
+        Base::Id: OnInsert<
+                AutoGenerate,
+                InsertId: Send + Clone + OptionalExpression,
+                InsertExpression: OptionalExpression,
+            >,
+        for<'q> Join<<Base::Id as OnInsert<AutoGenerate>>::InsertId>: Expression<'q, S>,
+        for<'q> Join<<Base::Id as OnInsert<AutoGenerate>>::InsertExpression>: Expression<'q, S>,
+        Base: TableExpressions<
+                PascalCase: for<'q> Expression<'q, S>,
+                Identifier: OptionalExpression,
+            >,
+        for<'q> Join<Base::Identifier>: Expression<'q, S>,
+        Base::InputData: for<'q> Expression<'q, S>,
+        Base: Sync,
+        Base: OnInsert<IteratorSpec<I>>,
+        Base: Collection,
+        Base:
+            Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send> + Sync>,
+        Base: Send,
+        Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
+        Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
+        for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
+        Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
     {
-        async move {
-            let base_id = self.handler.id();
+        fn exec_operation(self, pool: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+        where
+            S: sqlx::Database,
+            Self: Sized,
+        {
+            async move {
+                let base_id = self.handler.id();
 
-            let id_insert_id = base_id.identifier();
+                let id_insert_id = base_id.identifier();
 
-            let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
-                table_name: self.handler.table_name_pascal_case(),
-                identifiers: Join {
-                    start: "",
-                    separator: ", ",
-                    items: (Nest(self.handler.identifier()),),
-                },
-                values: self.data,
-                returning: (Nest(id_insert_id), Nest(self.handler.identifier())),
-            })
-            .unwrap();
+                let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
+                    table_name: self.handler.table_name_pascal_case(),
+                    identifiers: Join {
+                        start: "",
+                        separator: ", ",
+                        items: (Nest(self.handler.identifier()),),
+                    },
+                    values: self.data,
+                    returning: (Nest(id_insert_id), Nest(self.handler.identifier())),
+                })
+                .unwrap();
 
-            let row = S::fetch_all_mapped(
-                &mut *pool,
-                Executable {
-                    string: &stmt,
-                    arguments: arg,
-                },
-                |row| {
-                    let id = base_id.no_alias(&row).unwrap();
-                    let attributes = self.handler.no_alias(&row).unwrap();
-                    CollectionOutput { id, attributes }
-                },
-            )
-            .await
-            // .map_err(|e| {
-            //     if let Some(e) = e.as_database_error() {
-            //         if e.is_check_violation() || e.is_unique_violation() || e.is_foreign_key_violation() {
-            //             return ConstraintViolation(e.constraint().map(|c| c.to_string()));
-            //         }
-            //     }
-            //         tracing::error!(sqlx_error = ?e, "bug: must clear all sqlx errors, hard to know where this error was originated!");
-            //         panic!()
-            // })
-            .unwrap();
+                let row = S::fetch_all_mapped(
+                    &mut *pool,
+                    Executable {
+                        string: &stmt,
+                        arguments: arg,
+                    },
+                    |row| {
+                        let id = base_id.no_alias(&row).unwrap();
+                        let attributes = self.handler.no_alias(&row).unwrap();
+                        CollectionOutput { id, attributes }
+                    },
+                )
+                .await
+                // .map_err(|e| {
+                //     if let Some(e) = e.as_database_error() {
+                //         if e.is_check_violation() || e.is_unique_violation() || e.is_foreign_key_violation() {
+                //             return ConstraintViolation(e.constraint().map(|c| c.to_string()));
+                //         }
+                //     }
+                //         tracing::error!(sqlx_error = ?e, "bug: must clear all sqlx errors, hard to know where this error was originated!");
+                //         panic!()
+                // })
+                .unwrap();
 
-            row
+                row
+            }
         }
     }
 }
