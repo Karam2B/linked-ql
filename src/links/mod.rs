@@ -38,6 +38,7 @@ pub trait LinkedViaIds {}
 mod many_links {
     use crate::from_row::{FromRowAlias, FromRowData, FromRowError, RowNumAliased, RowStrAliased};
     use crate::operations::OperationOutput;
+    #[cfg(not(feature = "in_dev_op2"))]
     use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
     use sqlx::Row;
 
@@ -80,29 +81,35 @@ mod many_links {
         }
     }
 
-    impl<L0, L1> ExpressionsForOperation for ManyLinks<(L0, L1)>
-    where
-        L0: ExpressionsForOperation,
-        L1: ExpressionsForOperation,
-    {
-        type Identifier = (L0::Identifier, L1::Identifier);
-        fn identifier(&self) -> Self::Identifier {
-            (self.0.0.identifier(), self.0.1.identifier())
-        }
-        type Scoped = (L0::Scoped, L1::Scoped);
-        fn scoped(&self) -> Self::Scoped {
-            (self.0.0.scoped(), self.0.1.scoped())
-        }
-        type ScopedAliased = (L0::NumScopedAliased, L1::NumScopedAliased);
-        fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
-            (
-                self.0.0.num_scoped_aliased(0, alias),
-                self.0.1.num_scoped_aliased(1, alias),
-            )
-        }
-        type NumScopedAliased = (L0::NumScopedAliased, L1::NumScopedAliased);
-        fn num_scoped_aliased(&self, _: usize, _: &'static str) -> Self::NumScopedAliased {
-            panic!("should not nest multiple links")
+    #[cfg(not(feature = "in_dev_op2"))]
+    mod impl_expressions_for_operation_for_many_links_tuple {
+        use super::*;
+        use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+
+        impl<L0, L1> ExpressionsForOperation for ManyLinks<(L0, L1)>
+        where
+            L0: ExpressionsForOperation,
+            L1: ExpressionsForOperation,
+        {
+            type Identifier = (L0::Identifier, L1::Identifier);
+            fn identifier(&self) -> Self::Identifier {
+                (self.0.0.identifier(), self.0.1.identifier())
+            }
+            type Scoped = (L0::Scoped, L1::Scoped);
+            fn scoped(&self) -> Self::Scoped {
+                (self.0.0.scoped(), self.0.1.scoped())
+            }
+            type ScopedAliased = (L0::NumScopedAliased, L1::NumScopedAliased);
+            fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
+                (
+                    self.0.0.num_scoped_aliased(0, alias),
+                    self.0.1.num_scoped_aliased(1, alias),
+                )
+            }
+            type NumScopedAliased = (L0::NumScopedAliased, L1::NumScopedAliased);
+            fn num_scoped_aliased(&self, _: usize, _: &'static str) -> Self::NumScopedAliased {
+                panic!("should not nest multiple links")
+            }
         }
     }
 
@@ -149,36 +156,42 @@ mod many_links {
         }
     }
 
-    impl<T> ExpressionsForOperation for ManyLinks<Vec<T>>
-    where
-        T: ExpressionsForOperation,
-    {
-        type Identifier = Vec<T::Identifier>;
-        fn identifier(&self) -> Self::Identifier {
-            self.0.iter().map(|t| t.identifier()).collect()
-        }
+    #[cfg(not(feature = "in_dev_op2"))]
+    mod impl_expressions_for_operation_for_many_links_vec {
+        use super::*;
+        use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
-        type Scoped = Vec<T::Scoped>;
+        impl<T> ExpressionsForOperation for ManyLinks<Vec<T>>
+        where
+            T: ExpressionsForOperation,
+        {
+            type Identifier = Vec<T::Identifier>;
+            fn identifier(&self) -> Self::Identifier {
+                self.0.iter().map(|t| t.identifier()).collect()
+            }
 
-        fn scoped(&self) -> Self::Scoped {
-            self.0.iter().map(|t| t.scoped()).collect()
-        }
+            type Scoped = Vec<T::Scoped>;
 
-        type ScopedAliased = Vec<T::NumScopedAliased>;
+            fn scoped(&self) -> Self::Scoped {
+                self.0.iter().map(|t| t.scoped()).collect()
+            }
 
-        fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
-            self
-                .0
-                .iter()
-                .enumerate()
-                .map(|(num, t)| t.num_scoped_aliased(num, alias))
-                .collect()
-        }
+            type ScopedAliased = Vec<T::NumScopedAliased>;
 
-        type NumScopedAliased = Vec<T::NumScopedAliased>;
+            fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
+                self
+                    .0
+                    .iter()
+                    .enumerate()
+                    .map(|(num, t)| t.num_scoped_aliased(num, alias))
+                    .collect()
+            }
 
-        fn num_scoped_aliased(&self, _: usize, _: &'static str) -> Self::NumScopedAliased {
-            panic!("should not nest multiple links")
+            type NumScopedAliased = Vec<T::NumScopedAliased>;
+
+            fn num_scoped_aliased(&self, _: usize, _: &'static str) -> Self::NumScopedAliased {
+                panic!("should not nest multiple links")
+            }
         }
     }
 
