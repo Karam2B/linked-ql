@@ -13,6 +13,7 @@ impl<Id, F, T> LinkedToBase for OneToManyInverse<Id, F, T> {
     type Base = F;
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_link_fetch {
     use std::collections::HashSet;
 
