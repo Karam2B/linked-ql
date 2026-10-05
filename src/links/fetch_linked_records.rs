@@ -71,6 +71,7 @@ pub trait ManyToManyJunctionNames {
     fn to_junction_col_as_str(&self) -> String;
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_many_to_many_junction_names {
     use crate::{
         collections::{Collection, SingleColumnId},

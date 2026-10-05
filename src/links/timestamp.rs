@@ -26,6 +26,7 @@ where
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_migrate {
     use std::marker::PhantomData;
 
