@@ -217,12 +217,12 @@ impl<Key, From, To> InsertJunctionAndFetch<Key, From, To> {
 }
 
 #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/operations/junction.rs: impl OperationOutput + Operation<S> for InsertJunctionAndFetch",
-        }
-    }
+inventory::submit! {
+crate::feature_todo::FeatureTodo {
+    feature: "in_dev_op2",
+    comment: "src/operations/junction.rs: impl OperationOutput + Operation<S> for InsertJunctionAndFetch",
+}
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_operation_for_insert_junction_and_fetch {

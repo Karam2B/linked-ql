@@ -14,12 +14,12 @@ impl<Id, F, T> LinkedToBase for OneToManyInverse<Id, F, T> {
 }
 
 #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/relation_one_to_many_inverse.rs: impl LinkFetch for OneToManyInverse",
-        }
-    }
+inventory::submit! {
+crate::feature_todo::FeatureTodo {
+    feature: "in_dev_op2",
+    comment: "src/links/relation_one_to_many_inverse.rs: impl LinkFetch for OneToManyInverse",
+}
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_link_fetch {
