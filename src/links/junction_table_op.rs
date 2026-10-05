@@ -653,17 +653,17 @@ pub struct DeleteJunction<const INVERSE: bool, Key, From, To, Where> {
     pub wheres: Where,
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_on_delete {
-    use super::DeleteJunction;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/junction_table_op.rs: impl Operation for DeleteJunction",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_on_delete {
+    use super::DeleteJunction;
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,

@@ -134,18 +134,18 @@ impl DeleteLink for () {
     }
 }
 
+#[cfg(feature = "inventory")]
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/operations/delete.rs: impl OperationOutput + Operation<S> for Delete",
+    }
+}
+
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_operation_for_delete {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
-
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/operations/delete.rs: impl OperationOutput + Operation<S> for Delete",
-        }
-    }
 
     impl<Base, Wheres, PL, Links> OperationOutput for Delete<Base, Wheres, PL>
     where

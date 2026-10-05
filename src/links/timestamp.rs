@@ -26,17 +26,17 @@ where
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_on_migrate {
-    use std::marker::PhantomData;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/timestamp.rs: impl MigrateExpression for Timestamp",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_on_migrate {
+    use std::marker::PhantomData;
 
     use crate::{
         links::timestamp::Timestamp,

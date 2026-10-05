@@ -27,17 +27,17 @@ where
     pub to_ids: I,
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_insert_junction_many_rows {
-    use std::future::Future;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/relation_many_to_many.rs: impl InsertJunctionManyRows for ManyToMany",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_insert_junction_many_rows {
+    use std::future::Future;
 
     use sqlx::{Encode, Type};
 
@@ -119,17 +119,17 @@ mod impl_insert_junction_many_rows {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_on_migrate {
-    use std::marker::PhantomData;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/relation_many_to_many.rs: impl MigrateExpression for ManyToMany",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_on_migrate {
+    use std::marker::PhantomData;
 
     use crate::{
         collections::{Collection, SingleColumnId},
@@ -539,17 +539,17 @@ mod impl_link_fetch_many {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_many_to_many_set_new {
-    use std::marker::PhantomData;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/relation_many_to_many.rs: impl InsertOneLink for SetNew<ManyToMany>",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_many_to_many_set_new {
+    use std::marker::PhantomData;
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId}, from_row::FromRowData, links::{
@@ -844,17 +844,17 @@ pub mod junction_from_id_set {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_set_id_for_insert {
-    use std::marker::PhantomData;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/relation_many_to_many.rs: impl InsertOneLink for SetJunctionId<ManyToMany>",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_set_id_for_insert {
+    use std::marker::PhantomData;
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},

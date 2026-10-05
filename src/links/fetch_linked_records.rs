@@ -805,17 +805,17 @@ mod impl_select_junction_to_ids {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_fetch_one_to_many_inverse_linked {
-    use std::collections::HashMap;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/fetch_linked_records.rs: impl FetchOneToManyInverseLinked",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_fetch_one_to_many_inverse_linked {
+    use std::collections::HashMap;
 
     use sqlx::{Decode, Encode, Type};
 
@@ -1038,17 +1038,17 @@ mod impl_fetch_one_to_many_inverse_linked {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_fetch_many_to_many_linked {
-    use std::collections::HashMap;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/fetch_linked_records.rs: impl FetchManyToManyLinked",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_fetch_many_to_many_linked {
+    use std::collections::HashMap;
 
     use sqlx::{Decode, Encode, Type};
 

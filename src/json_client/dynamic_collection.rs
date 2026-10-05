@@ -1140,17 +1140,17 @@ pub(crate) mod common_expression_impls {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod arc_collection_impls {
-    use std::sync::Arc;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/json_client/dynamic_collection.rs: Arc<DynamicCollection> impls",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod arc_collection_impls {
+    use std::sync::Arc;
 
     use crate::{
         database_extention::DatabaseExt,
@@ -1314,17 +1314,17 @@ mod std_impls {
     impl<S: DatabaseExt> Eq for DynamicField<S> {}
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_on_migrate {
-    use std::ops::Not;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/json_client/dynamic_collection.rs: impl MigrateExpression for DynamicCollection",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_on_migrate {
+    use std::ops::Not;
     use std::sync::Arc;
 
     use super::DynamicCollection;

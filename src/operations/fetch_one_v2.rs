@@ -22,17 +22,17 @@ pub struct FetchOne<Base, Links, Wheres> {
     pub wheres: Wheres,
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_fetch_one {
-    use super::*;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/operations/fetch_one_v2.rs: impl OperationOutput + Operation<S> for FetchOne v2",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_for_fetch_one {
+    use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     #[linked_sql_macros::skip]

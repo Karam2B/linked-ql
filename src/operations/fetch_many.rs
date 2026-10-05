@@ -126,10 +126,6 @@ mod std_impls {
         }
     }
 
-    #[cfg(not(feature = "in_dev_op2"))]
-    mod impl_expressions_for_operation_for_empty {
-        use super::Empty;
-
     #[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
@@ -137,6 +133,10 @@ mod std_impls {
             comment: "src/operations/fetch_many.rs: impl ExpressionsForOperation for Empty",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+    mod impl_expressions_for_operation_for_empty {
+        use super::Empty;
         use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
         impl ExpressionsForOperation for Empty {
@@ -202,17 +202,17 @@ pub struct NextItem<Id, OrderedByFields> {
     pub ordered_by_field: OrderedByFields,
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_fetch_many {
-    use super::*;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/operations/fetch_many.rs: impl OperationOutput for FetchMany",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_output_for_fetch_many {
+    use super::*;
 
     impl<B, L, W, O, F> OperationOutput for FetchMany<B, L, W, O, F>
     where
@@ -308,17 +308,17 @@ mod impl_first_item_trait_for_option_tuple {
 }
 
 // was: `for FetchMany<Base, Links, Wheres, OrderBy, (<Base::Id as CollectionId>::IdData, First)>`
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_fetch_many {
-    use super::*;
-
-    #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/operations/fetch_many.rs: impl Operation<S> for FetchMany",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_for_fetch_many {
+    use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<S, Base, Links, Wheres, OrderBy, First2> Operation<S>

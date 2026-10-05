@@ -79,10 +79,6 @@ mod many_links {
         }
     }
 
-    #[cfg(not(feature = "in_dev_op2"))]
-    mod impl_expressions_for_operation_for_many_links_tuple {
-        use super::*;
-
     #[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
@@ -90,6 +86,10 @@ mod many_links {
             comment: "src/links/mod.rs: impl ExpressionsForOperation for ManyLinks<(L0, L1)>",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+    mod impl_expressions_for_operation_for_many_links_tuple {
+        use super::*;
         use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
         impl<L0, L1> ExpressionsForOperation for ManyLinks<(L0, L1)>
@@ -162,10 +162,6 @@ mod many_links {
         }
     }
 
-    #[cfg(not(feature = "in_dev_op2"))]
-    mod impl_expressions_for_operation_for_many_links_vec {
-        use super::*;
-
     #[cfg(feature = "inventory")]
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
@@ -173,6 +169,10 @@ mod many_links {
             comment: "src/links/mod.rs: impl ExpressionsForOperation for ManyLinks<Vec<T>>",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+    mod impl_expressions_for_operation_for_many_links_vec {
+        use super::*;
         use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
         impl<T> ExpressionsForOperation for ManyLinks<Vec<T>>
