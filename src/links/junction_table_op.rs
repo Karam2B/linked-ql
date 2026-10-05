@@ -504,17 +504,19 @@ pub struct InsertJunction<const INVERSE: bool, Key, From, To, Data> {
     pub data: Data,
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_one_insert {
-    use sqlx::{ColumnIndex, Decode, Row, Type};
-
     #[cfg(feature = "inventory")]
+    inventory::submit! {
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/junction_table_op.rs: impl Operation for InsertJunction",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_one_insert {
+    use sqlx::{ColumnIndex, Decode, Row, Type};
+
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},

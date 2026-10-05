@@ -297,6 +297,15 @@ mod one_to_many_items_names {
     }
 }
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl LinkFetch for OneToMany",
+        }
+    }
+
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_link_fetch_many {
     use crate::{
@@ -314,13 +323,6 @@ mod impl_link_fetch_many {
         sqlx_query_builder::{basic_expressions::JoinExpression, sanitize_combinator::Sanitize},
     };
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/relation_one_to_many.rs: impl LinkFetch for OneToMany",
-        }
-    }
 
     impl<Key, F, T> LinkFetch for OneToMany<Key, F, T>
     where

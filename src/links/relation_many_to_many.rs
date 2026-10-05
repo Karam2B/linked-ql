@@ -264,17 +264,19 @@ mod impl_on_migrate {
     }
 }
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_link_fetch_many {
-    use std::collections::{HashMap};
-
     #[cfg(feature = "inventory")]
+    inventory::submit! {
     inventory::submit! {
         crate::feature_todo::FeatureTodo {
             feature: "in_dev_op2",
             comment: "src/links/relation_many_to_many.rs: impl LinkFetch for ManyToMany",
         }
     }
+
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_link_fetch_many {
+    use std::collections::{HashMap};
+
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId}, from_row::FromRowData, links::{junction_table_op::FetchJunction, relation_many_to_many::ManyToMany}, operations::{
@@ -979,6 +981,15 @@ mod impl_set_id_for_insert {
     }
 }
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl UpdateLink for SetJunctionId<ManyToMany>",
+        }
+    }
+
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_junzcction_id_for_update {
     use crate::{
@@ -997,13 +1008,6 @@ mod impl_set_junzcction_id_for_update {
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
     };
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/relation_many_to_many.rs: impl UpdateLink for SetJunctionId<ManyToMany>",
-        }
-    }
 
     #[derive(Clone)]
     pub struct SetJunctionId<Key, From, To> {
@@ -1238,6 +1242,15 @@ mod impl_set_junzcction_id_for_update {
     }
 }
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl UpdateLink for RemoveJunctionId<ManyToMany>",
+        }
+    }
+
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_remove_junction_id_for_update {
     use crate::{
@@ -1256,13 +1269,6 @@ mod impl_remove_junction_id_for_update {
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
     };
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/relation_many_to_many.rs: impl UpdateLink for RemoveJunctionId<ManyToMany>",
-        }
-    }
 
     #[derive(Clone)]
     pub struct RemoveJunctionId<Key, From, To> {
@@ -1404,6 +1410,15 @@ mod impl_remove_junction_id_for_update {
     }
 }
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl DeleteLink for ManyToMany",
+        }
+    }
+
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_for_delete {
     use crate::{
@@ -1422,13 +1437,6 @@ mod impl_for_delete {
         },
     };
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/relation_many_to_many.rs: impl DeleteLink for ManyToMany",
-        }
-    }
 
     #[derive(Clone)]
     pub struct DeleteManyToManyLinked<Key, From, To> {

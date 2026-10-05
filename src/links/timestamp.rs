@@ -512,6 +512,15 @@ pub mod impl_fetch_many {
     }
 }
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/timestamp.rs: impl OnInsert for Timestamp",
+        }
+    }
+
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_insert {
     use crate::{
@@ -521,13 +530,6 @@ mod impl_on_insert {
         operations::insert::{ConstraintViolation, InsertLinkConsumeData, InsertLinkData, InsertOneLink},
     };
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/timestamp.rs: impl OnInsert for Timestamp",
-        }
-    }
 
     impl<C: Clone + crate::operations::operations_expressions_crossover::TableExpressions>
         InsertLinkConsumeData for Timestamp<C>
