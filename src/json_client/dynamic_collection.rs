@@ -695,6 +695,7 @@ pub(crate) use collection_impls::{
 };
 pub(crate) use dynamic_insert_binds::DynamicUpdateInput;
 
+#[cfg(not(feature = "in_dev_op2"))]
 pub(crate) mod common_expression_impls {
     use std::{ops::Not, sync::Arc};
 
@@ -1131,6 +1132,7 @@ pub(crate) mod common_expression_impls {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod arc_collection_impls {
     use std::sync::Arc;
 
@@ -1296,6 +1298,7 @@ mod std_impls {
     impl<S: DatabaseExt> Eq for DynamicField<S> {}
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_migrate {
     use std::ops::Not;
     use std::sync::Arc;
