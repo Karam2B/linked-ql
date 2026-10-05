@@ -48,7 +48,12 @@ pub struct ToImplSelectItems<Se, CastFromRowResult> {
     pub cast_from_row_result: CastFromRowResult,
 }
 
-impl<Se, S> SelectItemsTraitObject<S, ()> for ToImplSelectItems<Se, ()>
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_select_items_trait_object {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+
+    impl<Se, S> SelectItemsTraitObject<S, ()> for ToImplSelectItems<Se, ()>
 where
     Se: Send,
     Se: ExpressionsForOperation<
