@@ -129,6 +129,14 @@ mod std_impls {
     #[cfg(not(feature = "in_dev_op2"))]
     mod impl_expressions_for_operation_for_empty {
         use super::Empty;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/operations/fetch_many.rs: impl ExpressionsForOperation for Empty",
+        }
+    }
         use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
         impl ExpressionsForOperation for Empty {
@@ -197,6 +205,14 @@ pub struct NextItem<Id, OrderedByFields> {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_operation_output_for_fetch_many {
     use super::*;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/operations/fetch_many.rs: impl OperationOutput for FetchMany",
+        }
+    }
 
     impl<B, L, W, O, F> OperationOutput for FetchMany<B, L, W, O, F>
     where
@@ -295,6 +311,14 @@ mod impl_first_item_trait_for_option_tuple {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_operation_for_fetch_many {
     use super::*;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/operations/fetch_many.rs: impl Operation<S> for FetchMany",
+        }
+    }
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<S, Base, Links, Wheres, OrderBy, First2> Operation<S>

@@ -219,6 +219,14 @@ impl<Key, From, To> InsertJunctionAndFetch<Key, From, To> {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_operation_for_insert_junction_and_fetch {
     use super::*;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/operations/junction.rs: impl OperationOutput + Operation<S> for InsertJunctionAndFetch",
+        }
+    }
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<Key, From, To> OperationOutput for InsertJunctionAndFetch<Key, From, To>

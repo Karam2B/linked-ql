@@ -51,6 +51,14 @@ pub struct ToImplSelectItems<Se, CastFromRowResult> {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_select_items_trait_object {
     use super::*;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/select_items_trait_object.rs: SelectItemsTraitObject impls",
+        }
+    }
     use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
 
     impl<Se, S> SelectItemsTraitObject<S, ()> for ToImplSelectItems<Se, ()>

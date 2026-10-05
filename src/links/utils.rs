@@ -1,3 +1,11 @@
+#[cfg(feature = "inventory")]
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/links/utils.rs: ConventionalForeignKeyName and related utils",
+    }
+}
+
 #[cfg(not(feature = "in_dev_op2"))]
 use crate::operations::operations_expressions_crossover::TableExpressions;
 

@@ -85,6 +85,14 @@ pub struct InsertOne<Handler, Data, Links> {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_operation_for_insert_one {
     use super::*;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/v1_insert_one.rs: impl OperationOutput + Operation<S> for InsertOne (v1)",
+        }
+    }
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnInsert};
 
     impl<H, L> OperationOutput for InsertOne<H, H::InputData, L>

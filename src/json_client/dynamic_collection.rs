@@ -1136,6 +1136,14 @@ pub(crate) mod common_expression_impls {
 mod arc_collection_impls {
     use std::sync::Arc;
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/dynamic_collection.rs: Arc<DynamicCollection> impls",
+        }
+    }
+
     use crate::{
         database_extention::DatabaseExt,
         from_row::{FromRowAlias, FromRowData, FromRowError},
@@ -1301,6 +1309,14 @@ mod std_impls {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_migrate {
     use std::ops::Not;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/dynamic_collection.rs: impl MigrateExpression for DynamicCollection",
+        }
+    }
     use std::sync::Arc;
 
     use super::DynamicCollection;

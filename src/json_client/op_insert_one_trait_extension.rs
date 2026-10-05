@@ -151,6 +151,14 @@ pub trait JsonInsertOneLink<S: Database>: Send + Sync + 'static {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_json_insert_one_link {
     use super::*;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/op_insert_one_trait_extension.rs: JsonInsertOneLink trait impls",
+        }
+    }
     use crate::operations::operations_expressions_crossover::{IdentifierOnly, SelfPrescribedInsert};
 
     impl<T, S> JsonInsertOneLink<S> for T

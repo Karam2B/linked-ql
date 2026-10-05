@@ -17,6 +17,14 @@ impl<Id, F, T> LinkedToBase for OneToMany<Id, F, T> {
 mod impl_on_migrate {
     use std::marker::PhantomData;
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl MigrateExpression for OneToMany",
+        }
+    }
+
     use crate::{
         collections::{Collection, SingleColumnId},
         links::{
@@ -306,6 +314,14 @@ mod impl_link_fetch_many {
         sqlx_query_builder::{basic_expressions::JoinExpression, sanitize_combinator::Sanitize},
     };
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl LinkFetch for OneToMany",
+        }
+    }
+
     impl<Key, F, T> LinkFetch for OneToMany<Key, F, T>
     where
         Key: Clone + AsRef<str>,
@@ -508,6 +524,14 @@ mod impl_link_fetch_many {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_new_for_insert {
     use std::marker::PhantomData;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl InsertOneLink for SetNew<OneToMany>",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId},
@@ -765,6 +789,14 @@ mod impl_set_new_for_insert {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_id_for_insert {
     use std::marker::PhantomData;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl InsertOneLink for SetId<OneToMany>",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId},
@@ -1052,6 +1084,14 @@ mod impl_set_id_for_insert {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_id_for_update {
     use std::marker::PhantomData;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl UpdateLink for SetId<OneToMany>",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId},
@@ -1686,6 +1726,14 @@ LEFT JOIN Category ON Todo.fk_category_def = Category.id;
 mod impl_set_new_for_update {
     use std::marker::PhantomData;
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl UpdateLink for SetNew<OneToMany>",
+        }
+    }
+
     use crate::{
         collections::{Collection, CollectionId}, from_row::named_col_from_row::NamedColFromRow, links::{
             relation_one_to_many::{OneToMany, one_to_many_items_names::OneToManySet},
@@ -1948,6 +1996,14 @@ mod impl_set_new_for_update {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_for_delete {
     use std::marker::PhantomData;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_one_to_many.rs: impl DeleteLink for OneToMany",
+        }
+    }
 
     use super::OneToMany;
     use crate::{

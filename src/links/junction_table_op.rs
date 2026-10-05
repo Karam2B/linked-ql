@@ -508,6 +508,14 @@ pub struct InsertJunction<const INVERSE: bool, Key, From, To, Data> {
 mod impl_one_insert {
     use sqlx::{ColumnIndex, Decode, Row, Type};
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/junction_table_op.rs: impl Operation for InsertJunction",
+        }
+    }
+
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
@@ -648,6 +656,14 @@ pub struct DeleteJunction<const INVERSE: bool, Key, From, To, Where> {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_delete {
     use super::DeleteJunction;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/junction_table_op.rs: impl Operation for DeleteJunction",
+        }
+    }
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,

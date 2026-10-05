@@ -78,6 +78,14 @@ mod impl_many_to_many_junction_names {
         links::{fetch_linked_records::ManyToManyJunctionNames, relation_many_to_many::ManyToMany},
     };
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl JunctionNames for ManyToMany",
+        }
+    }
+
     impl<const INVERSE: bool, Key, From, To> ManyToManyJunctionNames
         for ManyToMany<INVERSE, Key, From, To>
     where
@@ -131,6 +139,14 @@ mod impl_many_to_many_junction_names {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_insert_junction_row {
     use sqlx::{Encode, Type};
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl InsertJunctionRow",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
@@ -278,6 +294,14 @@ mod impl_insert_junction_row {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_delete_junction_row {
     use sqlx::{Encode, Type};
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl DeleteJunctionRow",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
@@ -432,6 +456,14 @@ mod impl_delete_junction_row {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_insert_junction_and_fetch {
     use sqlx::{Encode, Type};
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl InsertJunctionAndFetch",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
@@ -614,6 +646,14 @@ mod impl_insert_junction_and_fetch {
 mod impl_select_junction_to_ids {
     use sqlx::{Decode, Encode, Row, Type};
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl SelectJunctionToIds",
+        }
+    }
+
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
@@ -768,6 +808,14 @@ mod impl_select_junction_to_ids {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_fetch_one_to_many_inverse_linked {
     use std::collections::HashMap;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl FetchOneToManyInverseLinked",
+        }
+    }
 
     use sqlx::{Decode, Encode, Type};
 
@@ -993,6 +1041,14 @@ mod impl_fetch_one_to_many_inverse_linked {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_fetch_many_to_many_linked {
     use std::collections::HashMap;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/fetch_linked_records.rs: impl FetchManyToManyLinked",
+        }
+    }
 
     use sqlx::{Decode, Encode, Type};
 

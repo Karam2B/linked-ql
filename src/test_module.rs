@@ -211,7 +211,15 @@ macro_rules! define_collection {
         };
 
         // impl ExpressionsForOperation for $pascal_case
-        #[cfg(not(feature = "in_dev_op2"))]
+        #[cfg(feature = "inventory")]
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/test_module.rs: test module macro-generated crossover impls",
+    }
+}
+
+#[cfg(not(feature = "in_dev_op2"))]
         const _: () = {
             use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
             use $crate::sqlx_query_builder::{

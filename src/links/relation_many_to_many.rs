@@ -31,6 +31,14 @@ where
 mod impl_insert_junction_many_rows {
     use std::future::Future;
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl InsertJunctionManyRows for ManyToMany",
+        }
+    }
+
     use sqlx::{Encode, Type};
 
     use crate::{
@@ -114,6 +122,14 @@ mod impl_insert_junction_many_rows {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_migrate {
     use std::marker::PhantomData;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl MigrateExpression for ManyToMany",
+        }
+    }
 
     use crate::{
         collections::{Collection, SingleColumnId},
@@ -251,6 +267,14 @@ mod impl_on_migrate {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_link_fetch_many {
     use std::collections::{HashMap};
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl LinkFetch for ManyToMany",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId}, from_row::FromRowData, links::{junction_table_op::FetchJunction, relation_many_to_many::ManyToMany}, operations::{
@@ -518,6 +542,14 @@ mod impl_link_fetch_many {
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_many_to_many_set_new {
     use std::marker::PhantomData;
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl InsertOneLink for SetNew<ManyToMany>",
+        }
+    }
 
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId}, from_row::FromRowData, links::{
@@ -816,6 +848,14 @@ pub mod junction_from_id_set {
 mod impl_set_id_for_insert {
     use std::marker::PhantomData;
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl InsertOneLink for SetJunctionId<ManyToMany>",
+        }
+    }
+
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
         from_row::{FromRowData, named_col_from_row::NamedColFromRow},
@@ -956,6 +996,14 @@ mod impl_set_junzcction_id_for_update {
         },
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
     };
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl UpdateLink for SetJunctionId<ManyToMany>",
+        }
+    }
 
     #[derive(Clone)]
     pub struct SetJunctionId<Key, From, To> {
@@ -1208,6 +1256,14 @@ mod impl_remove_junction_id_for_update {
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
     };
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl UpdateLink for RemoveJunctionId<ManyToMany>",
+        }
+    }
+
     #[derive(Clone)]
     pub struct RemoveJunctionId<Key, From, To> {
         pub relation: ManyToMany<false, Key, From, To>,
@@ -1365,6 +1421,14 @@ mod impl_for_delete {
             },
         },
     };
+
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/links/relation_many_to_many.rs: impl DeleteLink for ManyToMany",
+        }
+    }
 
     #[derive(Clone)]
     pub struct DeleteManyToManyLinked<Key, From, To> {

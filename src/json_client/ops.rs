@@ -226,6 +226,14 @@ macro_rules! ops {
         };
     }
 
+#[cfg(feature = "inventory")]
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/json_client/ops.rs: ops! macro invocation",
+    }
+}
+
 #[cfg(not(feature = "in_dev_op2"))]
 ops!(
     [add_collection, AddCollection],
