@@ -505,6 +505,7 @@ mod impl_link_fetch_many {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_new_for_insert {
     use std::marker::PhantomData;
 
@@ -761,6 +762,7 @@ mod impl_set_new_for_insert {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_id_for_insert {
     use std::marker::PhantomData;
 
@@ -1047,6 +1049,7 @@ mod impl_set_id_for_insert {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_id_for_update {
     use std::marker::PhantomData;
 
@@ -1679,6 +1682,7 @@ LEFT JOIN Category ON Todo.fk_category_def = Category.id;
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_set_new_for_update {
     use std::marker::PhantomData;
 
@@ -1941,6 +1945,7 @@ mod impl_set_new_for_update {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_for_delete {
     use std::marker::PhantomData;
 
