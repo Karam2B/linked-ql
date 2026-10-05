@@ -7,7 +7,6 @@ use crate::{
     links::compat::statements::insert_statement::{InsertStatement, One},
     operations::{
         LinkedOutput, Operation, OperationOutput,
-        operations_expressions_crossover::{ExpressionsForOperation, OnInsert},
     },
     sqlx_query_builder::{
         Expression, StatementBuilder, Join,
