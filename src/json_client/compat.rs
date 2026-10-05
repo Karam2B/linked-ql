@@ -73,6 +73,7 @@ pub mod raw_from_row {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 pub mod dynamic_input {
     use std::{collections::HashMap, sync::Arc};
 
@@ -127,6 +128,7 @@ pub mod dynamic_input {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 pub mod insert_sets {
     use crate::{
         database_extention::DatabaseExt,

@@ -148,7 +148,12 @@ pub trait JsonInsertOneLink<S: Database>: Send + Sync + 'static {
     ) -> Box<dyn Serialize<JsonAsString> + Send>;
 }
 
-impl<T, S> JsonInsertOneLink<S> for T
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_json_insert_one_link {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{IdentifierOnly, SelfPrescribedInsert};
+
+    impl<T, S> JsonInsertOneLink<S> for T
 where
     T: Send + Sync + 'static,
     S: sqlx::Database + DatabaseExt,
