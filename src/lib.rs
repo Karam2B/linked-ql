@@ -5,6 +5,17 @@
 )]
 #![cfg_attr(feature = "nightly_rust_specialization", feature(min_specialization))]
 
+#[cfg(feature = "inventory")]
+pub mod feature_todo {
+    #[derive(Debug, Clone, Copy)]
+    pub struct FeatureTodo {
+        pub feature: &'static str,
+        pub comment: &'static str,
+    }
+
+    inventory::collect!(FeatureTodo);
+}
+
 pub mod collections;
 pub mod connect_in_memory;
 pub mod database_extention;
