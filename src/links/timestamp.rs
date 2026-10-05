@@ -27,12 +27,12 @@ where
 }
 
 #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/timestamp.rs: impl MigrateExpression for Timestamp",
-        }
-    }
+inventory::submit! {
+crate::feature_todo::FeatureTodo {
+    feature: "in_dev_op2",
+    comment: "src/links/timestamp.rs: impl MigrateExpression for Timestamp",
+}
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_migrate {
@@ -512,204 +512,204 @@ pub mod impl_fetch_many {
     }
 }
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/timestamp.rs: impl OnInsert for Timestamp",
-        }
+#[cfg(feature = "inventory")]
+inventory::submit! {
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/links/timestamp.rs: impl OnInsert for Timestamp",
     }
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_insert {
+use crate::{
+    links::timestamp::{
+        Timestamp, TimestampOutput, timestamp_select_items::TimestampSelectItems,
+    },
+    operations::insert::{ConstraintViolation, InsertLinkConsumeData, InsertLinkData, InsertOneLink},
+};
+
+
+impl<C: Clone + crate::operations::operations_expressions_crossover::TableExpressions>
+    InsertLinkConsumeData for Timestamp<C>
+{
+    type Link = Timestamp<C>;
+
+    fn consume_data(
+        self,
+    ) -> (
+        Self::Link,
+        crate::operations::insert::InsertLinkData<
+            <Self::Link as crate::operations::insert::InsertOneLink>::PreOpData,
+            <Self::Link as crate::operations::insert::InsertOneLink>::InsertValuesData,
+            <Self::Link as crate::operations::insert::InsertOneLink>::PostOpData,
+        >,
+    ) {
+        (
+            self,
+            InsertLinkData {
+                insert_value_data: (),
+                pre_op_data: (),
+                post_op_data: (),
+            },
+        )
+    }
+}
+
+impl<C: Clone + crate::operations::operations_expressions_crossover::TableExpressions>
+    InsertOneLink for Timestamp<C>
+{
+    type PreOp = ();
+
+    type PreOpData = ();
+
+    fn pre_operation_init(&self, _: Self::PreOpData) -> Self::PreOp {}
+
+    fn pre_op_split(
+        &self,
+        _: <Self::PreOp as crate::operations::OperationOutput>::Output,
+    ) -> Result<
+        (
+            Self::PreOpToInsertValue,
+            Self::PreOpToTake,
+            Self::PreOpToPostOp,
+        ),
+        ConstraintViolation,
+    > {
+        Ok(((), (), ()))
+    }
+
+    type PreOpToInsertValue = ();
+
+    type PreOpToTake = ();
+
+    type PreOpToPostOp = ();
+
+    type InsertReturning = TimestampSelectItems<C>;
+
+    fn insert_returning(&self) -> Self::InsertReturning {
+        TimestampSelectItems(self.collection.clone())
+    }
+
+    type InsertValuesData = ();
+
+    type InsertSets = ();
+
+    fn insert_value(
+        &self,
+        _: Self::InsertValuesData,
+        _: Self::PreOpToInsertValue,
+    ) -> Self::InsertSets {
+    }
+
+    type FromRow = TimestampSelectItems<C::PascalCase>;
+
+    fn from_row(&self) -> Self::FromRow {
+        TimestampSelectItems(self.collection.table_name_pascal_case())
+    }
+
+    type TakeInput = TimestampOutput;
+
+    type PostOp = ();
+
+    type PostOpData = ();
+
+    fn from_row_result(
+        &self,
+        _: Self::PostOpData,
+        out: <Self::FromRow as crate::from_row::FromRowData>::RData,
+        _: Self::PreOpToPostOp,
+    ) -> (Self::PostOp, Self::TakeInput) {
+        ((), out)
+    }
+
+    type PostOpOutput = ();
+
+    fn post_op_output(
+        &self,
+        _: <Self::PostOp as crate::operations::OperationOutput>::Output,
+    ) -> Result<Self::PostOpOutput, ConstraintViolation> {
+        Ok(())
+    }
+
+    type Output = TimestampOutput;
+
+    fn take(
+        self,
+        _: Self::PostOpOutput,
+        out: Self::TakeInput,
+        _: Self::PreOpToTake,
+    ) -> Self::Output {
+        out
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use sqlx::{Sqlite, query};
+
     use crate::{
-        links::timestamp::{
-            Timestamp, TimestampOutput, timestamp_select_items::TimestampSelectItems,
+        connect_in_memory::ConnectInMemory,
+        links::timestamp::Timestamp,
+        operations::{
+            Operation,
+            insert::{AbortOperation, InsertEntity, InsertOne},
         },
-        operations::insert::{ConstraintViolation, InsertLinkConsumeData, InsertLinkData, InsertOneLink},
+        test_module::{Todo, TodoHandler},
+        track_sqlx_query::watch_sqlx_calls,
     };
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn insert_one() {
+        watch_sqlx_calls(async |actions| {
+            let mut conn = Sqlite::in_memory_connection().await;
 
-    impl<C: Clone + crate::operations::operations_expressions_crossover::TableExpressions>
-        InsertLinkConsumeData for Timestamp<C>
-    {
-        type Link = Timestamp<C>;
-
-        fn consume_data(
-            self,
-        ) -> (
-            Self::Link,
-            crate::operations::insert::InsertLinkData<
-                <Self::Link as crate::operations::insert::InsertOneLink>::PreOpData,
-                <Self::Link as crate::operations::insert::InsertOneLink>::InsertValuesData,
-                <Self::Link as crate::operations::insert::InsertOneLink>::PostOpData,
-            >,
-        ) {
-            (
-                self,
-                InsertLinkData {
-                    insert_value_data: (),
-                    pre_op_data: (),
-                    post_op_data: (),
-                },
-            )
-        }
-    }
-
-    impl<C: Clone + crate::operations::operations_expressions_crossover::TableExpressions>
-        InsertOneLink for Timestamp<C>
-    {
-        type PreOp = ();
-
-        type PreOpData = ();
-
-        fn pre_operation_init(&self, _: Self::PreOpData) -> Self::PreOp {}
-
-        fn pre_op_split(
-            &self,
-            _: <Self::PreOp as crate::operations::OperationOutput>::Output,
-        ) -> Result<
-            (
-                Self::PreOpToInsertValue,
-                Self::PreOpToTake,
-                Self::PreOpToPostOp,
-            ),
-            ConstraintViolation,
-        > {
-            Ok(((), (), ()))
-        }
-
-        type PreOpToInsertValue = ();
-
-        type PreOpToTake = ();
-
-        type PreOpToPostOp = ();
-
-        type InsertReturning = TimestampSelectItems<C>;
-
-        fn insert_returning(&self) -> Self::InsertReturning {
-            TimestampSelectItems(self.collection.clone())
-        }
-
-        type InsertValuesData = ();
-
-        type InsertSets = ();
-
-        fn insert_value(
-            &self,
-            _: Self::InsertValuesData,
-            _: Self::PreOpToInsertValue,
-        ) -> Self::InsertSets {
-        }
-
-        type FromRow = TimestampSelectItems<C::PascalCase>;
-
-        fn from_row(&self) -> Self::FromRow {
-            TimestampSelectItems(self.collection.table_name_pascal_case())
-        }
-
-        type TakeInput = TimestampOutput;
-
-        type PostOp = ();
-
-        type PostOpData = ();
-
-        fn from_row_result(
-            &self,
-            _: Self::PostOpData,
-            out: <Self::FromRow as crate::from_row::FromRowData>::RData,
-            _: Self::PreOpToPostOp,
-        ) -> (Self::PostOp, Self::TakeInput) {
-            ((), out)
-        }
-
-        type PostOpOutput = ();
-
-        fn post_op_output(
-            &self,
-            _: <Self::PostOp as crate::operations::OperationOutput>::Output,
-        ) -> Result<Self::PostOpOutput, ConstraintViolation> {
-            Ok(())
-        }
-
-        type Output = TimestampOutput;
-
-        fn take(
-            self,
-            _: Self::PostOpOutput,
-            out: Self::TakeInput,
-            _: Self::PreOpToTake,
-        ) -> Self::Output {
-            out
-        }
-    }
-
-    #[cfg(test)]
-    mod test {
-        use sqlx::{Sqlite, query};
-
-        use crate::{
-            connect_in_memory::ConnectInMemory,
-            links::timestamp::Timestamp,
-            operations::{
-                Operation,
-                insert::{AbortOperation, InsertEntity, InsertOne},
-            },
-            test_module::{Todo, TodoHandler},
-            track_sqlx_query::watch_sqlx_calls,
-        };
-
-        #[tokio::test(flavor = "current_thread")]
-        async fn insert_one() {
-            watch_sqlx_calls(async |actions| {
-                let mut conn = Sqlite::in_memory_connection().await;
-
-                query(
-                    r#"
-                    CREATE TABLE "Todo" (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        title TEXT NOT NULL,
-                        done BOOLEAN NOT NULL,
-                        description TEXT,
-                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                    );
-                    "#,
-                )
-                .execute(&mut conn)
-                .await
-                .unwrap();
-                actions.clear();
-
-                Operation::<Sqlite>::exec_operation(
-                    InsertOne {
-                        handler: TodoHandler,
-                        data: InsertEntity {
-                            attributes: Todo {
-                            title: String::from("todo"),
-                            done: false,
-                            description: None,
-                        },
-                        link: Timestamp {
-                            collection: TodoHandler,
-                        },
-                    },
-                        infalibility: AbortOperation,
-                    },
-                    &mut conn,
-                )
-                .await;
-
-                pretty_assertions::assert_eq!(
-                    actions.take(),
-                    vec![
-                        r#"INSERT INTO "Todo" ("title", "done", "description") VALUES ($1, $2, $3) RETURNING "id", "title", "done", "description", "created_at", "updated_at";"#
-                            .to_string(),
-                    ]
+            query(
+                r#"
+                CREATE TABLE "Todo" (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    done BOOLEAN NOT NULL,
+                    description TEXT,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
-            })
+                "#,
+            )
+            .execute(&mut conn)
+            .await
+            .unwrap();
+            actions.clear();
+
+            Operation::<Sqlite>::exec_operation(
+                InsertOne {
+                    handler: TodoHandler,
+                    data: InsertEntity {
+                        attributes: Todo {
+                        title: String::from("todo"),
+                        done: false,
+                        description: None,
+                    },
+                    link: Timestamp {
+                        collection: TodoHandler,
+                    },
+                },
+                    infalibility: AbortOperation,
+                },
+                &mut conn,
+            )
             .await;
-        }
+
+            pretty_assertions::assert_eq!(
+                actions.take(),
+                vec![
+                    r#"INSERT INTO "Todo" ("title", "done", "description") VALUES ($1, $2, $3) RETURNING "id", "title", "done", "description", "created_at", "updated_at";"#
+                        .to_string(),
+                ]
+            );
+        })
+        .await;
     }
+}
 }

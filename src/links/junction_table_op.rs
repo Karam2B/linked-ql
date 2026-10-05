@@ -504,316 +504,316 @@ pub struct InsertJunction<const INVERSE: bool, Key, From, To, Data> {
     pub data: Data,
 }
 
-    #[cfg(feature = "inventory")]
-    inventory::submit! {
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/junction_table_op.rs: impl Operation for InsertJunction",
-        }
+#[cfg(feature = "inventory")]
+inventory::submit! {
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/links/junction_table_op.rs: impl Operation for InsertJunction",
     }
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_one_insert {
-    use sqlx::{ColumnIndex, Decode, Row, Type};
+use sqlx::{ColumnIndex, Decode, Row, Type};
 
 
-    use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
-        database_extention::DatabaseExt,
-        execute::Executable,
-        fix_executor::ExecutorTrait,
-        operations::{
-            Operation, OperationOutput, operations_expressions_crossover::TableExpressions,
-        },
-        sqlx_query_builder::{
-            Expression, Join, StatementBuilder,
-            sanitize_combinator::Sanitize,
-            statements::insert_statement::{InsertStatement, One},
-        },
-    };
+use crate::{
+    collections::{Collection, CollectionId, SingleColumnId},
+    database_extention::DatabaseExt,
+    execute::Executable,
+    fix_executor::ExecutorTrait,
+    operations::{
+        Operation, OperationOutput, operations_expressions_crossover::TableExpressions,
+    },
+    sqlx_query_builder::{
+        Expression, Join, StatementBuilder,
+        sanitize_combinator::Sanitize,
+        statements::insert_statement::{InsertStatement, One},
+    },
+};
 
-    use super::InsertJunction;
+use super::InsertJunction;
 
-    impl<const INVERSE: bool, Key, From, To, Data> OperationOutput
-        for InsertJunction<INVERSE, Key, From, To, One<Data>>
-    where
-        From: Collection<Id: SingleColumnId>,
-        To: Collection<Id: SingleColumnId>,
-    {
-        type Output = (
-            <From::Id as CollectionId>::IdData,
-            <To::Id as CollectionId>::IdData,
-        );
-    }
+impl<const INVERSE: bool, Key, From, To, Data> OperationOutput
+    for InsertJunction<INVERSE, Key, From, To, One<Data>>
+where
+    From: Collection<Id: SingleColumnId>,
+    To: Collection<Id: SingleColumnId>,
+{
+    type Output = (
+        <From::Id as CollectionId>::IdData,
+        <To::Id as CollectionId>::IdData,
+    );
+}
 
-    impl<const INVERSE: bool, S, Key, From, To, Data> Operation<S>
-        for InsertJunction<INVERSE, Key, From, To, One<Data>>
-    where
-        S: DatabaseExt,
-        S: ExecutorTrait,
-        Key: Send
-            + Clone
-            + AsRef<str>
-            + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
-            + 'static,
-        From: Send + Collection<Id: Send + SingleColumnId>,
-        From: TableExpressions<
-                PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-                SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-            >,
-        From::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
-        To: Send + Collection<Id: Send + SingleColumnId>,
-        To: TableExpressions<
-                PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-                SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-            >,
-        To::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
-        Data: for<'q> Expression<'q, S> + Send,
-        usize: ColumnIndex<S::Row>,
-    {
-        fn exec_operation(
-            self,
-            pool: &mut <S>::Connection,
-        ) -> impl Future<Output = Self::Output> + Send {
-            async move {
-                let (stmt, args) = if INVERSE {
-                    let t = Sanitize((
-                        "JUNCTION_",
-                        (self.from.table_name_pascal_case(),),
-                        "_",
-                        (self.to.table_name_pascal_case(),),
-                        "_",
-                        (self.key,),
-                    ));
-                    StatementBuilder::<S>::new(InsertStatement {
-                        table_name: t,
-                        identifiers: Join {
-                            start: "",
-                            separator: ", ",
-                            items: (
-                                Sanitize(((self.from.table_name_snake_case(),), "_id")),
-                                Sanitize(((self.to.table_name_snake_case(),), "_id")),
-                            ),
-                        },
-                        values: self.data,
-                        returning: (
+impl<const INVERSE: bool, S, Key, From, To, Data> Operation<S>
+    for InsertJunction<INVERSE, Key, From, To, One<Data>>
+where
+    S: DatabaseExt,
+    S: ExecutorTrait,
+    Key: Send
+        + Clone
+        + AsRef<str>
+        + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
+        + 'static,
+    From: Send + Collection<Id: Send + SingleColumnId>,
+    From: TableExpressions<
+            PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+            SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+        >,
+    From::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
+    To: Send + Collection<Id: Send + SingleColumnId>,
+    To: TableExpressions<
+            PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+            SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+        >,
+    To::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
+    Data: for<'q> Expression<'q, S> + Send,
+    usize: ColumnIndex<S::Row>,
+{
+    fn exec_operation(
+        self,
+        pool: &mut <S>::Connection,
+    ) -> impl Future<Output = Self::Output> + Send {
+        async move {
+            let (stmt, args) = if INVERSE {
+                let t = Sanitize((
+                    "JUNCTION_",
+                    (self.from.table_name_pascal_case(),),
+                    "_",
+                    (self.to.table_name_pascal_case(),),
+                    "_",
+                    (self.key,),
+                ));
+                StatementBuilder::<S>::new(InsertStatement {
+                    table_name: t,
+                    identifiers: Join {
+                        start: "",
+                        separator: ", ",
+                        items: (
                             Sanitize(((self.from.table_name_snake_case(),), "_id")),
                             Sanitize(((self.to.table_name_snake_case(),), "_id")),
                         ),
-                    })
-                    .unwrap()
-                } else {
-                    let t = Sanitize((
-                        "JUNCTION_",
-                        (self.to.table_name_pascal_case(),),
-                        "_",
-                        (self.from.table_name_pascal_case(),),
-                        "_",
-                        (self.key,),
-                    ));
-                    StatementBuilder::<S>::new(InsertStatement {
-                        table_name: t,
-                        identifiers: Join {
-                            start: "",
-                            separator: ", ",
-                            items: (
-                                Sanitize(((self.from.table_name_snake_case(),), "_id")),
-                                Sanitize(((self.to.table_name_snake_case(),), "_id")),
-                            ),
-                        },
-                        values: self.data,
-                        returning: (
-                            Sanitize(((self.from.table_name_snake_case(),), "_id")),
-                            Sanitize(((self.to.table_name_snake_case(),), "_id")),
-                        ),
-                    })
-                    .unwrap()
-                };
-
-                let row = S::fetch_optional(
-                    &mut *pool,
-                    Executable {
-                        string: &stmt,
-                        arguments: args,
                     },
-                )
-                .await
+                    values: self.data,
+                    returning: (
+                        Sanitize(((self.from.table_name_snake_case(),), "_id")),
+                        Sanitize(((self.to.table_name_snake_case(),), "_id")),
+                    ),
+                })
                 .unwrap()
-                .unwrap();
+            } else {
+                let t = Sanitize((
+                    "JUNCTION_",
+                    (self.to.table_name_pascal_case(),),
+                    "_",
+                    (self.from.table_name_pascal_case(),),
+                    "_",
+                    (self.key,),
+                ));
+                StatementBuilder::<S>::new(InsertStatement {
+                    table_name: t,
+                    identifiers: Join {
+                        start: "",
+                        separator: ", ",
+                        items: (
+                            Sanitize(((self.from.table_name_snake_case(),), "_id")),
+                            Sanitize(((self.to.table_name_snake_case(),), "_id")),
+                        ),
+                    },
+                    values: self.data,
+                    returning: (
+                        Sanitize(((self.from.table_name_snake_case(),), "_id")),
+                        Sanitize(((self.to.table_name_snake_case(),), "_id")),
+                    ),
+                })
+                .unwrap()
+            };
 
-                (Row::get(&row, 0), Row::get(&row, 1))
-            }
+            let row = S::fetch_optional(
+                &mut *pool,
+                Executable {
+                    string: &stmt,
+                    arguments: args,
+                },
+            )
+            .await
+            .unwrap()
+            .unwrap();
+
+            (Row::get(&row, 0), Row::get(&row, 1))
         }
     }
+}
 }
 
 pub struct DeleteJunction<const INVERSE: bool, Key, From, To, Where> {
-    pub key: Key,
-    pub from: From,
-    pub to: To,
-    pub wheres: Where,
+pub key: Key,
+pub from: From,
+pub to: To,
+pub wheres: Where,
 }
 
 #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/links/junction_table_op.rs: impl Operation for DeleteJunction",
-        }
+inventory::submit! {
+    crate::feature_todo::FeatureTodo {
+        feature: "in_dev_op2",
+        comment: "src/links/junction_table_op.rs: impl Operation for DeleteJunction",
     }
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_delete {
-    use super::DeleteJunction;
-    use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
-        database_extention::DatabaseExt,
-        execute::Executable,
-        fix_executor::ExecutorTrait,
-        operations::{
-            Operation, OperationOutput, operations_expressions_crossover::TableExpressions,
-        },
-        sqlx_query_builder::{
-            Expression, StatementBuilder, sanitize_combinator::Sanitize,
-            statements::delete_statement::DeleteStatement,
-        },
-    };
-    use sqlx::{ColumnIndex, Decode, Row, Type};
+use super::DeleteJunction;
+use crate::{
+    collections::{Collection, CollectionId, SingleColumnId},
+    database_extention::DatabaseExt,
+    execute::Executable,
+    fix_executor::ExecutorTrait,
+    operations::{
+        Operation, OperationOutput, operations_expressions_crossover::TableExpressions,
+    },
+    sqlx_query_builder::{
+        Expression, StatementBuilder, sanitize_combinator::Sanitize,
+        statements::delete_statement::DeleteStatement,
+    },
+};
+use sqlx::{ColumnIndex, Decode, Row, Type};
 
-    impl<const INVERSE: bool, Key, From, To, Where> OperationOutput
-        for DeleteJunction<INVERSE, Key, From, To, Where>
-    where
-        From: Collection<Id: SingleColumnId>,
-        To: Collection<Id: SingleColumnId>,
-    {
-        type Output = Vec<(
-            <From::Id as CollectionId>::IdData,
-            <To::Id as CollectionId>::IdData,
-        )>;
-    }
+impl<const INVERSE: bool, Key, From, To, Where> OperationOutput
+    for DeleteJunction<INVERSE, Key, From, To, Where>
+where
+    From: Collection<Id: SingleColumnId>,
+    To: Collection<Id: SingleColumnId>,
+{
+    type Output = Vec<(
+        <From::Id as CollectionId>::IdData,
+        <To::Id as CollectionId>::IdData,
+    )>;
+}
 
-    impl<const INVERSE: bool, S, Key, From, To, Where> Operation<S>
-        for DeleteJunction<INVERSE, Key, From, To, Where>
-    where
-        S: DatabaseExt,
-        S: ExecutorTrait,
-        Key: Send
-            + Clone
-            + AsRef<str>
-            + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
-            + 'static,
-        From: Send + Collection<Id: Send + SingleColumnId>,
-        From: TableExpressions<
-                PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-                SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-            >,
-        From::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
-        To: Send + Collection<Id: Send + SingleColumnId>,
-        To: TableExpressions<
-                PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-                SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
-            >,
-        To::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
-        Where: for<'q> Expression<'q, S> + Send,
-        usize: ColumnIndex<S::Row>,
-    {
-        fn exec_operation(
-            self,
-            pool: &mut <S>::Connection,
-        ) -> impl Future<Output = Self::Output> + Send {
-            async move {
-                let (stmt, args) = if INVERSE {
-                    let t = Sanitize((
-                        "JUNCTION_",
-                        (self.from.table_name_pascal_case(),),
-                        "_",
-                        (self.to.table_name_pascal_case(),),
-                        "_",
-                        (self.key,),
-                    ));
-                    StatementBuilder::<S>::new(DeleteStatement {
-                        table_name: t,
-                        returning: (
-                            Sanitize(((self.from.table_name_snake_case(),), "_id")),
-                            Sanitize(((self.to.table_name_snake_case(),), "_id")),
-                        ),
-                        wheres: (self.wheres,),
-                    })
-                    .unwrap()
-                } else {
-                    let t = Sanitize((
-                        "JUNCTION_",
-                        (self.to.table_name_pascal_case(),),
-                        "_",
-                        (self.from.table_name_pascal_case(),),
-                        "_",
-                        (self.key,),
-                    ));
-                    StatementBuilder::<S>::new(DeleteStatement {
-                        table_name: t,
-                        returning: (
-                            Sanitize(((self.from.table_name_snake_case(),), "_id")),
-                            Sanitize(((self.to.table_name_snake_case(),), "_id")),
-                        ),
-                        wheres: (self.wheres,),
-                    })
-                    .unwrap()
-                };
+impl<const INVERSE: bool, S, Key, From, To, Where> Operation<S>
+    for DeleteJunction<INVERSE, Key, From, To, Where>
+where
+    S: DatabaseExt,
+    S: ExecutorTrait,
+    Key: Send
+        + Clone
+        + AsRef<str>
+        + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
+        + 'static,
+    From: Send + Collection<Id: Send + SingleColumnId>,
+    From: TableExpressions<
+            PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+            SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+        >,
+    From::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
+    To: Send + Collection<Id: Send + SingleColumnId>,
+    To: TableExpressions<
+            PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+            SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+        >,
+    To::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
+    Where: for<'q> Expression<'q, S> + Send,
+    usize: ColumnIndex<S::Row>,
+{
+    fn exec_operation(
+        self,
+        pool: &mut <S>::Connection,
+    ) -> impl Future<Output = Self::Output> + Send {
+        async move {
+            let (stmt, args) = if INVERSE {
+                let t = Sanitize((
+                    "JUNCTION_",
+                    (self.from.table_name_pascal_case(),),
+                    "_",
+                    (self.to.table_name_pascal_case(),),
+                    "_",
+                    (self.key,),
+                ));
+                StatementBuilder::<S>::new(DeleteStatement {
+                    table_name: t,
+                    returning: (
+                        Sanitize(((self.from.table_name_snake_case(),), "_id")),
+                        Sanitize(((self.to.table_name_snake_case(),), "_id")),
+                    ),
+                    wheres: (self.wheres,),
+                })
+                .unwrap()
+            } else {
+                let t = Sanitize((
+                    "JUNCTION_",
+                    (self.to.table_name_pascal_case(),),
+                    "_",
+                    (self.from.table_name_pascal_case(),),
+                    "_",
+                    (self.key,),
+                ));
+                StatementBuilder::<S>::new(DeleteStatement {
+                    table_name: t,
+                    returning: (
+                        Sanitize(((self.from.table_name_snake_case(),), "_id")),
+                        Sanitize(((self.to.table_name_snake_case(),), "_id")),
+                    ),
+                    wheres: (self.wheres,),
+                })
+                .unwrap()
+            };
 
-                let rows = S::fetch_all(
-                    &mut *pool,
-                    Executable {
-                        string: &stmt,
-                        arguments: args,
-                    },
-                )
-                .await
-                .unwrap();
+            let rows = S::fetch_all(
+                &mut *pool,
+                Executable {
+                    string: &stmt,
+                    arguments: args,
+                },
+            )
+            .await
+            .unwrap();
 
-                rows.into_iter()
-                    .map(|row| (Row::get(&row, 0), Row::get(&row, 1)))
-                    .collect()
-            }
+            rows.into_iter()
+                .map(|row| (Row::get(&row, 0), Row::get(&row, 1)))
+                .collect()
         }
     }
+}
 }
 
 #[cfg(test)]
 async fn seed_todo_tag_junction(conn: &mut sqlx::SqliteConnection) {
-    sqlx::query(
-        r#"
-                CREATE TABLE "Todo" (
-                    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                    "title" TEXT NOT NULL,
-                    "done" INTEGER NOT NULL,
-                    "description" TEXT
-                );
-                CREATE TABLE "Tag" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "title" TEXT NOT NULL);
-                CREATE TABLE "JUNCTION_Todo_Tag__def" (
-                    "todo_id" INTEGER NOT NULL REFERENCES "Todo"("id") ON DELETE CASCADE,
-                    "tag_id" INTEGER NOT NULL REFERENCES "Tag"("id") ON DELETE CASCADE,
-                    PRIMARY KEY ("todo_id", "tag_id")
-                );
-                CREATE TABLE "JUNCTION_Tag_Todo__def" (
-                    "todo_id" INTEGER NOT NULL REFERENCES "Todo"("id") ON DELETE CASCADE,
-                    "tag_id" INTEGER NOT NULL REFERENCES "Tag"("id") ON DELETE CASCADE,
-                    PRIMARY KEY ("todo_id", "tag_id")
-                );
+sqlx::query(
+    r#"
+            CREATE TABLE "Todo" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                "title" TEXT NOT NULL,
+                "done" INTEGER NOT NULL,
+                "description" TEXT
+            );
+            CREATE TABLE "Tag" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "title" TEXT NOT NULL);
+            CREATE TABLE "JUNCTION_Todo_Tag__def" (
+                "todo_id" INTEGER NOT NULL REFERENCES "Todo"("id") ON DELETE CASCADE,
+                "tag_id" INTEGER NOT NULL REFERENCES "Tag"("id") ON DELETE CASCADE,
+                PRIMARY KEY ("todo_id", "tag_id")
+            );
+            CREATE TABLE "JUNCTION_Tag_Todo__def" (
+                "todo_id" INTEGER NOT NULL REFERENCES "Todo"("id") ON DELETE CASCADE,
+                "tag_id" INTEGER NOT NULL REFERENCES "Tag"("id") ON DELETE CASCADE,
+                PRIMARY KEY ("todo_id", "tag_id")
+            );
 
-                INSERT INTO "Todo" ("title", "done", "description") VALUES
-                    ("todo_1", 0, NULL), ("todo_2", 0, NULL), ("todo_3", 0, NULL),
-                    ("todo_4", 0, NULL), ("todo_5", 0, NULL), ("todo_6", 0, NULL),
-                    ("todo_7", 0, NULL), ("todo_8", 0, NULL), ("todo_9", 0, NULL),
-                    ("todo_10", 0, NULL);
-                INSERT INTO "Tag" ("title") VALUES ("tag_1"), ("tag_2"), ("tag_3");
-                INSERT INTO "JUNCTION_Todo_Tag__def" ("todo_id", "tag_id") VALUES
-                    (1, 2), (2, 3), (4, 1), (5, 1), (5, 2), (5, 3), (7, 1), (7, 3), (8, 1), (10, 3);
-                INSERT INTO "JUNCTION_Tag_Todo__def" ("todo_id", "tag_id") VALUES
-                    (1, 2), (2, 3), (4, 1), (5, 1), (5, 2), (5, 3), (7, 1), (7, 3), (8, 1), (10, 3);
-                "#,
-    )
-    .execute(conn)
-    .await
-    .unwrap();
+            INSERT INTO "Todo" ("title", "done", "description") VALUES
+                ("todo_1", 0, NULL), ("todo_2", 0, NULL), ("todo_3", 0, NULL),
+                ("todo_4", 0, NULL), ("todo_5", 0, NULL), ("todo_6", 0, NULL),
+                ("todo_7", 0, NULL), ("todo_8", 0, NULL), ("todo_9", 0, NULL),
+                ("todo_10", 0, NULL);
+            INSERT INTO "Tag" ("title") VALUES ("tag_1"), ("tag_2"), ("tag_3");
+            INSERT INTO "JUNCTION_Todo_Tag__def" ("todo_id", "tag_id") VALUES
+                (1, 2), (2, 3), (4, 1), (5, 1), (5, 2), (5, 3), (7, 1), (7, 3), (8, 1), (10, 3);
+            INSERT INTO "JUNCTION_Tag_Todo__def" ("todo_id", "tag_id") VALUES
+                (1, 2), (2, 3), (4, 1), (5, 1), (5, 2), (5, 3), (7, 1), (7, 3), (8, 1), (10, 3);
+            "#,
+)
+.execute(conn)
+.await
+.unwrap();
 }

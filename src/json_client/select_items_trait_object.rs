@@ -49,12 +49,12 @@ pub struct ToImplSelectItems<Se, CastFromRowResult> {
 }
 
 #[cfg(feature = "inventory")]
-    inventory::submit! {
-        crate::feature_todo::FeatureTodo {
-            feature: "in_dev_op2",
-            comment: "src/json_client/select_items_trait_object.rs: SelectItemsTraitObject impls",
-        }
-    }
+inventory::submit! {
+crate::feature_todo::FeatureTodo {
+    feature: "in_dev_op2",
+    comment: "src/json_client/select_items_trait_object.rs: SelectItemsTraitObject impls",
+}
+}
 
 #[cfg(not(feature = "in_dev_op2"))]
 mod impl_select_items_trait_object {

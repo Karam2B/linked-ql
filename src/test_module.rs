@@ -211,11 +211,11 @@ macro_rules! define_collection {
         };
 
         // impl ExpressionsForOperation for $pascal_case
-        #[cfg(feature = "inventory")]
+#[cfg(feature = "inventory")]
 inventory::submit! {
     crate::feature_todo::FeatureTodo {
-        feature: "in_dev_op2",
-        comment: "src/test_module.rs: test module macro-generated crossover impls",
+feature: "in_dev_op2",
+comment: "src/test_module.rs: test module macro-generated crossover impls",
     }
 }
 
