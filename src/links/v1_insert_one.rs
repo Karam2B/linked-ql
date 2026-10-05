@@ -82,104 +82,110 @@ pub struct InsertOne<Handler, Data, Links> {
     pub links: Links,
 }
 
-impl<H, L> OperationOutput for InsertOne<H, H::InputData, L>
-where
-    L: InsertLink,
-    H: Collection,
-{
-    type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
-}
+#[cfg(not(feature = "in_dev_op2"))]
+mod impl_operation_for_insert_one {
+    use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnInsert};
 
-impl<S, Base, Link> Operation<S> for InsertOne<Base, Base::InputData, Link>
-where
-    S: DatabaseExt,
-    S: ExecutorTrait,
-    Link: InsertLink<Output: Send>,
-    Link: Send,
-    Base: Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
-    Base: Send,
-    Base: Clone,
-    Base: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
-    Link::PreOp: Operation<S>,
-    Link::PostOp: Operation<S>,
-    Link::InsertItems: Send + Clone,
-    Link::InsertItems: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
-    Link::InsertItems:
-        OnInsert<(), InsertExpression: for<'q> Expression<'q, S>>,
-    Link::InsertItems: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
-    Base: OnInsert<Base::InputData, InsertExpression: for<'q> Expression<'q, S>>,
-    Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
-    Base::Id: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
-    Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
-{
-    fn exec_operation(self, pool: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+    impl<H, L> OperationOutput for InsertOne<H, H::InputData, L>
     where
-        S: sqlx::Database,
-        Self: Sized,
+        L: InsertLink,
+        H: Collection,
     {
-        async move {
-            let pre_op = self.links.pre_operation().exec_operation(&mut *pool).await;
+        type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
+    }
 
-            let insert = self.links.insert_items(pre_op);
+    impl<S, Base, Link> Operation<S> for InsertOne<Base, Base::InputData, Link>
+    where
+        S: DatabaseExt,
+        S: ExecutorTrait,
+        Link: InsertLink<Output: Send>,
+        Link: Send,
+        Base: Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
+        Base: Send,
+        Base: Clone,
+        Base: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
+        Link::PreOp: Operation<S>,
+        Link::PostOp: Operation<S>,
+        Link::InsertItems: Send + Clone,
+        Link::InsertItems: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
+        Link::InsertItems:
+            OnInsert<(), InsertExpression: for<'q> Expression<'q, S>>,
+        Link::InsertItems: for<'r> FromRowAlias<'r, S::Row, RData: Send>,
+        Base: OnInsert<Base::InputData, InsertExpression: for<'q> Expression<'q, S>>,
+        Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
+        Base::Id: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
+        Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
+    {
+        fn exec_operation(self, pool: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+        where
+            S: sqlx::Database,
+            Self: Sized,
+        {
+            async move {
+                let pre_op = self.links.pre_operation().exec_operation(&mut *pool).await;
 
-            let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
-                table_name: self.base.table_name(),
-                identifiers: Join {
-                    start: "",
-                    separator: ", ",
-                    items: (
-                        ExpressionsForOperation::identifier(&self.base),
-                        ExpressionsForOperation::identifier(&insert),
-                    ),
-                },
-                returning: Join {
-                    start: "",
-                    separator: ", ",
-                    items: (
-                        self.base.id().identifier(),
-                        ExpressionsForOperation::identifier(&self.base),
-                        ExpressionsForOperation::identifier(&insert),
-                    ),
-                },
-                values: One(Join {
-                    start: "",
-                    separator: ", ",
-                    items: (
-                        self.base.on_insert(self.data),
-                        insert.on_insert(()),
-                    ),
-                }),
-            })
-            .unwrap();
+                let insert = self.links.insert_items(pre_op);
 
-            let row = S::fetch_optional(
-                &mut *pool,
-                Executable {
-                    string: &stmt,
-                    arguments: arg,
-                },
-            )
-            .await
-            .unwrap()
-            .unwrap();
+                let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
+                    table_name: self.base.table_name(),
+                    identifiers: Join {
+                        start: "",
+                        separator: ", ",
+                        items: (
+                            ExpressionsForOperation::identifier(&self.base),
+                            ExpressionsForOperation::identifier(&insert),
+                        ),
+                    },
+                    returning: Join {
+                        start: "",
+                        separator: ", ",
+                        items: (
+                            self.base.id().identifier(),
+                            ExpressionsForOperation::identifier(&self.base),
+                            ExpressionsForOperation::identifier(&insert),
+                        ),
+                    },
+                    values: One(Join {
+                        start: "",
+                        separator: ", ",
+                        items: (
+                            self.base.on_insert(self.data),
+                            insert.on_insert(()),
+                        ),
+                    }),
+                })
+                .unwrap();
 
-            let id = self.base.id().no_alias(&row).unwrap();
-            let attributes = self.base.no_alias(&row).unwrap();
+                let row = S::fetch_optional(
+                    &mut *pool,
+                    Executable {
+                        string: &stmt,
+                        arguments: arg,
+                    },
+                )
+                .await
+                .unwrap()
+                .unwrap();
 
-            let links = {
-                let ii = insert.no_alias(&row).unwrap();
-                let po = self
-                    .links
-                    .post_operation(&ii)
-                    .exec_operation(&mut *pool)
-                    .await;
-                self.links.take(po, ii)
-            };
+                let id = self.base.id().no_alias(&row).unwrap();
+                let attributes = self.base.no_alias(&row).unwrap();
 
-            LinkedOutput {
-                id,
-                attributes,
-                links,
+                let links = {
+                    let ii = insert.no_alias(&row).unwrap();
+                    let po = self
+                        .links
+                        .post_operation(&ii)
+                        .exec_operation(&mut *pool)
+                        .await;
+                    self.links.take(po, ii)
+                };
+
+                LinkedOutput {
+                    id,
+                    attributes,
+                    links,
+                }
             }
         }
     }

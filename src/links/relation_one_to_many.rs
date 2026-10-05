@@ -13,6 +13,7 @@ impl<Id, F, T> LinkedToBase for OneToMany<Id, F, T> {
     type Base = F;
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_migrate {
     use std::marker::PhantomData;
 
@@ -288,6 +289,7 @@ mod one_to_many_items_names {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_link_fetch_many {
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
