@@ -200,6 +200,14 @@ mod impl_operation_for_update {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnUpdate, SelfPrescribedInsert, TableExpressions};
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/operations/update.rs: impl OperationOutput + Operation<S> for Update",
+        }
+    }
+
     impl<Handler, Partial, Wheres, PL, Links> OperationOutput
         for Update<Handler, Partial, Wheres, PL, AbortOperation>
     where
