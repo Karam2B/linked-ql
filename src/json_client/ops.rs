@@ -226,6 +226,7 @@ macro_rules! ops {
         };
     }
 
+#[cfg(not(feature = "in_dev_op2"))]
 ops!(
     [add_collection, AddCollection],
     [add_link, AddLink],
