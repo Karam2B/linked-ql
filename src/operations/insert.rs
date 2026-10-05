@@ -213,6 +213,14 @@ mod impl_operation_for_insert_one_with_entity {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert, TableExpressions};
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/operations/insert.rs: impl OperationOutput + Operation<S> for InsertOne with InsertEntity",
+        }
+    }
+
     impl<H, PreL, L> OperationOutput for InsertOne<H, InsertEntity<H::InputData, PreL>, AbortOperation>
     where
         PreL: InsertLinkConsumeData<Link = L>,
