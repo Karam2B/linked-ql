@@ -77,6 +77,14 @@ pub mod raw_from_row {
 pub mod dynamic_input {
     use std::{collections::HashMap, sync::Arc};
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/compat.rs: DynamicInsertInput compat",
+        }
+    }
+
     use crate::{
         database_extention::DatabaseExt,
         json_client::{ToBind, dynamic_collection::DynamicInsertInput},
@@ -130,6 +138,14 @@ pub mod dynamic_input {
 
 #[cfg(not(feature = "in_dev_op2"))]
 pub mod insert_sets {
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/compat.rs: insert sets trait objects",
+        }
+    }
+
     use crate::{
         database_extention::DatabaseExt,
         operations::operations_expressions_crossover::{IdentifierOnly, SelfPrescribedInsert},

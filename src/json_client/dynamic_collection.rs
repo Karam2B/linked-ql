@@ -699,6 +699,14 @@ pub(crate) use dynamic_insert_binds::DynamicUpdateInput;
 pub(crate) mod common_expression_impls {
     use std::{ops::Not, sync::Arc};
 
+    #[cfg(feature = "inventory")]
+    inventory::submit! {
+        crate::feature_todo::FeatureTodo {
+            feature: "in_dev_op2",
+            comment: "src/json_client/dynamic_collection.rs: common expression impls for DynamicCollection",
+        }
+    }
+
     use crate::{
         database_extention::DatabaseExt,
         from_row::{FromRowAlias, FromRowData, FromRowError, from_row_v2::RowAliased},
