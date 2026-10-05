@@ -135,7 +135,7 @@ impl DeleteLink for () {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_delete {
+mod impl_operation_for_delete {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
@@ -153,12 +153,6 @@ mod impl_operation_output_for_delete {
             >,
         >;
     }
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_delete {
-    use super::*;
-    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<S, Base, Wheres, PL, Links> Operation<S> for Delete<Base, Wheres, PL>
     where

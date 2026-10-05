@@ -217,8 +217,9 @@ impl<Key, From, To> InsertJunctionAndFetch<Key, From, To> {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_insert_junction_and_fetch {
+mod impl_operation_for_insert_junction_and_fetch {
     use super::*;
+    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<Key, From, To> OperationOutput for InsertJunctionAndFetch<Key, From, To>
     where
@@ -227,12 +228,6 @@ mod impl_operation_output_for_insert_junction_and_fetch {
     {
         type Output = LinkedOutput<<To::Id as CollectionId>::IdData, To::OutputData, ()>;
     }
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_insert_junction_and_fetch {
-    use super::*;
-    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<S, Key, From, To> Operation<S> for InsertJunctionAndFetch<Key, From, To>
     where

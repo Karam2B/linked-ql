@@ -209,7 +209,7 @@ pub struct InsertEntity<Attributes, Link> {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_insert_one_with_entity {
+mod impl_operation_for_insert_one_with_entity {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert, TableExpressions};
 
@@ -221,12 +221,6 @@ mod impl_operation_output_for_insert_one_with_entity {
     {
         type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
     }
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_insert_one_with_entity {
-    use super::*;
-    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert, TableExpressions};
 
     // one item, with links
     impl<S, Base, LinkPreSplit, Link> Operation<S>
@@ -362,7 +356,7 @@ mod impl_operation_for_insert_one_with_entity {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_insert_one_with_iterator {
+mod impl_operation_for_insert_one_with_iterator {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnInsert, TableExpressions};
 
@@ -373,12 +367,6 @@ mod impl_operation_output_for_insert_one_with_iterator {
     {
         type Output = Vec<CollectionOutput<<Base::Id as CollectionId>::IdData, Base::OutputData>>;
     }
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_insert_one_with_iterator {
-    use super::*;
-    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnInsert, TableExpressions};
 
     // many items, no links
     impl<S, Base, I> Operation<S> for InsertOne<Base, IteratorSpec<I>, AbortOperation>

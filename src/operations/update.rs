@@ -196,7 +196,7 @@ impl UpdateLink for () {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_update {
+mod impl_operation_for_update {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnUpdate, SelfPrescribedInsert, TableExpressions};
 
@@ -211,12 +211,6 @@ mod impl_operation_output_for_update {
             LinkedOutput<<Handler::Id as CollectionId>::IdData, Handler::OutputData, Links::Output>,
         >;
     }
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_update {
-    use super::*;
-    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, OnUpdate, SelfPrescribedInsert, TableExpressions};
 
     impl<S, Base, Partial, Wheres, PreSplitLink, Links> Operation<S>
         for Update<Base, Partial, Wheres, PreSplitLink, AbortOperation>

@@ -22,7 +22,7 @@ pub struct FetchOne<Base, Links, Wheres> {
 }
 
 #[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_output_for_fetch_one {
+mod impl_operation_for_fetch_one {
     use super::*;
     use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
@@ -33,12 +33,6 @@ mod impl_operation_output_for_fetch_one {
     {
         type Output = Option<LinkedOutput<<B::Id as CollectionId>::IdData, B::OutputData, L::Output>>;
     }
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-mod impl_operation_for_fetch_one {
-    use super::*;
-    use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
 
     impl<S, Base, Links, Wheres> Operation<S> for FetchOne<Base, Links, Wheres>
     where
