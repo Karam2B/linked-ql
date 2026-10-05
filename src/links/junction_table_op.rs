@@ -645,6 +645,7 @@ pub struct DeleteJunction<const INVERSE: bool, Key, From, To, Where> {
     pub wheres: Where,
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_delete {
     use super::DeleteJunction;
     use crate::{

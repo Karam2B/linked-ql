@@ -128,6 +128,7 @@ mod impl_many_to_many_junction_names {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_insert_junction_row {
     use sqlx::{Encode, Type};
 
@@ -274,6 +275,7 @@ mod impl_insert_junction_row {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_delete_junction_row {
     use sqlx::{Encode, Type};
 
@@ -427,6 +429,7 @@ mod impl_delete_junction_row {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_insert_junction_and_fetch {
     use sqlx::{Encode, Type};
 
@@ -607,6 +610,7 @@ mod impl_insert_junction_and_fetch {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_select_junction_to_ids {
     use sqlx::{Decode, Encode, Row, Type};
 
@@ -761,6 +765,7 @@ mod impl_select_junction_to_ids {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_fetch_one_to_many_inverse_linked {
     use std::collections::HashMap;
 
@@ -985,6 +990,7 @@ mod impl_fetch_one_to_many_inverse_linked {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_fetch_many_to_many_linked {
     use std::collections::HashMap;
 

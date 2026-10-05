@@ -504,6 +504,7 @@ pub mod impl_fetch_many {
     }
 }
 
+#[cfg(not(feature = "in_dev_op2"))]
 mod impl_on_insert {
     use crate::{
         links::timestamp::{
