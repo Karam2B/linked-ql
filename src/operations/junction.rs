@@ -26,14 +26,6 @@ use crate::{
     },
 };
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod crossover_imports {
-    pub use crate::operations::operations_expressions_crossover::{ExpressionsForOperation, TableExpressions};
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-use crossover_imports::*;
-
 pub trait ManyToManyJunctionNames {
     fn junction_table_as_str(&self) -> String;
     fn from_junction_col_as_str(&self) -> String;

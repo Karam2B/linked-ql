@@ -15,17 +15,6 @@ use crate::{
     },
 };
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod crossover_imports {
-    pub use crate::operations::operations_expressions_crossover::{
-        ExpressionsForOperation, IdentifierOnly, OnInsert, SelfPrescribedInsert,
-        TableExpressions,
-    };
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-use crossover_imports::*;
-
 pub trait InsertLinkConsumeData {
     type Link: InsertOneLink;
     fn consume_data(

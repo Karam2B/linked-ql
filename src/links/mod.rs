@@ -38,8 +38,6 @@ pub trait LinkedViaIds {}
 mod many_links {
     use crate::from_row::{FromRowAlias, FromRowData, FromRowError, RowNumAliased, RowStrAliased};
     use crate::operations::OperationOutput;
-    #[cfg(not(feature = "in_dev_op2"))]
-    use crate::operations::operations_expressions_crossover::ExpressionsForOperation;
     use sqlx::Row;
 
     #[allow(dead_code)]

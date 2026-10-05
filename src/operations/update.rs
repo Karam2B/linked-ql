@@ -15,16 +15,6 @@ use crate::{
     },
 };
 
-#[cfg(not(feature = "in_dev_op2"))]
-mod crossover_imports {
-    pub use crate::operations::operations_expressions_crossover::{
-        ExpressionsForOperation, OnUpdate, SelfPrescribedInsert, TableExpressions,
-    };
-}
-
-#[cfg(not(feature = "in_dev_op2"))]
-use crossover_imports::*;
-
 pub struct Update<Base, Partial, Wheres, Links, Infalibility> {
     pub base: Base,
     pub partial: Partial,
