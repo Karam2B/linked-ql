@@ -1,7 +1,7 @@
 ---
 name: refactoring
 description: >-
-    when intructed to work following refactoring best practices, you should edit rust
+    In Rust, when intructed to work following refactoring best practices, you should edit rust
     following this skill
 ---
 
@@ -22,26 +22,81 @@ default = []
 refactor = []
 ```
 
-# Stable should work
-all `cargo test` and `cargo check` should work in stable version (default = []), while problems may exist in refactored version.
+while working on refactor, no changes should be ever introduced to stable, if changes needed on any part of the code, please keep old code under `cfg(not(featuren = "refactoring"))`, and new code under `cfg(not(featuren = "refactoring"))`, like this
+
+Code in question
+
+```rust
+use crate::context::Context;
+
+fn use_context(ctx: &mut Context) {
+    ctx.method()
+}
+
+```
+
+if for example, the prompt or refactoring instruction are telling you to deprecate "Context" in favor of "i32" and "method" in favor of incrementing, changes should be done like this:
+
+```rust
+#[cfg(feature = "refacotring")]
+mod refactoring_use_context {
+    fn use_context(ctx: &mut i32) {
+        ctx++
+    }
+}
+
+#[cfg(not(feature = "refacotring"))]
+mod old_use_context {
+    use crate::context::Context;
+
+    fn use_context(ctx: &mut Context) {
+        ctx.method()
+    }
+
+}
+
+
+#[cfg(not(feature = "refacotring"))]
+pub use old_use_context::use_context;
+#[cfg(feature = "refacotring")]
+pub use refacoring_use_context::use_context;
+
+```
+
+# Follow comments
+module gated under `#[cfg(feature = "refactoring")]` usually contain "refactoring todo" comments that should be followed to fulfill the prompt correctly. Only use comments that are subject to the propmpt, general prompt like "finish the refactor" may take all comment into consideration, while more specific prompt take only what is relavant
+
+
+# Stable stay unchanged
+if instructed to work on the refactor
+1. all `cargo test` and `cargo check` should work in stable version (default = []), while problems may exist in refactored version.
+2. no changes should be ever introduced to stable.
+
 
 # introducing new changes
 introducing a non-breaking refactoring should be gated behind 
 `cfg[feature = "refactoring"]`
 
 # Replacement old code
-sometime refactoing involves change of old code, in that case old code
-should be gated under `cfg[not(feature = "refactoring")]` and new code 
-behind
+introcuding a breaking change of old code or replace old code like `impl`: follow
+
+old code should be gated under `cfg(not(feature = "refactoring"))` and new code 
+behind `cfg(feature = "refactoring")`, 
+
+do not introduce #[deprecate] attribute to the old code, even if the prompt mentions the word "deprecate"
 
 # Use module
 using cfg for `impl` or `fn` items can be messy. introdue new module for 
-cleaner refactor
+cleaner refactor, example:
 
 ```Rust
 #[cfg(feature = "refactoring")]
+// refactoring todos:
+// - using new dependency
+// - signature of Trait::method is kept
+// - comment for this module should be comment for "crate::trait"
 mod refactoring_trait {
-    // new dependency
+    //! Trait 
     use crate::new_dep::Context;
 
     pub use trait Trait {
@@ -67,8 +122,6 @@ use stable_trait::*;
 
 ```
 
-# Follow comments
-module gated under `#[cfg(feature = "refactoring")]` usually contain "refactoring todo" comments that should be followed to fulfill the prompt correctly. Only use comments that are subject to the propmpt, general prompt like "finish the refactor" may take all comment into consideration, while more specific prompt take only what is relavant
 
 # Finishing the refactor
 when instructerd "finish the refactor by deleting old code" (with mention for deletion), no code should be gated under `cfg(not(feature = "refactoring"))` or `cfg(feature = "refactoring")`. like this
@@ -76,14 +129,17 @@ when instructerd "finish the refactor by deleting old code" (with mention for de
 Before: 
 ```Rust
 #[cfg(feature = "refactoring")]
+// refactoring todos:
+// - using new dependency
+// - signature of Trait::method is kept
+// - comment for this module should be kept
 mod refactoring_trait {
-    // new dependency
+    //! Trait 
     use crate::new_dep::Context;
 
     pub use trait Trait {
         fn method(self, ctx: &mut Context);
     }
-
 }
 
 #[cfg(not(feature = "refactoring"))]
@@ -104,8 +160,9 @@ use stable_trait::*;
 
 ```
 
-After:
+After (src/trait):
 ```Rust
+//! Trait 
 use crate::new_dep::Context;
 
 pub use trait Trait {

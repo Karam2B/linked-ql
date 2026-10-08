@@ -5,15 +5,22 @@
 #![cfg_attr(feature = "nightly_rust_specialization", feature(min_specialization))]
 
 pub mod collections;
-pub mod connect_in_memory;
-pub mod database_extention;
+
 pub mod dyn_vec;
 pub mod execute;
-pub mod extend_sqlite;
+#[cfg(feature = "refactor")]
+/// refactor todos:
+/// - use at the expense of crate::extend_sqlite
+/// - use at the expense of crate::extend_any
+/// - use at the expense of crate::database_extention
+/// - use at the expense of crate::connect_in_memory
+/// - for row_utils, I want only the important ones, the rest
+///     should be marked by `deprecated` attribute
+pub mod extend_sqlx;
 pub mod from_row;
 pub mod json_value_cmp;
 pub mod on_migrate;
-pub mod row_utils;
+
 pub mod schema;
 pub mod singleton;
 pub mod sqlx_query_builder;
@@ -23,9 +30,24 @@ pub mod macros {
     pub use linked_sql_macros::*;
 }
 
+#[cfg(not(feature = "refactor"))]
+pub mod row_utils;
+
+#[cfg(not(feature = "refactor"))]
 pub mod json_client;
+#[cfg(not(feature = "refactor"))]
 pub mod links;
+#[cfg(not(feature = "refactor"))]
 pub mod operations;
+
+#[cfg(not(feature = "refactor"))]
+pub mod connect_in_memory;
+#[cfg(not(feature = "refactor"))]
+pub mod database_extention;
+#[cfg(not(feature = "refactor"))]
+pub mod extend_any;
+#[cfg(not(feature = "refactor"))]
+pub mod extend_sqlite;
 
 #[doc(hidden)]
 pub use paste as paste_crate;
@@ -527,6 +549,32 @@ pub mod sub_arc {
         }
     }
 
+    #[cfg(feature = "refactor")]
+    mod impl_expression_for_arc_sub_str {
+        use crate::database_extention::DatabaseExt;
+        use crate::sqlx_query_builder::{
+            OpExpression, RefExpression, RefOpExpression, SealExpression, SealRefExpression,
+            StatementBuilder,
+        };
+
+        impl SealExpression for crate::sub_arc::ArcSubStr {}
+
+        impl SealRefExpression for crate::sub_arc::ArcSubStr {}
+
+        impl<S> RefExpression<'_, S> for crate::sub_arc::ArcSubStr
+        where
+            S: DatabaseExt,
+        {
+            fn ref_expression<'q>(&self, ctx: &mut StatementBuilder<'q, S>)
+            where
+                S: DatabaseExt,
+            {
+                ctx.sanitize(self.as_str());
+            }
+        }
+    }
+
+    #[cfg(not(feature = "refactor"))]
     mod impl_expression_for_arc_sub_str {
         use crate::{
             database_extention::DatabaseExt,

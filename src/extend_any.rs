@@ -1,9 +1,19 @@
+use crate::connect_in_memory::ConnectInMemory;
+use sqlx::{Any, AnyPool, Pool, pool::PoolOptions};
+
 impl ConnectInMemory for sqlx::Any {
-    #[track_caller]
-    fn connect_in_memory() -> impl Future<Output = Pool<Self>> {
-        if Self::Name != "sqlite" {
-            panic!("you cannot connect in memory for other thatn sqlite")
+    fn in_memory_connection() -> impl Future<Output = <Self as sqlx::Database>::Connection> + Send {
+        async { todo!("impl ConnectInMemory::in_memory_connection for Any") }
+    }
+
+    fn in_memory_pool() -> impl Future<Output = Pool<Self>> {
+        async {
+            match AnyPool::connect("sqlite::memory:").await {
+                Ok(pool) => pool,
+                Err(error) => {
+                    panic!("is error due to database not supporting in memory connections: {error}")
+                }
+            }
         }
-        async { AnyPool::connect("sqlite::memory:").await.unwrap() }
     }
 }

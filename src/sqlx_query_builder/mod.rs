@@ -17,9 +17,8 @@ pub use statement_builder::*;
 /// - removing is_expression_present from SealExpression/OpExpression
 /// - comments of this module should be the comments for sqlx_query_builder/mod.rs
 mod refactor {
-    /// Expression
-    use super::database_extention::DatabaseExt;
     use super::statement_builder::StatementBuilder;
+    use crate::database_extention::DatabaseExt;
 
     /// Read module documentation [sqlx_query_builder/mod.rs](crate::sqlx_query_builder::mod.rs) for more information
     pub trait SealExpression {}
@@ -39,11 +38,14 @@ mod refactor {
     {
         fn ref_expression<'q>(&'a self, ctx: &mut StatementBuilder<'q, S>);
 
-        fn ref_sql_statement(&self) -> String {
-            let mut this = StatementBuilder::default();
+        fn ref_sql_statement(&self) -> String
+        where
+            S: DatabaseExt,
+        {
+            let mut sb = StatementBuilder::default();
             self.ref_expression(&mut sb);
             if sb.count == 0 {
-                return sb.stmt;
+                sb.stmt
             } else {
                 panic!("bug: any calls to ref_expression should not increment count")
             }
@@ -54,19 +56,25 @@ mod refactor {
         fn expression(self, ctx: &mut StatementBuilder<'q, S>)
         where
             S: DatabaseExt;
-        fn sql_statement(self) -> (String, S::Argument<'q>) {
+
+        fn sql_statement(self) -> (String, S::Arguments<'q>)
+        where
+            Self: Sized,
+            S: DatabaseExt,
+        {
             let mut sb = StatementBuilder::default();
             self.expression(&mut sb);
             sb.unwrap()
         }
-        fn sql_statement_no_data(self) -> Option<String> {
-            let mut this = StatementBuilder::default();
+
+        fn sql_statement_no_data(self) -> Option<String>
+        where
+            Self: Sized,
+            S: DatabaseExt,
+        {
+            let mut sb = StatementBuilder::default();
             self.expression(&mut sb);
-            if sb.count == 0 {
-                Some(sb.stmt);
-            } else {
-                None
-            }
+            if sb.count == 0 { Some(sb.stmt) } else { None }
         }
     }
 
@@ -293,6 +301,29 @@ pub use refactor::*;
 pub use stable::*;
 
 #[cfg(test)]
+#[cfg(feature = "refactor")]
+mod refactor_fix_lifetime_tests {
+    use crate::sqlx_query_builder::{Expression, statements::select_statement::SelectStatement};
+    use sqlx::Sqlite;
+
+    #[test]
+    fn main() {
+        let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(SelectStatement {
+            select_items: ("1",),
+            from: "t",
+            joins: (),
+            wheres: (),
+            group_by: (),
+            order: (),
+            limit: (),
+        });
+
+        assert_eq!(stmt, r#"SELECT "1" FROM "t";"#);
+    }
+}
+
+#[cfg(test)]
+#[cfg(not(feature = "refactor"))]
 mod fix_lifetime_tests {
 
     use crate::sqlx_query_builder::{

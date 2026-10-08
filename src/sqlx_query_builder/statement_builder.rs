@@ -7,7 +7,7 @@ where
     S: DatabaseExt,
 {
     pub(crate) stmt: String,
-    count: usize,
+    pub(crate) count: usize,
     arg: S::Arguments<'q>,
 }
 

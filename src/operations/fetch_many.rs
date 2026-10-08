@@ -298,10 +298,8 @@ where
     Links::Op: Operation<S>,
     Links::OpInput: Send,
     Base: Collection<OutputData: Send, Id: Send>,
-    Base: TableExpressions<
-            PascalCase: for<'q> Expression<'q, S>,
-            ScopedAliased: OptionalExpression,
-        >,
+    Base:
+        TableExpressions<PascalCase: for<'q> Expression<'q, S>, ScopedAliased: OptionalExpression>,
     for<'q> Join<Base::ScopedAliased>: Expression<'q, S>,
     Base: FromRowData<RData = Base::OutputData>,
     Base: for<'r> FromRowAlias<'r, S::Row>,
@@ -312,10 +310,8 @@ where
     Base::Id: for<'r> FromRowAlias<'r, S::Row>,
     First2: Send + FirstItemTrait<Base, WhereClause: Send + OptionalExpression>,
     for<'q> Join<<First2 as FirstItemTrait<Base>>::WhereClause>: Expression<'q, S>,
-    Base::Id: ExpressionsForOperation<
-            ScopedAliased: OptionalExpression,
-            Scoped: OptionalExpression,
-        >,
+    Base::Id:
+        ExpressionsForOperation<ScopedAliased: OptionalExpression, Scoped: OptionalExpression>,
     for<'q> Join<<Base::Id as ExpressionsForOperation>::ScopedAliased>: Expression<'q, S>,
     for<'q> Join<<Base::Id as ExpressionsForOperation>::Scoped>: Expression<'q, S>,
     Links: LinkFetch<Output: Send>,

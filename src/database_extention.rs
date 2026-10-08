@@ -1,5 +1,4 @@
-#![deny(unused_must_use)]
-
+/// Traits and behavior meant to be implemented for sqlx types or `impl sqlx::Database` types
 use sqlx::Database;
 
 pub trait DatabaseExt: Database {
