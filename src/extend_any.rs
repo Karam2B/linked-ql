@@ -1,5 +1,5 @@
 use crate::connect_in_memory::ConnectInMemory;
-use sqlx::{Any, AnyPool, Pool, pool::PoolOptions};
+use sqlx::{AnyPool, Pool};
 
 impl ConnectInMemory for sqlx::Any {
     fn in_memory_connection() -> impl Future<Output = <Self as sqlx::Database>::Connection> + Send {

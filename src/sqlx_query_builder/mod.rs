@@ -1,11 +1,33 @@
 pub mod basic_expressions;
 pub mod combinators;
+#[cfg(not(feature = "refactor"))]
 pub mod sanitize_combinator;
+#[cfg(feature = "refactor")]
+/// refactoring todos
+/// - use this mod at the expense of sanitize_combinator and std_impls
+pub mod sanitize_impls;
 pub use basic_expressions::Bind;
 pub use combinators::{Join, Prefixed};
 pub use sanitize_combinator::Sanitize;
+/// refactoring todos
+/// - change StatementBuilder fields
+/// - work closely with DatabaseStatementBuilder trait
+/// - StatementBuilder::bind is replaced by internal calls on Bind type
+/// - StatementBuilder::sanitize is replaced by internal calls on strings and Sanitize type
+/// - StatementBuilder::type_as_syntax is replaced by internal calls on TypeAsSyntax type
+/// - unwrap is replaced by default implementation for *Expression::*sql_statement*
+#[cfg(not(feature = "refactor"))]
 pub mod statement_builder;
+#[cfg(feature = "refactor")]
+#[path = "statement_builder_v2.rs"]
+pub mod statement_builder;
+#[cfg(feature = "refactor")]
+#[linked_sql_macros::skip]
+/// skiped to work on compiling errors incrementally
 pub mod statements;
+#[cfg(not(feature = "refactor"))]
+pub mod statements;
+#[cfg(not(feature = "refactor"))]
 pub mod std_impls;
 pub mod trait_objects;
 pub use statement_builder::*;
@@ -17,6 +39,216 @@ pub use statement_builder::*;
 /// - removing is_expression_present from SealExpression/OpExpression
 /// - comments of this module should be the comments for sqlx_query_builder/mod.rs
 mod refactor {
+    //! # Composible traits to write SQL statements
+    //!
+    //! ## Composibility
+    //! implementations of Expression should be genericly composible, like this:
+    //! ```no_run
+    //! use crate::sqlx_query_builder::{Expression, StatementBuilder};
+    //!
+    //! struct ColumnEquals<C, V> {
+    //!     pub col: C,
+    //!     pub value: V,
+    //! }
+    //!
+    //! impl<'q, C, V> Expression<'q, S> for ColumnEquals<C, V>
+    //! where
+    //!     C: Expression<'q, Sqlite>,
+    //!     V: Expression<'q, Sqlite>,
+    //! {
+    //!     ... some code ...
+    //! }
+    //!
+    //! ```
+    //!
+    //! ## Wrong composition
+    //! It is possible to have problems with wrong composition, consider this example:
+    //! ```no_run
+    //! fn test() {
+    //!     let wrong_col_eq = ColumnEquals {
+    //!         col: ColumnEquals {
+    //!             col: "column",
+    //!             value: Bind(34),
+    //!         },
+    //!         value: Bind(34),
+    //!     }; // `column = column = $1` is invalid SQL
+    //!     panic!("no compile errors, but incorrect composition: {}", wrong_col_eq.sql_statement());
+    //! }
+    //! ```
+    //!
+    //! Traits that require correct compositions lives in 'crate::valid_syntax' module
+    //!
+    //! ## Type Generic 'S'
+    //! Types that represent different sql dialects, like `Sqlite`, `MySQL`, `Postgres`, etc.
+    //! these types are `impl sqlx::Database`
+    //!
+    //!
+    //! ## When to specify 'S' and when to leave it implicit?
+    //! Some databases expect different syntax as others, in this case you should specify 'S' explicitly.
+    //!
+    //! Even in cases where that is not the case, it is recommended to specify 'S' explicitly, to open the door
+    //! for future database support.
+    //!
+    //! In case of being generic over 'S', you have to add this constraint:
+    //! `impl<S: crate::extend_sqlx::DatabaseStatementBuilder> ... the rest ...`
+    //!
+    //!
+    //! ## Lifetime Generic 'q'
+    //! This is the same lifetime in `sqlx::Arguments<'q>`.
+    //!
+    //! As I understand it, it's used to represent the ability to send a reference to an in-memory database.
+    //! Databases like `Sqlite` provide the following impls:
+    //! ```rust
+    //! impl<'q> sqlx::Encode<'q, Sqlite> for &'q str {
+    //!     ... send a reference to an in-memory database ...
+    //! }
+    //!
+    //! impl<'q> sqlx::Decode<'q, Sqlite> for &'q str {
+    //!     ... receive a string reference from an in-memory database ...
+    //! }
+    //! ```
+    //!
+    //! As far as I know there is no other use of this lifetime except this impl. Everything else can be
+    //! assumed to be static.
+    //!
+    //! ## using 'q in implementing generics
+    //! in composed generics you should pass 'q to the inner Expression, never constraint
+    //! the generic itself by 'q. Example:
+    //!
+    //! ```no_run
+    //! impl<'q, S, C, V> Expression<'q, S> for ColumnEquals<C, V>
+    //! where
+    //!     C: Expression<'q, S>,
+    //!     V: Expression<'q, S>,
+    //! {
+    //!     ... some code ...
+    //! }
+    //! ```
+    //!
+    //! The incorrect way to do it is:
+    //! ```no_run
+    //! impl<'q, S, C, V> Expression<'q, S> for ColumnEquals<C, V>
+    //! where
+    //!     C: 'q + Expression<'q, S>,
+    //!     V: 'q + Expression<'q, S>,
+    //! {
+    //!     ... some code ...
+    //! }
+    //! ```
+    //!
+    //! Only `Bind` (which is implemented already) can constraint by 'q.
+    //!
+    //! ## What does 'q restrict?
+    //! To visualize what 'q restricts, consider this example:
+    //! ```no_run
+    //!     #[tokio::main]
+    //!     async fn main() {
+    //!         let pool = Sqlite::connect_in_memory().await;
+    //!
+    //!         let mut column_name = String::from("column_name");
+    //!
+    //!         // lifetime is created here
+    //!         // holding_lifetime types is: ColumnEquals<&'column_name str, Bind<i32>>
+    //!         let holding_lifetime = ColumnEquals {
+    //!             col: column_name.as_str(),
+    //!             value: Bind(34),
+    //!         };
+    //!
+    //!         // ============ Restricted region ============
+    //!         // from the point `as_str` created a lifetime,
+    //!         // to the point the lifetime is droped (`use_executor`
+    //!         // took ownership of `holding_lifetime` and dropped it)
+    //!         //
+    //!         // Here, you cannot mutate or move `column_name` anymore
+    //!         // code like this will not compile:
+    //!         // `column_name.push_str("new_column_name");`
+    //!         // ===========================================
+    //!
+    //!         // lifetime is droped here
+    //!         use_executor!(fetch_one(&pool, holding_lifetime)).unwrap();
+    //!     }
+    //! ```
+    //!
+    //! ## Bind Type
+    //! Special type that allows you to bind a value to a statement, its Expression
+    //! implementation follows sqlx constraints. As follows:
+    //! ```no_run
+    //! impl<'q, S, V> Expression<'q, S> for Bind<V>
+    //! where
+    //!     V: 'q + Encode<'q, S>,
+    //! {
+    //!     ... some code ...
+    //! }
+    //!
+    //! fn use_bind() {
+    //!     let bind = Bind(34);
+    //!     let (stmt, args) = bind.sql_statement();
+    //!     assert_eq!(stmt, "$1");
+    //! }
+    //!
+    //! ```
+    //!
+    //! ## Sanitization
+    //! All standard library string types are sanitized, in addition to `Sanitize` and `ArcSubStr`
+    //!
+    //! `Sanitize` type supports joining multiple items and sanitize them. Example:
+    //! ```no_run
+    //! fn test() {
+    //!     let sanitize = Sanitize(("column_name_", 32, "_sufix"));
+    //!     assert_eq!(sanitize.sql_statement(), "\"column_name_32_sufix\"");
+    //! }
+    //! ```
+    //!
+    //! ## Join and Prefixed types
+    //! `Join` and `Prefixed` are a special types that allows you to join multiple `Expression`s together. Read
+    //! [combinators::Join](combinators::Join) for more information.
+    //!
+    //! ## Sealing
+    //! traits like `SealExpression` and `SealRefExpression` are used to seal the trait over downstream's S.
+    //! This is usefull in blanket implementations
+    //!
+    //! ## passing by ref vs passing by value
+    //! `Expression` trait takes `self`, while `RefExpression` takes `&self`.
+    //! types that implement `Expression` usually will contain a `Bind` down the chain,
+    //! where as types that implement `RefExpression` only provide information to the SQL string, not buffer.
+    //!
+    //! ## Empty Expressions
+    //! Most types that implement `Expression` or `RefExpression` should write some SQL.
+    //! to use possbily empty types like `Option<T>`, `Vec<T>`
+    //! consider using Join or Prefix. As they do not implement `Expression` or `RefExpression`.
+    //! Example:
+    //! ```no_run
+    //! fn test() {
+    //!     let string = Join(("KEYWORD ", Option::<String>::None, Some("VALUE")));
+    //!     assert_eq!(string.sql_statement(), "KEYWORD VALUE");
+    //! }
+    //! ```
+    //!
+    //! Join type report on whether it will write any SQL by `OptionalExpression` trait.
+    //! Usually you don't need to implement this trait for types that implement `Expression` or `RefExpression`.
+    //!
+    //! ## Protection against SQL injection
+    //! Most area of accidental SQL injection are protected by either sanitization or binding.
+    //! All these types do not introduce SQL injection: "String::new("malicious_input")", "Bind(34)", .
+    //!
+    //! Even `StatementBuilder::syntax` require `'static` constraints, so the only way to introduce SQL injection is
+    //! like this:
+    //!
+    //! ```run
+    //! impl<'q, S> Expression<'q, S> for MaliciousType {
+    //!     fn expression(self, ctx: &mut StatementBuilder<'q, S>) {
+    //!         // 'static requirement provide protection against SQL injection
+    //!         // to introduce SQL injection you have to write an obvious malicious code like this:
+    //!         let get_static_str = Box::from(self.string_from_network.as_str());
+    //!         let leak = Box::leak(get_static_str);
+    //!         ctx.syntax(leak);
+    //!     }
+    //! }
+    //! ```
+    //!
+
+    use sqlx::Database;
+
     use super::statement_builder::StatementBuilder;
     use crate::database_extention::DatabaseExt;
 
@@ -44,7 +276,7 @@ mod refactor {
         {
             let mut sb = StatementBuilder::default();
             self.ref_expression(&mut sb);
-            if sb.count == 0 {
+            if S::is_buffer_empty(&sb) {
                 sb.stmt
             } else {
                 panic!("bug: any calls to ref_expression should not increment count")
@@ -57,14 +289,14 @@ mod refactor {
         where
             S: DatabaseExt;
 
-        fn sql_statement(self) -> (String, S::Arguments<'q>)
+        fn sql_statement(self) -> (String, <S as Database>::Arguments<'q>)
         where
             Self: Sized,
-            S: DatabaseExt,
+            S: Database,
         {
             let mut sb = StatementBuilder::default();
             self.expression(&mut sb);
-            sb.unwrap()
+            (sb.stmt, sb.arg)
         }
 
         fn sql_statement_no_data(self) -> Option<String>
@@ -74,7 +306,11 @@ mod refactor {
         {
             let mut sb = StatementBuilder::default();
             self.expression(&mut sb);
-            if sb.count == 0 { Some(sb.stmt) } else { None }
+            if S::is_buffer_empty(&sb) {
+                Some(sb.stmt)
+            } else {
+                None
+            }
         }
     }
 

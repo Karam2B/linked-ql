@@ -64,7 +64,7 @@ pub use refacoring_use_context::use_context;
 ```
 
 # Follow comments
-module gated under `#[cfg(feature = "refactoring")]` usually contain "refactoring todo" comments that should be followed to fulfill the prompt correctly. Only use comments that are subject to the propmpt, general prompt like "finish the refactor" may take all comment into consideration, while more specific prompt take only what is relavant
+items may contain "refactoring/refactor todo(s)" comments that should be followed to fulfill the prompt correctly. Only use comments that are subject to the propmpt, general prompt like "finish the refactor" may take all comment into consideration, while more specific prompt take only what is relavant. if instructed to complete the refactor by deleting old code, these comments should be deleted as well. Documentation not preceded by "refactoring/refactor todo(s)" should be kept.
 
 
 # Stable stay unchanged

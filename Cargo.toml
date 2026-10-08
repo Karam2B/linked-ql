@@ -62,7 +62,7 @@ sqlx-core = { path = "target/patch/sqlx-core-0.8.6" }
 sqlx-sqlite = { path = "target/patch/sqlx-sqlite-0.8.6" }
 
 [features]
-default = ["fix_executor", "sqlite", "trace", "http", "wasm"]
+default = ["refactor", "fix_executor", "sqlite", "trace", "http", "wasm"]
 # a gate for performing refactoring whithout losing stable "return point"
 refactor = []
 # need to apply patches or for sqlx to change add/fix Executor trait
