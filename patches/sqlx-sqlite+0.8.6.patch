@@ -120,22 +120,70 @@ index adc049f..a8c4c7c 100644
 +
 +        fn execute<'e, E: 'e + Execute<'e, Self::Database>>(
 +            self,
-+            _: E,
++            mut query: E,
 +        ) -> futures_core::future::BoxFuture<
 +            'e,
 +            Result<<Self::Database as Database>::QueryResult, sqlx_core::Error>,
 +        > {
-+            todo!()
++            let sql = query.sql();
++            let arguments = match query.take_arguments() {
++                Ok(ok) => ok,
++                Err(error) => {
++                    return Box::pin(async move { Err(sqlx_core::Error::Encode(error)) });
++                }
++            };
++            let persistent = query.persistent() && arguments.is_some();
++            let self_execute =
++                self.worker
++                    .execute_fix(sql, arguments, self.row_channel_size, persistent, None);
++            Box::pin(async move {
++                let mut stream = pin!(self_execute
++                    .map_ok(flume::Receiver::into_stream)
++                    .try_flatten_stream());
++
++                let mut result = SqliteQueryResult::default();
++                while let Some(res) = stream.try_next().await? {
++                    if let Either::Left(done) = res {
++                        result.extend(std::iter::once(done));
++                    }
++                }
++
++                Ok(result)
++            })
 +        }
 +
 +        fn fetch_all<'e, E: 'e + Execute<'e, Self::Database>>(
 +            self,
-+            _: E,
++            mut query: E,
 +        ) -> futures_core::future::BoxFuture<
 +            'e,
 +            Result<Vec<<Self::Database as Database>::Row>, sqlx_core::Error>,
 +        > {
-+            todo!()
++            let sql = query.sql();
++            let arguments = match query.take_arguments() {
++                Ok(ok) => ok,
++                Err(error) => {
++                    return Box::pin(async move { Err(sqlx_core::Error::Encode(error)) });
++                }
++            };
++            let persistent = query.persistent() && arguments.is_some();
++            let self_execute =
++                self.worker
++                    .execute_fix(sql, arguments, self.row_channel_size, persistent, None);
++            Box::pin(async move {
++                let mut stream = pin!(self_execute
++                    .map_ok(flume::Receiver::into_stream)
++                    .try_flatten_stream());
++
++                let mut rows = Vec::new();
++                while let Some(res) = stream.try_next().await? {
++                    if let Either::Right(row) = res {
++                        rows.push(row);
++                    }
++                }
++
++                Ok(rows)
++            })
 +        }
 +
 +        fn fetch_optional<'e, E: 'e + Execute<'e, Self::Database>>(
@@ -148,12 +196,14 @@ index adc049f..a8c4c7c 100644
 +            let sql = query.sql();
 +            let arguments = match query.take_arguments() {
 +                Ok(ok) => ok,
-+                Err(_) => todo!(),
++                Err(error) => {
++                    return Box::pin(async move { Err(sqlx_core::Error::Encode(error)) });
++                }
 +            };
-+            // prepare self
++            let persistent = query.persistent() && arguments.is_some();
 +            let self_execute =
 +                self.worker
-+                    .execute_fix(sql, arguments, self.row_channel_size, false, Some(1));
++                    .execute_fix(sql, arguments, self.row_channel_size, persistent, Some(1));
 +            Box::pin(async move {
 +                let mut stream = pin!(self_execute
 +                    .map_ok(flume::Receiver::into_stream)

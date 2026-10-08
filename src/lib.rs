@@ -32,9 +32,6 @@ pub use paste as paste_crate;
 
 mod test_module;
 
-// mod v2;
-// pub use v2::*;
-
 pub mod sqlx_error_handling {
     use sqlx::{Database, Error};
     pub trait HandleSqlxResult {

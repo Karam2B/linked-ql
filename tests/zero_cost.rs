@@ -3,7 +3,7 @@ use linked_sql::define_collection;
 use linked_sql::links::{DefaultRelationKey, Link, relation_one_to_many::OneToMany};
 use linked_sql::operations::{
     CollectionOutput, LinkedOutput, Operation,
-    fetch_many::{FetchMany, ManyOutput},
+    fetch_many::{FetchMany, ManyOutput, NextItem},
     operations_expressions_crossover::ExpressionsForOperation,
 };
 use linked_sql::sqlx_query_builder::basic_expressions::{Bind, ColumnContains};
@@ -125,7 +125,10 @@ async fn test_zero_cost() {
                         links: None,
                     },
                 ],
-                next_item: Some((8, ())),
+                next_item: Some(NextItem {
+                    id: 8,
+                    ordered_by_field: (),
+                }),
             }
         );
 
