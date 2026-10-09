@@ -1,36 +1,57 @@
+#[cfg(feature = "refactor")]
+#[path = "basic_expressions_v2.rs"]
+/// refactoring todos
+/// - remove SetExpression in favor of UpdateColumn
+/// - remove ManyStatmenets in favor of Join
 pub mod basic_expressions;
+#[cfg(not(feature = "refactor"))]
+pub mod basic_expressions;
+#[cfg(feature = "refactor")]
+#[path = "combinators_v2.rs"]
 pub mod combinators;
 #[cfg(not(feature = "refactor"))]
-pub mod sanitize_combinator;
+pub mod combinators;
 #[cfg(feature = "refactor")]
 /// refactoring todos
 /// - use this mod at the expense of sanitize_combinator and std_impls
-pub mod sanitize_impls;
-pub use basic_expressions::Bind;
-pub use combinators::{Join, Prefixed};
-pub use sanitize_combinator::Sanitize;
-/// refactoring todos
+pub mod sanitize;
+#[cfg(not(feature = "refactor"))]
+pub mod sanitize_combinator;
+
+/// refactoring todos for StatmentBuilder
 /// - change StatementBuilder fields
 /// - work closely with DatabaseStatementBuilder trait
 /// - StatementBuilder::bind is replaced by internal calls on Bind type
 /// - StatementBuilder::sanitize is replaced by internal calls on strings and Sanitize type
 /// - StatementBuilder::type_as_syntax is replaced by internal calls on TypeAsSyntax type
-/// - unwrap is replaced by default implementation for *Expression::*sql_statement*
+/// - unwrap is removed
+/// - Default implementation is removed
 #[cfg(not(feature = "refactor"))]
 pub mod statement_builder;
 #[cfg(feature = "refactor")]
 #[path = "statement_builder_v2.rs"]
 pub mod statement_builder;
-#[cfg(feature = "refactor")]
-#[linked_sql_macros::skip]
 /// skiped to work on compiling errors incrementally
-pub mod statements;
+//#[cfg(feature = "refactor")]
+//pub mod statements;
 #[cfg(not(feature = "refactor"))]
 pub mod statements;
 #[cfg(not(feature = "refactor"))]
 pub mod std_impls;
+#[cfg(feature = "refactor")]
+#[path = "trait_objects_v2.rs"]
+pub mod trait_objects;
+#[cfg(not(feature = "refactor"))]
 pub mod trait_objects;
 pub use statement_builder::*;
+
+// special types
+pub use basic_expressions::Bind;
+pub use combinators::{Join, Prefixed};
+#[cfg(feature = "refactor")]
+pub use sanitize::Sanitize;
+#[cfg(not(feature = "refactor"))]
+pub use sanitize_combinator::Sanitize;
 
 #[cfg(feature = "refactor")]
 /// refactoring todos
@@ -38,6 +59,7 @@ pub use statement_builder::*;
 /// - renameing RefOpExpression to SealRefExpression
 /// - removing is_expression_present from SealExpression/OpExpression
 /// - comments of this module should be the comments for sqlx_query_builder/mod.rs
+/// - implementing Expression for syntax related types should be specific, see comments inside
 mod refactor {
     //! # Composible traits to write SQL statements
     //!
@@ -84,10 +106,10 @@ mod refactor {
     //!
     //!
     //! ## When to specify 'S' and when to leave it implicit?
-    //! Some databases expect different syntax as others, in this case you should specify 'S' explicitly.
+    //! When the syntax is different for different databases, you should specify 'S' explicitly.
     //!
-    //! Even in cases where that is not the case, it is recommended to specify 'S' explicitly, to open the door
-    //! for future database support.
+    //! You should be generic over 'S' when it makes sense, like blanket implementations,
+    //! Join, Prefixed, Sanitize, Bind, TypeAsSyntax, standard library, trait objects implementations.
     //!
     //! In case of being generic over 'S', you have to add this constraint:
     //! `impl<S: crate::extend_sqlx::DatabaseStatementBuilder> ... the rest ...`
@@ -250,7 +272,7 @@ mod refactor {
     use sqlx::Database;
 
     use super::statement_builder::StatementBuilder;
-    use crate::database_extention::DatabaseExt;
+    use crate::extend_sqlx::DatabaseStatementBuilder;
 
     /// Read module documentation [sqlx_query_builder/mod.rs](crate::sqlx_query_builder::mod.rs) for more information
     pub trait SealExpression {}
@@ -266,17 +288,21 @@ mod refactor {
     /// Read module documentation [sqlx_query_builder/mod.rs](crate::sqlx_query_builder::mod.rs) for more information
     pub trait RefExpression<'a, S>: SealRefExpression
     where
-        S: DatabaseExt,
+        S: DatabaseStatementBuilder,
     {
         fn ref_expression<'q>(&'a self, ctx: &mut StatementBuilder<'q, S>);
 
-        fn ref_sql_statement(&self) -> String
+        fn ref_sql_statement(&'a self) -> String
         where
-            S: DatabaseExt,
+            S: DatabaseStatementBuilder,
         {
-            let mut sb = StatementBuilder::default();
+            let mut sb = StatementBuilder {
+                stmt: String::new(),
+                info: S::StatementBuilderInfo::default(),
+                arg: <<S as Database>::Arguments<'_> as Default>::default(),
+            };
             self.ref_expression(&mut sb);
-            if S::is_buffer_empty(&sb) {
+            if S::is_buffer_empty(&sb.info) {
                 sb.stmt
             } else {
                 panic!("bug: any calls to ref_expression should not increment count")
@@ -284,17 +310,24 @@ mod refactor {
         }
     }
 
-    pub trait Expression<'q, S>: SealExpression {
+    pub trait Expression<'q, S>: SealExpression
+    where
+        S: DatabaseStatementBuilder,
+    {
         fn expression(self, ctx: &mut StatementBuilder<'q, S>)
         where
-            S: DatabaseExt;
+            S: DatabaseStatementBuilder;
 
         fn sql_statement(self) -> (String, <S as Database>::Arguments<'q>)
         where
             Self: Sized,
             S: Database,
         {
-            let mut sb = StatementBuilder::default();
+            let mut sb = StatementBuilder {
+                stmt: String::new(),
+                info: S::StatementBuilderInfo::default(),
+                arg: <<S as Database>::Arguments<'q> as Default>::default(),
+            };
             self.expression(&mut sb);
             (sb.stmt, sb.arg)
         }
@@ -302,11 +335,15 @@ mod refactor {
         fn sql_statement_no_data(self) -> Option<String>
         where
             Self: Sized,
-            S: DatabaseExt,
+            S: DatabaseStatementBuilder,
         {
-            let mut sb = StatementBuilder::default();
+            let mut sb = StatementBuilder {
+                stmt: String::new(),
+                info: S::StatementBuilderInfo::default(),
+                arg: <<S as Database>::Arguments<'q> as Default>::default(),
+            };
             self.expression(&mut sb);
-            if S::is_buffer_empty(&sb) {
+            if S::is_buffer_empty(&sb.info) {
                 Some(sb.stmt)
             } else {
                 None
@@ -316,7 +353,7 @@ mod refactor {
 
     impl<'q, S, T> Expression<'q, S> for T
     where
-        S: DatabaseExt,
+        S: DatabaseStatementBuilder,
         T: for<'a> RefExpression<'a, S>,
     {
         fn expression(self, ctx: &mut StatementBuilder<'q, S>) {

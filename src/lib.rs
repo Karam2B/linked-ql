@@ -549,31 +549,6 @@ pub mod sub_arc {
         }
     }
 
-    #[cfg(feature = "refactor")]
-    mod impl_expression_for_arc_sub_str {
-        use crate::database_extention::DatabaseExt;
-        use crate::sqlx_query_builder::{
-            OpExpression, RefExpression, RefOpExpression, SealExpression, SealRefExpression,
-            StatementBuilder,
-        };
-
-        impl SealExpression for crate::sub_arc::ArcSubStr {}
-
-        impl SealRefExpression for crate::sub_arc::ArcSubStr {}
-
-        impl<S> RefExpression<'_, S> for crate::sub_arc::ArcSubStr
-        where
-            S: DatabaseExt,
-        {
-            fn ref_expression<'q>(&self, ctx: &mut StatementBuilder<'q, S>)
-            where
-                S: DatabaseExt,
-            {
-                ctx.sanitize(self.as_str());
-            }
-        }
-    }
-
     #[cfg(not(feature = "refactor"))]
     mod impl_expression_for_arc_sub_str {
         use crate::{

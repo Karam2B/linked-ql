@@ -8,7 +8,7 @@ pub trait DatabaseExt: Database + DatabaseStatementBuilder {}
 /// Trait that handles how each database writes SQL statements
 pub trait DatabaseStatementBuilder: Database {
     /// used as a field in StatementBuilder, usually it is just a count: usize
-    type StatementBuilderInfo;
+    type StatementBuilderInfo: Default;
     /// used internally by Bind type
     fn impl_bind<'q, V>(
         value: V,
@@ -29,6 +29,9 @@ pub trait DatabaseStatementBuilder: Database {
 
     /// used internally by strings, Sanitize types
     fn sanitize_end(into: &mut String);
+
+    /// used internally by strings, Sanitize types
+    fn sanitize_char(char: char, into: &mut String);
 
     /// used internally by strings, Sanitize types
     fn sanitize_segment(string: &str, into: &mut String);
