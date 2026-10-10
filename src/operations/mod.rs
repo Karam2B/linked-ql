@@ -662,8 +662,8 @@ pub mod by_id {
         use super::super::insert::AbortOperation;
         use super::{Operation, UpdateById};
         use crate::connect_in_memory::ConnectInMemory;
-        use crate::test_module::TodoHandler;
-        use crate::test_module::TodoPartial;
+        use crate::define_collection::TodoHandler;
+        use crate::define_collection::TodoPartial;
         use crate::update_mod::Update;
         use sqlx::Row;
         use sqlx::Sqlite;
@@ -732,7 +732,7 @@ pub mod by_id {
     #[cfg(test)]
     mod test {
         use super::{DeleteById, Operation};
-        use crate::{connect_in_memory::ConnectInMemory, test_module::TodoHandler};
+        use crate::{connect_in_memory::ConnectInMemory, define_collection::TodoHandler};
         use sqlx::{Row, Sqlite};
 
         #[tokio::test]
@@ -883,8 +883,8 @@ pub mod on_one_record {
         use super::{OnOneRecord, Operation};
         use crate::{
             connect_in_memory::ConnectInMemory,
+            define_collection::TodoHandler,
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
-            test_module::TodoHandler,
         };
         use sqlx::{Connection, Sqlite};
 

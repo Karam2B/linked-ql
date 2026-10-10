@@ -14,13 +14,21 @@ pub struct Sanitize<T>(pub T);
 mod std_impls {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
-        sqlx_query_builder::{RefExpression, SealExpression, SealRefExpression, StatementBuilder},
+        sqlx_query_builder::{
+            OptionalExpression, RefExpression, SealExpression, SealRefExpression, StatementBuilder,
+        },
     };
     use std::sync::Arc;
 
     impl SealExpression for String {}
 
     impl SealRefExpression for String {}
+
+    impl OptionalExpression for String {
+        fn is_expression_present(&self) -> bool {
+            true
+        }
+    }
 
     impl<S> RefExpression<'_, S> for String
     where
@@ -37,6 +45,12 @@ mod std_impls {
 
     impl SealRefExpression for Arc<str> {}
 
+    impl OptionalExpression for Arc<str> {
+        fn is_expression_present(&self) -> bool {
+            true
+        }
+    }
+
     impl<S> RefExpression<'_, S> for Arc<str>
     where
         S: DatabaseStatementBuilder,
@@ -51,6 +65,12 @@ mod std_impls {
     impl SealExpression for &'_ str {}
 
     impl SealRefExpression for &'_ str {}
+
+    impl OptionalExpression for &'_ str {
+        fn is_expression_present(&self) -> bool {
+            true
+        }
+    }
 
     impl<S> RefExpression<'_, S> for &'_ str
     where
@@ -72,21 +92,18 @@ mod patched_to_string_trait {
         fn to_mut_string(&self, stmt: &mut StatementBuilder<'_, S>);
     }
 
-    impl<T, S: DatabaseStatementBuilder> ToMutString<S> for (&'_ T,)
-    where
-        T: AsRef<str> + ?Sized,
-    {
+    impl<S: DatabaseStatementBuilder> ToMutString<S> for str {
         fn to_mut_string(&self, stmt: &mut StatementBuilder<'_, S>) {
-            S::sanitize_segment(self.0.as_ref(), &mut stmt.stmt);
+            S::sanitize_segment(self.as_ref(), &mut stmt.stmt);
         }
     }
 
-    impl<T, S: DatabaseStatementBuilder> ToMutString<S> for Option<&'_ T>
+    impl<T, S: DatabaseStatementBuilder> ToMutString<S> for Option<T>
     where
-        T: AsRef<str> + ?Sized,
+        T: AsRef<str>,
     {
         fn to_mut_string(&self, stmt: &mut StatementBuilder<'_, S>) {
-            if let Some(item) = self {
+            if let Some(item) = &self {
                 S::sanitize_segment(item.as_ref(), &mut stmt.stmt);
             }
         }
@@ -172,7 +189,7 @@ mod impl_sanitize_for_tuples {
     /// AsRefStr is wraped in tuple to avoid upstream crate from implementing AsRef<str>
     impl<'a, 'q, S, T> TupleSpecRef<T> for TupleSpecifier<'a, 'q, S>
     where
-        T: super::patched_to_string_trait::ToMutString<S>,
+        T: super::patched_to_string_trait::ToMutString<S> + ?Sized,
         S: DatabaseStatementBuilder,
     {
         type Output = ();
@@ -212,9 +229,9 @@ mod tests {
         let hello = String::from("hello_");
         let world = String::from("world_");
         let stmt = RefExpression::<'_, sqlx::Sqlite>::ref_sql_statement(&Sanitize((
-            (hello.as_str(),),
-            Some(world.as_str()),
-            32usize,
+            hello.as_str(),
+            &Some(world.as_str()),
+            &32usize,
         )));
         assert_eq!(stmt, "\"hello_world_32\"");
     }

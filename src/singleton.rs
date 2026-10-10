@@ -5,7 +5,7 @@
 /// examples:
 ///
 /// ```no_run
-///     use linked_sql::singleton::Singleton;
+///     use linked_ql::singleton::Singleton;
 ///
 ///     struct SingletonType;
 ///     impl Singleton for SingletonType {
@@ -16,7 +16,7 @@
 /// ```
 ///
 /// ```no_run
-///     use linked_sql::singleton::Singleton;
+///     use linked_ql::singleton::Singleton;
 ///     use std::sync::LazyLock;
 ///
 ///     struct SingletonType(String);
@@ -34,12 +34,12 @@
 /// example of how this is used in in this crate
 //
 /// ```ignore
-///     fn collection_basic<T: linked_sql::collections::Collection>(_: T) {}
+///     fn collection_basic<T: linked_ql::collections::Collection>(_: T) {}
 ///
 
 //
 ///     fn main() {
-///         use linked_sql::test_module::{todo, Todo};
+///         use linked_ql::test_module::{todo, Todo};
 ///         use std::marker::PhantomData;
 //
 ///         // these are the same calls because todo is a Singleton
@@ -54,8 +54,8 @@
 /// we can get a `&'static str` in any `T: Collection + Singleton` context.
 ///
 /// ```no_run
-///     use linked_sql::collections::Collection;
-///     use linked_sql::singleton::Singleton;
+///     use linked_ql::collections::Collection;
+///     use linked_ql::singleton::Singleton;
 ///
 ///     fn access_static_str_in_generic_contexts<T: Collection + Singleton>() {
 ///         let _name: &'static str = T::singleton().table_name();
@@ -116,7 +116,7 @@ pub mod impl_default {
     }
 }
 
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 // unstable interface for ValidateCollection
 pub mod impl_collectinos {
     use super::Singleton;

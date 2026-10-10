@@ -58,7 +58,7 @@ pub fn main(input: TokenStream) -> TokenStream {
     let MainDerive { mem_ty, mem_name } = main_derive;
 
     let serde_derive = if cfg!(feature = "serde") {
-        Some(quote!(,::linked_sql::prelude::macro_derive_collection::Deserialize))
+        Some(quote!(,::linked_ql::prelude::macro_derive_collection::Deserialize))
     } else {
         None
     };
@@ -66,7 +66,7 @@ pub fn main(input: TokenStream) -> TokenStream {
     ts.extend(quote!(
         #[derive(Default, Debug #serde_derive)]
         pub struct #partial {
-            #(pub #mem_name: ::linked_sql::prelude::macro_derive_collection::update<#mem_ty>,)*
+            #(pub #mem_name: ::linked_ql::prelude::macro_derive_collection::update<#mem_ty>,)*
         }
 
         #[derive(Clone, Default)]
@@ -82,7 +82,7 @@ pub fn main(input: TokenStream) -> TokenStream {
     ts.extend(quote!(
         #[allow(non_camel_case_types)]
         pub mod #members_mod {
-            use ::linked_sql::prelude::macro_derive_collection::*;
+            use ::linked_ql::prelude::macro_derive_collection::*;
             use super::#this_lowercase;
 
             #(
@@ -114,7 +114,7 @@ pub fn main(input: TokenStream) -> TokenStream {
     ));
 
     ts.extend(quote!( const _: () = {
-        use ::linked_sql::prelude::macro_derive_collection::*;
+        use ::linked_ql::prelude::macro_derive_collection::*;
         use #members_mod::*;
 
         impl CollectionBasic for  #this_lowercase {
@@ -157,7 +157,7 @@ pub fn main(input: TokenStream) -> TokenStream {
     if cfg!(feature = "inventory") {
         ts.extend(quote::quote!(
             const _: () = {
-                use ::linked_sql::prelude::inventory::*;
+                use ::linked_ql::prelude::inventory::*;
 
                 submit!(Migration { obj: || Box::new(#this_lowercase) });
                 submit!(Collection { obj: || Box::new(#this_lowercase) });
@@ -184,9 +184,9 @@ fn test_collection_derive() {
     let tobe = quote! {
         #[derive(Default, Debug)]
         pub struct TodoPartial {
-            pub title: ::linked_sql::prelude::macro_derive_collection::update<String>,
-            pub done: ::linked_sql::prelude::macro_derive_collection::update<bool>,
-            pub description: ::linked_sql::prelude::macro_derive_collection::update<Option<String> >,
+            pub title: ::linked_ql::prelude::macro_derive_collection::update<String>,
+            pub done: ::linked_ql::prelude::macro_derive_collection::update<bool>,
+            pub description: ::linked_ql::prelude::macro_derive_collection::update<Option<String> >,
         }
 
         #[derive(Clone, Default)]
@@ -195,7 +195,7 @@ fn test_collection_derive() {
 
         #[allow(non_camel_case_types)]
         pub mod todo_members {
-            use ::linked_sql::prelude::macro_derive_collection::*;
+            use ::linked_ql::prelude::macro_derive_collection::*;
             use super::todo;
 
             #[derive(Clone, Default)]
@@ -245,7 +245,7 @@ fn test_collection_derive() {
         }
 
         const _: () = {
-            use ::linked_sql::prelude::macro_derive_collection::*;
+            use ::linked_ql::prelude::macro_derive_collection::*;
             use todo_members::*;
 
             impl CollectionBasic for todo {

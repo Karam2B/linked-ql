@@ -34,7 +34,7 @@ impl<'q, S: DatabaseStatementBuilder> StatementBuilder<'q, S> {
 /// - on completing the refactoring with deletion istruction
 ///     delete this impl, it is kept only for reference during
 ///     refactoring
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 impl<'q, S: DatabaseExt> StatementBuilder<'q, S> {
     pub fn new<Expr>(expr: Expr) -> Self
     where

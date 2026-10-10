@@ -245,8 +245,7 @@ where
     for<'q> Join<Links::UpdateWhere>: Expression<'q, S>,
     Links::InitSplitForUpdateValues: Send,
     // Links::UpdateSets: Send + for<'q> Expression<'q, S>,
-    Links::UpdateSets: Send
-        + SelfPrescribedInsert<UpdateSets: Send + OptionalExpression>,
+    Links::UpdateSets: Send + SelfPrescribedInsert<UpdateSets: Send + OptionalExpression>,
     for<'q> Join<<Links::UpdateSets as SelfPrescribedInsert>::UpdateSets>: Expression<'q, S>,
     Links::UpdateReturning: Send + OptionalExpression,
     for<'q> Join<Links::UpdateReturning>: Expression<'q, S>,
@@ -276,7 +275,9 @@ where
                 .await;
 
             let (pre_op_wheres, pre_op_values, pre_op_split_for_post_op, mut pre_op_split_take) =
-                self_link.split_pre_op(pre_op).expect("constraint violation");
+                self_link
+                    .split_pre_op(pre_op)
+                    .expect("constraint violation");
 
             let base_values = self.base.clone().on_update(self.partial);
             let link_values = self_link
@@ -367,13 +368,13 @@ mod test {
     use crate::{
         collections::Collection,
         connect_in_memory::ConnectInMemory,
+        define_collection::{Todo, TodoHandler, TodoPartial},
         from_row::FromRowAlias,
         operations::{
             CollectionOutput, LinkedOutput, Operation, insert::AbortOperation,
             update::Update as UpdateOp,
         },
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
-        test_module::{Todo, TodoHandler, TodoPartial},
         track_sqlx_query::watch_sqlx_calls,
         update_mod::Update,
     };

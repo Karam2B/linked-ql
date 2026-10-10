@@ -1,6 +1,3 @@
-#[cfg(test)]
-use crate::links::{DefaultRelationKey, Link, relation_one_to_many::OneToMany};
-
 #[macro_export]
 macro_rules! define_collection {
     (struct $pascal_case:ident $size:literal {$(
@@ -211,6 +208,7 @@ macro_rules! define_collection {
         };
 
         // impl ExpressionsForOperation for $pascal_case
+        #[cfg(not(feature = "refactor"))]
         const _: () = {
             use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
             use $crate::sqlx_query_builder::{
@@ -300,6 +298,7 @@ macro_rules! define_collection {
         };
 
         // impl OnInsert for $pascal_case
+        #[cfg(not(feature = "refactor"))]
         const _: () = {
             use $crate::sqlx_query_builder::statements::insert_statement::IteratorSpec;
             use $crate::operations::operations_expressions_crossover::OnInsert;
@@ -359,6 +358,7 @@ macro_rules! define_collection {
         };
 
         // impl OnUpdate for $pascal_case
+        #[cfg(not(feature = "refactor"))]
         const _: () = {
             use $crate::operations::operations_expressions_crossover::OnUpdate;
             use $crate::update_mod::Update;
@@ -408,10 +408,8 @@ macro_rules! define_collection {
 
         // members
         pub mod [<$pascal_case:snake _members>] {
-            use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
             use $crate::sqlx_query_builder::{
                 basic_expressions::{AliasedScopedColumn, ScopedColumn},
-                sanitize_combinator::Sanitize,
             };
             use $crate::collections::SingleColumnId;
             use $crate::collections::CollectionId;
@@ -431,44 +429,57 @@ macro_rules! define_collection {
                 }
             }
 
-            impl ExpressionsForOperation for id {
-                type Identifier = &'static str;
-                fn identifier(&self) -> Self::Identifier {
-                    "id"
-                }
-                type Scoped = ScopedColumn<&'static str, &'static str>;
-                fn scoped(&self) -> Self::Scoped {
-                    ScopedColumn {
-                        table: stringify!($pascal_case),
-                        col: "id",
-                    }
-                }
-                type ScopedAliased = AliasedScopedColumn<
-                    &'static str,
-                    &'static str,
-                    Sanitize<(&'static str, &'static str)>,
-                >;
-                fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
-                    AliasedScopedColumn {
-                        table: stringify!($pascal_case),
-                        column: "id",
-                        alias: Sanitize((alias, "id")),
-                    }
-                }
-                type NumScopedAliased = AliasedScopedColumn<
-                    &'static str,
-                    &'static str,
-                    Sanitize<(&'static str, usize, &'static str)>,
-                >;
-                fn num_scoped_aliased(&self, num: usize, alias: &'static str) -> Self::NumScopedAliased {
-                    AliasedScopedColumn {
-                        table: stringify!($pascal_case),
-                        column: "id",
-                        alias: Sanitize((alias, num, "id")),
-                    }
-                }
-            }
+            // impl ExpressionsForOperation for id
+            #[cfg(not(feature = "refactor"))]
+            const _: () = {
+                use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+                use $crate::sqlx_query_builder::{
+                    basic_expressions::{AliasedScopedColumn, ScopedColumn},
+                    sanitize_combinator::Sanitize,
+                };
 
+                impl ExpressionsForOperation for id {
+                    type Identifier = &'static str;
+                    fn identifier(&self) -> Self::Identifier {
+                        "id"
+                    }
+                    type Scoped = ScopedColumn<&'static str, &'static str>;
+                    fn scoped(&self) -> Self::Scoped {
+                        ScopedColumn {
+                            table: stringify!($pascal_case),
+                            col: "id",
+                        }
+                    }
+                    type ScopedAliased = AliasedScopedColumn<
+                        &'static str,
+                        &'static str,
+                        Sanitize<(&'static str, &'static str)>,
+                    >;
+                    fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
+                        AliasedScopedColumn {
+                            table: stringify!($pascal_case),
+                            column: "id",
+                            alias: Sanitize((alias, "id")),
+                        }
+                    }
+                    type NumScopedAliased = AliasedScopedColumn<
+                        &'static str,
+                        &'static str,
+                        Sanitize<(&'static str, usize, &'static str)>,
+                    >;
+                    fn num_scoped_aliased(&self, num: usize, alias: &'static str) -> Self::NumScopedAliased {
+                        AliasedScopedColumn {
+                            table: stringify!($pascal_case),
+                            column: "id",
+                            alias: Sanitize((alias, num, "id")),
+                        }
+                    }
+                }
+            };
+
+
+
+            // impl FromRowData for id
             const _: () = {
                 use $crate::from_row::{
                     FromRowAlias, FromRowData, FromRowError, RowStrAliased,
@@ -517,6 +528,7 @@ macro_rules! define_collection {
                     }
                 }
 
+                #[cfg(not(feature = "refactor"))]
                 impl $member {
                     #[allow(dead_code)]
                     pub fn bind(value: $type) ->
@@ -534,46 +546,56 @@ macro_rules! define_collection {
                     }
                 }
 
-                impl ExpressionsForOperation for $member {
-                    type Identifier = &'static str;
-                    fn identifier(&self) -> Self::Identifier {
-                        stringify!($member)
-                    }
-                    type Scoped = ScopedColumn<&'static str, &'static str>;
-                    fn scoped(&self) -> Self::Scoped {
-                        ScopedColumn {
-                            table: stringify!($pascal_case),
-                            col: stringify!($member),
-                        }
-                    }
-                    type ScopedAliased = AliasedScopedColumn<
-                        &'static str,
-                        &'static str,
-                        Sanitize<(&'static str, &'static str)>,
-                    >;
-                    fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
-                        AliasedScopedColumn {
-                            table: stringify!($pascal_case),
-                            column: stringify!($member),
-                            alias: Sanitize((alias, stringify!($member))),
-                        }
-                    }
-                    type NumScopedAliased = AliasedScopedColumn<
-                        &'static str,
-                        &'static str,
-                        Sanitize<(&'static str, usize, &'static str)>,
-                    >;
-                    fn num_scoped_aliased(&self, num: usize, alias: &'static str) -> Self::NumScopedAliased {
-                        AliasedScopedColumn {
-                            table: stringify!($pascal_case),
-                            column: stringify!($member),
-                            alias: Sanitize((alias, num, stringify!($member))),
-                        }
-                    }
-                }
-            )*
 
-            $(
+                // impl ExpressionsForOperation for $member
+                #[cfg(not(feature = "refactor"))]
+                const _: () = {
+                    use $crate::operations::operations_expressions_crossover::ExpressionsForOperation;
+                    use $crate::sqlx_query_builder::{
+                        basic_expressions::{AliasedScopedColumn, ScopedColumn},
+                        sanitize_combinator::Sanitize,
+                    };
+
+                    impl ExpressionsForOperation for $member {
+                        type Identifier = &'static str;
+                        fn identifier(&self) -> Self::Identifier {
+                            stringify!($member)
+                        }
+                        type Scoped = ScopedColumn<&'static str, &'static str>;
+                        fn scoped(&self) -> Self::Scoped {
+                            ScopedColumn {
+                                table: stringify!($pascal_case),
+                                col: stringify!($member),
+                            }
+                        }
+                        type ScopedAliased = AliasedScopedColumn<
+                            &'static str,
+                            &'static str,
+                            Sanitize<(&'static str, &'static str)>,
+                        >;
+                        fn scoped_aliased(&self, alias: &'static str) -> Self::ScopedAliased {
+                            AliasedScopedColumn {
+                                table: stringify!($pascal_case),
+                                column: stringify!($member),
+                                alias: Sanitize((alias, stringify!($member))),
+                            }
+                        }
+                        type NumScopedAliased = AliasedScopedColumn<
+                            &'static str,
+                            &'static str,
+                            Sanitize<(&'static str, usize, &'static str)>,
+                        >;
+                        fn num_scoped_aliased(&self, num: usize, alias: &'static str) -> Self::NumScopedAliased {
+                            AliasedScopedColumn {
+                                table: stringify!($pascal_case),
+                                column: stringify!($member),
+                                alias: Sanitize((alias, num, stringify!($member))),
+                            }
+                        }
+                    }
+                };
+
+                // impl FromRowData for $member
                 const _: () = {
                     use $crate::from_row::{FromRowData, FromRowAlias, FromRowError, RowStrAliased, RowNumAliased};
                     use sqlx::{Row, Type, Decode, ColumnIndex};
@@ -599,7 +621,10 @@ macro_rules! define_collection {
                         }
                     }
                 };
+
             )*
+
+
         }
 
 
@@ -607,51 +632,62 @@ macro_rules! define_collection {
 }
 
 #[cfg(test)]
-define_collection!(
-    struct Todo 3 {
-        title: String,
-        done: bool,
-        description: Option<String>,
+mod collections_example {
+    define_collection!(
+        struct Todo 3 {
+            title: String,
+            done: bool,
+            description: Option<String>,
+        }
+    );
+
+    define_collection!(
+        struct Category 1 {
+            title: String,
+        }
+    );
+
+    define_collection!(
+        struct Tag 1 {
+            title: String,
+        }
+    );
+
+    #[cfg(not(feature = "refactor"))]
+    impl crate::links::Link<TodoHandler> for CategoryHandler {
+        type Spec = crate::links::relation_one_to_many::OneToMany<
+            crate::links::DefaultRelationKey,
+            TodoHandler,
+            CategoryHandler,
+        >;
+
+        fn spec(self) -> Self::Spec {
+            crate::links::relation_one_to_many::OneToMany {
+                fk_unique_id: crate::links::DefaultRelationKey,
+                from: TodoHandler,
+                to: CategoryHandler,
+            }
+        }
     }
-);
 
-#[cfg(test)]
-define_collection!(
-    struct Category 1 {
-        title: String,
-    }
-);
+    #[cfg(not(feature = "refactor"))]
+    impl crate::links::Link<TodoHandler> for TagHandler {
+        type Spec = crate::links::relation_many_to_many::ManyToMany<
+            false,
+            crate::links::DefaultRelationKey,
+            TodoHandler,
+            TagHandler,
+        >;
 
-#[cfg(test)]
-define_collection!(
-    struct Tag 1 {
-        title: String,
-    }
-);
-
-#[cfg(test)]
-impl Link<TodoHandler> for CategoryHandler {
-    type Spec = OneToMany<DefaultRelationKey, TodoHandler, CategoryHandler>;
-
-    fn spec(self) -> Self::Spec {
-        OneToMany {
-            fk_unique_id: DefaultRelationKey,
-            from: TodoHandler,
-            to: CategoryHandler,
+        fn spec(self) -> Self::Spec {
+            crate::links::relation_many_to_many::ManyToMany {
+                relation_key: crate::links::DefaultRelationKey,
+                from: TodoHandler,
+                to: TagHandler,
+            }
         }
     }
 }
 
 #[cfg(test)]
-#[linked_sql_macros::skip]
-impl Link<TodoHandler> for TagHandler {
-    type Spec = ManyToMany<false, DefaultRelationKey, TodoHandler, TagHandler>;
-
-    fn spec(self) -> Self::Spec {
-        ManyToMany {
-            relation_key: DefaultRelationKey,
-            from: TodoHandler,
-            to: TagHandler,
-        }
-    }
-}
+pub use collections_example::*;

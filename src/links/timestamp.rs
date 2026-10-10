@@ -63,12 +63,14 @@ mod impl_on_migrate {
         TriggerOperationNameUpdate<()>,
         <C as TableExpressions>::PascalCase,
         ColumnNewEqualsOld<&'static str>,
-        (UpdateStatement<
-            <C as TableExpressions>::PascalCase,
-            (SetExpression<&'static str, CurrentTimestamp>,),
-            (ColumnMatchNew<&'static str>,),
-            (),
-        >,),
+        (
+            UpdateStatement<
+                <C as TableExpressions>::PascalCase,
+                (SetExpression<&'static str, CurrentTimestamp>,),
+                (ColumnMatchNew<&'static str>,),
+                (),
+            >,
+        ),
     >;
 
     impl<C> MigrateExpression for Timestamp<C>
@@ -137,9 +139,9 @@ mod impl_on_migrate {
     mod test {
 
         use crate::{
-            links::timestamp::Timestamp,
+            define_collection::TodoHandler, links::timestamp::Timestamp,
             operations::operations_expressions_crossover::MigrateExpression,
-            sqlx_query_builder::StatementBuilder, test_module::TodoHandler,
+            sqlx_query_builder::StatementBuilder,
         };
 
         #[test]
@@ -437,9 +439,9 @@ pub mod impl_fetch_many {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
+            define_collection::{TodoHandler, todo_members},
             links::timestamp::Timestamp,
             operations::{Operation, fetch_many::FetchMany},
-            test_module::{TodoHandler, todo_members},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -508,7 +510,9 @@ mod impl_on_insert {
         links::timestamp::{
             Timestamp, TimestampOutput, timestamp_select_items::TimestampSelectItems,
         },
-        operations::insert::{ConstraintViolation, InsertLinkConsumeData, InsertLinkData, InsertOneLink},
+        operations::insert::{
+            ConstraintViolation, InsertLinkConsumeData, InsertLinkData, InsertOneLink,
+        },
     };
 
     impl<C: Clone + crate::operations::operations_expressions_crossover::TableExpressions>
@@ -631,12 +635,12 @@ mod impl_on_insert {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
+            define_collection::{Todo, TodoHandler},
             links::timestamp::Timestamp,
             operations::{
                 Operation,
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
-            test_module::{Todo, TodoHandler},
             track_sqlx_query::watch_sqlx_calls,
         };
 

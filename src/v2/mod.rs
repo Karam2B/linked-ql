@@ -10,7 +10,7 @@
 //! ask for clarification
 
 /// TODO: how the current refactor affects the test_module module
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 #[path = "test_module.rs"]
 pub mod test_module_old;
 
@@ -136,7 +136,7 @@ pub mod test_module {
 /// the content of operations_v2
 #[path = "../operations_v2/mod.rs"]
 pub mod operations;
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 #[path = "operations/mod.rs"]
 pub mod operations_old;
 

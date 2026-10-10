@@ -127,7 +127,7 @@ mod single_incremintal_int_from_row {
     }
 }
 
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 pub(crate) mod impl_id {
     use sqlx::Sqlite;
     use tracing::warn;

@@ -1,13 +1,10 @@
-
 use crate::{
-    from_row::{
-        FromRowAlias, FromRowData, FromRowError, RowNumAliased, RowStrAliased,
-    },
+    from_row::{FromRowAlias, FromRowData, FromRowError, RowNumAliased, RowStrAliased},
     operations::operations_expressions_crossover::ExpressionsForOperation,
     sqlx_query_builder::{
         Expression, Join,
         combinators::OptionalExpression,
-        trait_objects::{box_expression, BoxedExpression},
+        trait_objects::{BoxedExpression, box_expression},
     },
 };
 use sqlx::Database;
@@ -52,9 +49,9 @@ impl<Se, S> SelectItemsTraitObject<S, ()> for ToImplSelectItems<Se, ()>
 where
     Se: Send,
     Se: ExpressionsForOperation<
-        ScopedAliased: 'static + Send + OptionalExpression,
-        NumScopedAliased: 'static + Send + OptionalExpression,
-    >,
+            ScopedAliased: 'static + Send + OptionalExpression,
+            NumScopedAliased: 'static + Send + OptionalExpression,
+        >,
     for<'e> Join<<Se as ExpressionsForOperation>::ScopedAliased>: Expression<'e, S>,
     for<'e> Join<<Se as ExpressionsForOperation>::NumScopedAliased>: Expression<'e, S>,
     Se: for<'r> FromRowAlias<'r, S::Row>,
@@ -169,9 +166,9 @@ impl<'r, 'b, S: Database> FromRowAlias<'r, S::Row>
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
+        define_collection::{CategoryHandler, TodoHandler},
         links::{DefaultRelationKey, relation_one_to_many::OneToMany},
         operations::{Operation, fetch_many::FetchMany},
-        test_module::{CategoryHandler, TodoHandler},
     };
     use sqlx::Sqlite;
 

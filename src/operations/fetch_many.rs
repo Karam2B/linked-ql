@@ -421,11 +421,11 @@ mod test {
 
     use crate::{
         connect_in_memory::ConnectInMemory,
+        define_collection::{Todo, TodoHandler, todo_members},
         operations::{
             LinkedOutput, Operation,
             fetch_many::{FetchMany, ManyOutput, NextItem},
         },
-        test_module::{Todo, TodoHandler, todo_members},
         track_sqlx_query::watch_sqlx_calls,
     };
 

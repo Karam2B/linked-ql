@@ -27,7 +27,7 @@ pub mod sqlx_query_builder;
 pub mod tuple_trait;
 pub mod update_mod;
 pub mod macros {
-    pub use linked_sql_macros::*;
+    pub use linked_ql_macros::*;
 }
 
 #[cfg(not(feature = "refactor"))]
@@ -42,6 +42,12 @@ pub mod operations;
 
 #[cfg(not(feature = "refactor"))]
 pub mod connect_in_memory;
+#[cfg(feature = "refactor")]
+/// refactor todo: remove this module when refactor is complete
+/// and replace all `use` that refer to these by `use` that refer to `extend_sqlx::*`
+mod connect_in_memory {
+    pub use crate::extend_sqlx::InMemoryConnection as ConnectInMemory;
+}
 #[cfg(not(feature = "refactor"))]
 pub mod database_extention;
 #[cfg(not(feature = "refactor"))]
@@ -52,7 +58,7 @@ pub mod extend_sqlite;
 #[doc(hidden)]
 pub use paste as paste_crate;
 
-mod test_module;
+pub mod define_collection;
 
 pub mod sqlx_error_handling {
     use sqlx::{Database, Error};
@@ -79,7 +85,7 @@ pub mod sqlx_error_handling {
                 Err(e) => match &e {
                     Error::RowNotFound => {
                         panic!(
-                            "internal bug: linked_sql should have cleared all sqlx error at this point: {:?}",
+                            "internal bug: linked_ql should have cleared all sqlx error at this point: {:?}",
                             e
                         );
                     }
@@ -332,7 +338,8 @@ pub mod fix_executor {
 
     #[cfg(test)]
     mod test {
-        use crate::{connect_in_memory::ConnectInMemory, execute::Executable};
+        use crate::connect_in_memory::ConnectInMemory;
+        use crate::execute::Executable;
         use sqlx::{Row, Sqlite};
 
         use super::ExecutorTrait;

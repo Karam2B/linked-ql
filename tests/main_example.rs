@@ -1,6 +1,8 @@
-use linked_sql::connect_in_memory::ConnectInMemory;
-use linked_sql::json_client::client_interface::Client;
-use linked_sql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
+#![cfg(not(feature = "refactor"))]
+
+use linked_ql::connect_in_memory::ConnectInMemory;
+use linked_ql::json_client::client_interface::Client;
+use linked_ql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
 use sqlx::Sqlite;
 
 #[tokio::test(flavor = "current_thread")]

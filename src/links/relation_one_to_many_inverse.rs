@@ -19,9 +19,7 @@ mod impl_link_fetch {
     use crate::{
         collections::{Collection, CollectionId, SingleColumnId},
         from_row::FromRowData,
-        links::fetch_linked_records::{
-            FetchOneToManyInverseLinked, OneToManyInverseLinkedMap,
-        },
+        links::fetch_linked_records::{FetchOneToManyInverseLinked, OneToManyInverseLinkedMap},
         links::relation_one_to_many_inverse::OneToManyInverse,
         operations::{
             CollectionOutput, ManyLinkOutput, OperationOutput,
@@ -116,10 +114,10 @@ mod impl_link_fetch {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
+            define_collection::{Category, CategoryHandler, Todo, TodoHandler},
             links::{DefaultRelationKey, relation_one_to_many_inverse::OneToManyInverse},
             operations::{CollectionOutput, LinkedOutput, Operation, fetch_one::FetchOne},
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            test_module::{Category, CategoryHandler, Todo, TodoHandler},
             track_sqlx_query::watch_sqlx_calls,
         };
 

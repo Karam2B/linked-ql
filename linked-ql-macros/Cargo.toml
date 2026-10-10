@@ -1,9 +1,9 @@
 [package]
-name = "linked-sql-macros"
+name = "linked-ql-macros"
 version = "0.1.0"
 edition = "2024"
 
-description = "Procedural macros for the linked-sql"
+description = "Procedural macros for the linked-ql"
 license = "MIT"
 
 [lib]

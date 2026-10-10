@@ -61,7 +61,7 @@ mod async_is_send_mod;
 
 /// valid syntax:
 /// ```rust
-/// #[linked_sql_macros::async_is_send]
+/// #[linked_ql_macros::async_is_send]
 /// async fn test() {
 ///     todo!()
 /// }
@@ -79,7 +79,7 @@ mod async_is_send_mod;
 /// you can also pass a block to the attribute to run before the async move block:
 ///
 /// ```rust
-/// #[linked_sql_macros::async_is_send(before_move = {
+/// #[linked_ql_macros::async_is_send(before_move = {
 ///     let arg = arg.to_string();
 /// })]
 /// async fn test(arg: &str) {}

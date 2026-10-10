@@ -48,7 +48,9 @@ mod not_returning_from_id {
             + 'static,
         From: Send + Clone + 'static + Collection<Id: SingleColumnId + Send>,
         From: TableExpressions<
-                PascalCase: Send + Clone + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+                PascalCase: Send
+                                + Clone
+                                + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
                 SnakeCase: crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
             >,
         From::Id: Send + CollectionId<IdData: Send>,
@@ -183,13 +185,13 @@ mod not_returning_from_id {
     #[cfg(test)]
     mod test {
         use crate::connect_in_memory::ConnectInMemory;
+        use crate::define_collection::Tag;
+        use crate::define_collection::{TagHandler, TodoHandler};
         use crate::links::DefaultRelationKey;
         use crate::operations::Operation;
         use crate::sqlx_query_builder::{
             Bind, basic_expressions::ColumnEqual, sanitize_combinator::Sanitize,
         };
-        use crate::test_module::Tag;
-        use crate::test_module::{TagHandler, TodoHandler};
 
         use super::super::seed_todo_tag_junction;
         use super::FetchJunction;
@@ -269,7 +271,9 @@ mod returning_from_id {
             + 'static,
         From: Send + Clone + 'static + Collection<Id: SingleColumnId + Send>,
         From: TableExpressions<
-                PascalCase: Send + Clone + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
+                PascalCase: Send
+                                + Clone
+                                + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
                 SnakeCase: crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
             >,
         From::Id: Send + CollectionId<IdData: Send>,
@@ -425,9 +429,9 @@ mod returning_from_id {
     }
     #[cfg(test)]
     mod test {
+        use crate::define_collection::{Tag, TagHandler, TodoHandler};
         use crate::links::junction_table_op::seed_todo_tag_junction;
         use crate::sqlx_query_builder::{Bind, basic_expressions::ColumnIn};
-        use crate::test_module::{Tag, TagHandler, TodoHandler};
         use crate::{
             connect_in_memory::ConnectInMemory,
             links::{DefaultRelationKey, junction_table_op::FetchJunction},
@@ -460,35 +464,45 @@ mod returning_from_id {
                         5,
                         CollectionOutput {
                             id: 1,
-                            attributes: Tag { title: "tag_1".to_string() },
+                            attributes: Tag {
+                                title: "tag_1".to_string()
+                            },
                         },
                     ),
                     (
                         5,
                         CollectionOutput {
                             id: 2,
-                            attributes: Tag { title: "tag_2".to_string() },
+                            attributes: Tag {
+                                title: "tag_2".to_string()
+                            },
                         },
                     ),
                     (
                         5,
                         CollectionOutput {
                             id: 3,
-                            attributes: Tag { title: "tag_3".to_string() },
+                            attributes: Tag {
+                                title: "tag_3".to_string()
+                            },
                         },
                     ),
                     (
                         7,
                         CollectionOutput {
                             id: 1,
-                            attributes: Tag { title: "tag_1".to_string() },
+                            attributes: Tag {
+                                title: "tag_1".to_string()
+                            },
                         },
                     ),
                     (
                         7,
                         CollectionOutput {
                             id: 3,
-                            attributes: Tag { title: "tag_3".to_string() },
+                            attributes: Tag {
+                                title: "tag_3".to_string()
+                            },
                         },
                     ),
                 ]

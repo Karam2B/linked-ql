@@ -4,7 +4,7 @@
 // }
 
 // #[cfg(feature = "skip_without_comments")]
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 pub mod dynamic_migrate {
     use std::pin::Pin;
 

@@ -457,7 +457,7 @@ where
 }
 
 #[cfg(test)]
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 /// skipped waiting RefExpression refactoring
 mod tests {
     use crate::sqlx_query_builder::{Expression, Join, OpExpression, StatementBuilder};

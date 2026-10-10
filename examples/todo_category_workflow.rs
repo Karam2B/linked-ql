@@ -2,12 +2,20 @@
 //!
 //! Run with: `cargo run --example todo_category_workflow`
 
-use linked_sql::connect_in_memory::ConnectInMemory;
-use linked_sql::json_client::client_interface::Client;
-use linked_sql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
+#[cfg(feature = "refactor")]
+fn main() {}
+
+#[cfg(not(feature = "refactor"))]
+use linked_ql::connect_in_memory::ConnectInMemory;
+#[cfg(not(feature = "refactor"))]
+use linked_ql::json_client::client_interface::Client;
+#[cfg(not(feature = "refactor"))]
+use linked_ql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
+#[cfg(not(feature = "refactor"))]
 use sqlx::Sqlite;
 
 /// Pretty-print JSON op output for readable assertion diffs.
+#[cfg(not(feature = "refactor"))]
 fn pretty_op_output(value: impl AsRef<str>) -> String {
     let parsed: serde_json::Value =
         serde_json::from_str(value.as_ref()).expect("op output must be valid JSON");
@@ -15,6 +23,7 @@ fn pretty_op_output(value: impl AsRef<str>) -> String {
 }
 
 /// Normalize SQL for readable assertion diffs (collapse whitespace, drop PRAGMA).
+#[cfg(not(feature = "refactor"))]
 fn pretty_sql_query(value: impl AsRef<str>) -> String {
     value
         .as_ref()
@@ -31,10 +40,12 @@ fn pretty_sql_query(value: impl AsRef<str>) -> String {
         .join("\n")
 }
 
+#[cfg(not(feature = "refactor"))]
 fn assert_op_eq(actual: impl AsRef<str>, expected: impl AsRef<str>) {
     assert_eq!(pretty_op_output(actual), pretty_op_output(expected));
 }
 
+#[cfg(not(feature = "refactor"))]
 fn assert_sql_drain(drain: Vec<String>, expected: impl AsRef<str>) {
     assert_eq!(
         pretty_sql_query(without_pragma(drain).join("\n")),
@@ -42,6 +53,7 @@ fn assert_sql_drain(drain: Vec<String>, expected: impl AsRef<str>) {
     );
 }
 
+#[cfg(not(feature = "refactor"))]
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     watch_sqlx_calls(async |actions| {

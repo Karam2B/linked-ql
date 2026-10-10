@@ -189,7 +189,7 @@ mod many_links {
         type Output = Vec<T::Output>;
     }
 
-    #[linked_sql_macros::skip]
+    #[linked_ql_macros::skip]
     mod tests {
         #[tokio::test(flavor = "current_thread")]
         async fn main_with_two_links() {

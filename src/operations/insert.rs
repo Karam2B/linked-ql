@@ -447,7 +447,7 @@ mod test {
     use crate::{
         connect_in_memory::ConnectInMemory, operations::{
             CollectionOutput, LinkedOutput, Operation, insert::{AbortOperation, InsertEntity, InsertOne},
-        }, sqlx_query_builder::statements::insert_statement::IteratorSpec, test_module::{Todo, TodoHandler}, track_sqlx_query::watch_sqlx_calls,
+        }, sqlx_query_builder::statements::insert_statement::IteratorSpec, define_collection::{Todo, TodoHandler}, track_sqlx_query::watch_sqlx_calls,
     };
     use sqlx::{Sqlite, query};
 

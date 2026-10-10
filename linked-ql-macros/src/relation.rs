@@ -50,7 +50,7 @@ pub fn many_to_many(rest: TwoIdent) -> TokenStream {
     if cfg!(feature = "inventory") {
         q = quote::quote!(
             const _: () = {
-                use ::linked_sql::prelude::inventory::*;
+                use ::linked_ql::prelude::inventory::*;
 
                 submit!(Migration { obj: || Box::new(Relation(from: #from_lower_case, to: #to_lower_case)) });
                 submit!(Migration { obj: || Box::new(Relation(to: #to_lower_case, from: #from_lower_case)) });
@@ -62,7 +62,7 @@ pub fn many_to_many(rest: TwoIdent) -> TokenStream {
 
     quote! {
         const _: () = {
-            use ::linked_sql::prelude::macro_relation::*;
+            use ::linked_ql::prelude::macro_relation::*;
             impl LinkData<#from_lower_case> for Relation<#from_lower_case, #to_lower_case> {
                 type Spec = ManyToMany<#from_lower_case, #to_lower_case>;
                 fn spec(self, table_1: #from_lower_case) -> Self::Spec {
@@ -116,7 +116,7 @@ pub fn one_to_many(rest: TwoIdent) -> TokenStream {
     let foriegn_key = format!("{}_id", to.to_string().to_case(Case::Snake));
     quote! {
         const _: () = {
-            use ::linked_sql::prelude::macro_relation::*;
+            use ::linked_ql::prelude::macro_relation::*;
             impl LinkData<#to_lower_case> for Relation<#to_lower_case, #from_lower_case> {
                 type Spec = OneToManyInverse<#to_lower_case, #from_lower_case>;
                 fn spec(self, from: #to_lower_case) -> Self::Spec {

@@ -1,13 +1,15 @@
-use linked_sql::connect_in_memory::ConnectInMemory;
-use linked_sql::define_collection;
-use linked_sql::links::{DefaultRelationKey, Link, relation_one_to_many::OneToMany};
-use linked_sql::operations::{
+#![cfg(not(feature = "refactor"))]
+
+use linked_ql::connect_in_memory::ConnectInMemory;
+use linked_ql::define_collection;
+use linked_ql::links::{DefaultRelationKey, Link, relation_one_to_many::OneToMany};
+use linked_ql::operations::{
     CollectionOutput, LinkedOutput, Operation,
     fetch_many::{FetchMany, ManyOutput, NextItem},
     operations_expressions_crossover::ExpressionsForOperation,
 };
-use linked_sql::sqlx_query_builder::basic_expressions::{Bind, ColumnContains};
-use linked_sql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
+use linked_ql::sqlx_query_builder::basic_expressions::{Bind, ColumnContains};
+use linked_ql::track_sqlx_query::{watch_sqlx_calls, without_pragma};
 use sqlx::Sqlite;
 
 define_collection!(

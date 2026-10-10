@@ -84,10 +84,7 @@ where
                     Nest(self.base.inherit_join()),
                     Nest(self.links.non_duplicating_join_expressions()),
                 ),
-                wheres: (
-                    Nest(self.wheres),
-                    Nest(self.links.where_expressions()),
-                ),
+                wheres: (Nest(self.wheres), Nest(self.links.where_expressions())),
                 group_by: (),
                 order: (),
                 limit: (),
@@ -127,9 +124,9 @@ where
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
+        define_collection::{Todo, TodoHandler},
         operations::{LinkedOutput, Operation, fetch_one::FetchOne},
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
-        test_module::{Todo, TodoHandler},
         track_sqlx_query::watch_sqlx_calls,
     };
     use sqlx::Sqlite;

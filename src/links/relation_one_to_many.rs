@@ -82,7 +82,7 @@ mod impl_on_migrate {
             links::Link,
             operations::operations_expressions_crossover::MigrateExpression,
             sqlx_query_builder::StatementBuilder,
-            test_module::{CategoryHandler, TodoHandler},
+            define_collection::{CategoryHandler, TodoHandler},
         };
 
         #[test]
@@ -403,7 +403,7 @@ mod impl_link_fetch_many {
                 CollectionOutput, LinkedOutput, Operation,
                 fetch_many::{FetchMany, ManyOutput},
             },
-            test_module::{Category, CategoryHandler, Todo, TodoHandler, todo_members},
+            define_collection::{Category, CategoryHandler, Todo, TodoHandler, todo_members},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -674,7 +674,7 @@ mod impl_set_new_for_insert {
                 CollectionOutput, LinkedOutput, Operation,
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
-            test_module::{self, Category, CategoryHandler, Todo},
+            define_collection::{self, Category, CategoryHandler, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -706,7 +706,7 @@ mod impl_set_new_for_insert {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     InsertOne {
-                        handler: test_module::TodoHandler,
+                        handler: define_collection::TodoHandler,
                         data: InsertEntity {
                             attributes: Todo {
                                 title: "first_todo".to_string(),
@@ -714,7 +714,7 @@ mod impl_set_new_for_insert {
                                 description: None,
                             },
                             link: SetNew {
-                                relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                                relation: <CategoryHandler as Link<define_collection::TodoHandler>>::spec(CategoryHandler),
                                 data: Category {
                                     title: "category_1".to_string(),
                                 },
@@ -951,7 +951,7 @@ mod impl_set_id_for_insert {
                 CollectionOutput, LinkedOutput, Operation,
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
-            test_module::{self, Category, CategoryHandler, Todo},
+            define_collection::{self, Category, CategoryHandler, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -985,7 +985,7 @@ mod impl_set_id_for_insert {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     InsertOne {
-                        handler: test_module::TodoHandler,
+                        handler: define_collection::TodoHandler,
                         data: InsertEntity {
                             attributes: Todo {
                                 title: "first_todo".to_string(),
@@ -994,7 +994,7 @@ mod impl_set_id_for_insert {
                             },
                             link: SetId {
                                 id: 1,
-                                relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                                relation: <CategoryHandler as Link<define_collection::TodoHandler>>::spec(CategoryHandler),
                             },
                         },
                         infalibility: AbortOperation,
@@ -1274,7 +1274,7 @@ mod impl_set_id_for_update {
                 update::Update,
             },
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            test_module::{self, Category, CategoryHandler, Todo},
+            define_collection::{self, Category, CategoryHandler, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -1313,7 +1313,7 @@ mod impl_set_id_for_update {
                 actions.clear();
 
                 let s = Update {
-                    base: test_module::TodoHandler,
+                    base: define_collection::TodoHandler,
                     partial: Default::default(),
                     wheres: ColumnEqual {
                         col: "id",
@@ -1322,7 +1322,7 @@ mod impl_set_id_for_update {
                     links: SetId {
                         relation: OneToMany {
                             fk_unique_id: DefaultRelationKey,
-                            from: test_module::TodoHandler,
+                            from: define_collection::TodoHandler,
                             to: CategoryHandler,
                         },
                         id: None,
@@ -1360,14 +1360,14 @@ WHERE id = 1;
             let _ = actions.take();
 
             let s = Update {
-                base: test_module::TodoHandler,
+                base: define_collection::TodoHandler,
                 partial: Default::default(),
                 wheres: ColumnEqual {
                     col: "id",
                     eq: Bind(2),
                 },
                 links: SetId {
-                    relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryHandler as Link<define_collection::TodoHandler>>::spec(CategoryHandler),
                     id: Some(2),
                 },
                 infalibility: AbortOperation,
@@ -1417,14 +1417,14 @@ WHERE Todo.id = 2;
             let _ = actions.take();
 
             let s = Update {
-                base: test_module::TodoHandler,
+                base: define_collection::TodoHandler,
                 partial: Default::default(),
                 wheres: ColumnEqual {
                     col: "id",
                     eq: Bind(2),
                 },
                 links: SetNew {
-                    relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryHandler as Link<define_collection::TodoHandler>>::spec(CategoryHandler),
                     data: Category {
                         title: "category_3".to_string(),
                     },
@@ -1476,7 +1476,7 @@ WHERE Todo.id = 2;
             let _ = actions.take();
 
             let s = InsertOne {
-                handler: test_module::TodoHandler,
+                handler: define_collection::TodoHandler,
                 data: InsertEntity {
                     attributes: Todo {
                     title: "todo_4".to_string(),
@@ -1484,7 +1484,7 @@ WHERE Todo.id = 2;
                     description: None,
                 },
                 link: SetId {
-                    relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryHandler as Link<define_collection::TodoHandler>>::spec(CategoryHandler),
                     id: 3,
                 }},
                 infalibility: AbortOperation,
@@ -1522,7 +1522,7 @@ WHERE Todo.id = 2;
             );
 
             let s = InsertOne {
-                handler: test_module::TodoHandler,
+                handler: define_collection::TodoHandler,
                 data: InsertEntity {
                     attributes: Todo {
                     title: "todo_5".to_string(),
@@ -1530,7 +1530,7 @@ WHERE Todo.id = 2;
                     description: None,
                 },
                 link: SetNew {
-                    relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryHandler as Link<define_collection::TodoHandler>>::spec(CategoryHandler),
                     data: Category {
                         title: "category_4".to_string(),
                     },
@@ -1589,7 +1589,7 @@ LEFT JOIN Category ON Todo.fk_category_def = Category.id;
             .map(|e| {
                 let linked = e.get::<Option<i64>, _>("fk_category_def");
                 (
-                    test_module::TodoHandler
+                    define_collection::TodoHandler
                         .str_alias(RowStrAliased::new(&e, "todo_"))
                         .unwrap(),
                     if let Some(linked) = linked {
@@ -1849,7 +1849,7 @@ mod impl_set_new_for_update {
         use sqlx::Sqlite;
 
         use crate::{
-            connect_in_memory::ConnectInMemory, links::{DefaultRelationKey, relation_one_to_many::OneToMany, update_links::SetNew}, operations::{CollectionOutput, LinkedOutput, Operation, insert::AbortOperation, update::Update}, sqlx_query_builder::basic_expressions::{Bind, ColumnEqual}, test_module::{self, Category, CategoryHandler, Todo}, track_sqlx_query::watch_sqlx_calls,
+            connect_in_memory::ConnectInMemory, links::{DefaultRelationKey, relation_one_to_many::OneToMany, update_links::SetNew}, operations::{CollectionOutput, LinkedOutput, Operation, insert::AbortOperation, update::Update}, sqlx_query_builder::basic_expressions::{Bind, ColumnEqual}, define_collection::{self, Category, CategoryHandler, Todo}, track_sqlx_query::watch_sqlx_calls,
         };
 
         #[tokio::test(flavor = "current_thread")]
@@ -1883,7 +1883,7 @@ mod impl_set_new_for_update {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     Update {
-                        base: test_module::TodoHandler,
+                        base: define_collection::TodoHandler,
                         partial: Default::default(),
                         wheres: ColumnEqual {
                             col: "id",
@@ -1892,7 +1892,7 @@ mod impl_set_new_for_update {
                         links: SetNew {
                             relation: OneToMany {
                                 fk_unique_id: DefaultRelationKey,
-                                from: test_module::TodoHandler,
+                                from: define_collection::TodoHandler,
                                 to: CategoryHandler,
                             },
                             data: Category {
@@ -2088,7 +2088,7 @@ mod impl_for_delete {
             links::{DefaultRelationKey, relation_one_to_many::OneToMany},
             operations::{CollectionOutput, LinkedOutput, Operation, delete::Delete},
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
-            test_module::{self, Category, CategoryHandler, Todo},
+            define_collection::{self, Category, CategoryHandler, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -2121,7 +2121,7 @@ mod impl_for_delete {
                 actions.clear();
 
                 let s = Delete {
-                    base: test_module::TodoHandler,
+                    base: define_collection::TodoHandler,
                     wheres: ColumnEqual {
                         col: ScopedColumn {
                             table: "Todo",
@@ -2131,7 +2131,7 @@ mod impl_for_delete {
                     },
                     links: OneToMany {
                         fk_unique_id: DefaultRelationKey,
-                        from: test_module::TodoHandler,
+                        from: define_collection::TodoHandler,
                         to: CategoryHandler,
                     },
                 };

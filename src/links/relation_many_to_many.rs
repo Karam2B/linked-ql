@@ -223,7 +223,7 @@ mod impl_on_migrate {
             links::{DefaultRelationKey, relation_many_to_many::ManyToMany},
             operations::operations_expressions_crossover::MigrateExpression,
             sqlx_query_builder::StatementBuilder,
-            test_module::{TagHandler, TodoHandler},
+            define_collection::{TagHandler, TodoHandler},
         };
 
         #[test]
@@ -383,7 +383,7 @@ mod impl_link_fetch_many {
                 CollectionOutput, LinkedOutput, ManyLinkOutput, Operation,
                 fetch_many::{FetchMany, ManyOutput},
             },
-            test_module::{Tag, TagHandler, Todo, TodoHandler, todo_members},
+            define_collection::{Tag, TagHandler, Todo, TodoHandler, todo_members},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -678,7 +678,7 @@ mod impl_many_to_many_set_new {
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
             sqlx_query_builder::statements::insert_statement::IteratorSpec,
-            test_module::{Tag, TagHandler, Todo, TodoHandler},
+            define_collection::{Tag, TagHandler, Todo, TodoHandler},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -1104,7 +1104,7 @@ mod impl_set_junzcction_id_for_update {
                 update::Update,
             },
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            test_module::{Tag, TagHandler, TodoHandler, TodoPartial},
+            define_collection::{Tag, TagHandler, TodoHandler, TodoPartial},
             track_sqlx_query::watch_sqlx_calls,
             update_mod::Update as PartialUpdate,
         };
@@ -1468,7 +1468,7 @@ mod impl_for_delete {
                 CollectionOutput, LinkedOutput, ManyLinkOutput, Operation, delete::Delete,
             },
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            test_module::{Tag, TagHandler, Todo, TodoHandler},
+            define_collection::{Tag, TagHandler, Todo, TodoHandler},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -1566,7 +1566,7 @@ pub(crate) mod test_support {
         links::{DefaultRelationKey, relation_many_to_many::ManyToMany},
         operations::operations_expressions_crossover::MigrateExpression,
         sqlx_query_builder::StatementBuilder,
-        test_module::{TagHandler, TodoHandler},
+        define_collection::{TagHandler, TodoHandler},
     };
 
     pub fn todo_to_tag_link() -> ManyToMany<false, DefaultRelationKey, TodoHandler, TagHandler> {

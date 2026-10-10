@@ -332,7 +332,7 @@ pub mod named_col_from_row {
     }
 }
 
-#[linked_sql_macros::skip]
+#[linked_ql_macros::skip]
 mod functional_impls {
     use crate::from_row::FromRowAlias;
     use crate::from_row::FromRowData;
@@ -505,10 +505,10 @@ pub mod row_helpers {
 mod test {
     use sqlx::Sqlite;
 
+    use crate::connect_in_memory::ConnectInMemory;
     use crate::{
-        connect_in_memory::ConnectInMemory,
+        define_collection::{Category, CategoryHandler},
         from_row::{FromRowAlias, RowStrAliased},
-        test_module::{Category, CategoryHandler},
     };
 
     #[tokio::test]

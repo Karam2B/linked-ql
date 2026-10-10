@@ -1,7 +1,9 @@
 [package]
-name = "linked-sql"
+name = "linked-ql"
 version = "0.1.0"
 edition = "2024"
+description = "Robust, zero-cost and flexable ORM. Written in idomatic Rust."
+license = "MIT"
 autobins = false
 
 [workspace]
@@ -14,7 +16,7 @@ wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 
 [dependencies]
-linked-sql-macros = { path = "./linked-sql-macros", version = "0.1.0" }
+linked-ql-macros = { path = "./linked-ql-macros", version = "0.1.0" }
 sqlx = { version = "0.8.5" }
 paste = "1.0.15"
 convert_case = "0.8.0"
@@ -62,16 +64,16 @@ sqlx-core = { path = "target/patch/sqlx-core-0.8.6" }
 sqlx-sqlite = { path = "target/patch/sqlx-sqlite-0.8.6" }
 
 [features]
-default = ["refactor", "fix_executor", "sqlite", "trace", "http", "wasm"]
+default = ["sqlite", "trace", "http", "wasm"]
 # a gate for performing refactoring whithout losing stable "return point"
 refactor = []
 # need to apply patches or for sqlx to change add/fix Executor trait
 fix_executor = []
 nightly_rust_specialization = []
 nightly_rust_const_impl = []
-inventory = ["dep:inventory", "linked-sql-macros/inventory"]
+inventory = ["dep:inventory", "linked-ql-macros/inventory"]
 http = ["serde", "dep:tower-service", "dep:hyper", "dep:axum", "tokio/full"]
-serde = ["dep:serde_json", "dep:serde", "linked-sql-macros/serde"]
+serde = ["dep:serde_json", "dep:serde", "linked-ql-macros/serde"]
 trace = ["dep:tracing", "dep:tracing-subscriber"]
 sqlite = ["sqlx/sqlite"]
 skip_without_comments = []

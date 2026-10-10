@@ -335,7 +335,7 @@ pub fn main_statment_to_token(input: MainStatement) -> TokenStream {
     let op = input.op;
     let with = &input.with;
     quote!({
-        use ::linked_sql::prelude::sql::*;
+        use ::linked_ql::prelude::sql::*;
         Operation::exec_operation(#op, &mut #with)
     })
 }
@@ -493,7 +493,7 @@ mod tests {
         };
 
         let to_be = quote!({
-            use ::linked_sql::prelude::sql::*;
+            use ::linked_ql::prelude::sql::*;
             let op = is_valid_syntax(
                 FetchOne {
                     base: todo,

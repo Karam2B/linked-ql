@@ -158,10 +158,7 @@ where
     PL: Send,
     Base: Send,
     Base: Collection,
-    Base: TableExpressions<
-            Identifier: OptionalExpression,
-            PascalCase: for<'q> Expression<'q, S>,
-        >,
+    Base: TableExpressions<Identifier: OptionalExpression, PascalCase: for<'q> Expression<'q, S>>,
     for<'q> Join<Base::Identifier>: Expression<'q, S>,
     Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
     Base::OutputData: Send,
@@ -273,9 +270,9 @@ where
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
+        define_collection::{Todo, TodoHandler},
         operations::{LinkedOutput, Operation, delete::Delete},
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-        test_module::{Todo, TodoHandler},
         track_sqlx_query::watch_sqlx_calls,
     };
     use sqlx::{Row, Sqlite};

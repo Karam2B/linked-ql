@@ -53,7 +53,7 @@ pub fn main(input: TokenStream) -> TokenStream {
 
     return quote! {
         const _: () = {
-            use ::linked_sql::prelude::from_row_alias::*;
+            use ::linked_ql::prelude::from_row_alias::*;
 
             impl<'r, R: Row> FromRowAlias<'r, R> for #name_lower_case
             where
@@ -103,7 +103,7 @@ fn test_from_row_ext_derive() {
 
     let tobe = quote! {
         const _: () = {
-            use ::linked_sql::prelude::from_row_ext::*;
+            use ::linked_ql::prelude::from_row_ext::*;
 
             impl<'r, R: Row> FromRowExt<'r, R> for Todo
             where

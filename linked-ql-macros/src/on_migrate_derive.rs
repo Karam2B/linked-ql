@@ -50,7 +50,7 @@ pub fn main(input: TokenStream) -> TokenStream {
 
     quote! {
         const _ : () = {
-            use ::linked_sql::prelude::on_migrate_derive::*;
+            use ::linked_ql::prelude::on_migrate_derive::*;
 
             impl OnMigrate for #name {
                 type Statements = CreateTable<
@@ -91,7 +91,7 @@ fn main_test() {
 
     let to_be = quote! {
         const _ : () = {
-            use ::linked_sql::prelude::on_migrate_derive::*;
+            use ::linked_ql::prelude::on_migrate_derive::*;
 
             impl OnMigrate for todo {
                 type Statements = CreateTable<
