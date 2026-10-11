@@ -13,9 +13,6 @@ pub mod execute;
 /// - use at the expense of crate::extend_any
 /// - use at the expense of crate::database_extention
 /// - use at the expense of crate::connect_in_memory
-/// - for row_utils, I want only the important ones, the rest
-///     should be marked by `deprecated` attribute, do not delete old code
-///     do
 pub mod extend_sqlx;
 pub mod from_row;
 pub mod json_value_cmp;
@@ -30,7 +27,6 @@ pub mod macros {
     pub use linked_ql_macros::*;
 }
 
-#[cfg(not(feature = "refactor"))]
 pub mod row_utils;
 
 #[cfg(not(feature = "refactor"))]

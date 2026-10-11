@@ -19,8 +19,7 @@ pub mod expressions {
 
     pub struct CreateTableInit;
 
-    impl OpExpression for CreateTableInit {
-    }
+    impl OpExpression for CreateTableInit {}
 
     impl<'q, S> Expression<'q, S> for CreateTableInit {
         fn expression(self, ctx: &mut StatementBuilder<'q, S>)
@@ -33,8 +32,7 @@ pub mod expressions {
 
     pub struct CreateTableInitIfNotExist;
 
-    impl OpExpression for CreateTableInitIfNotExist {
-    }
+    impl OpExpression for CreateTableInitIfNotExist {}
 
     impl<'q, S> Expression<'q, S> for CreateTableInitIfNotExist {
         fn expression(self, ctx: &mut StatementBuilder<'q, S>)
@@ -46,8 +44,7 @@ pub mod expressions {
     }
 }
 
-impl<Header, Table, Columns> OpExpression for CreateTable<Header, Table, Columns> {
-}
+impl<Header, Table, Columns> OpExpression for CreateTable<Header, Table, Columns> {}
 
 impl<'q, S, Header, Table, Columns> Expression<'q, S> for CreateTable<Header, Table, Columns>
 where
@@ -99,8 +96,7 @@ where
 }
 
 pub struct NotNull;
-impl OpExpression for NotNull {
-}
+impl OpExpression for NotNull {}
 impl<'a, S> Expression<'a, S> for NotNull {
     fn expression(self, ctx: &mut crate::sqlx_query_builder::StatementBuilder<'a, S>)
     where

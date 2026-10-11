@@ -31,10 +31,6 @@ pub mod statement_builder;
 #[cfg(feature = "refactor")]
 #[path = "statement_builder_v2.rs"]
 pub mod statement_builder;
-/// skiped to work on compiling errors incrementally
-//#[cfg(feature = "refactor")]
-//pub mod statements;
-#[cfg(not(feature = "refactor"))]
 pub mod statements;
 #[cfg(not(feature = "refactor"))]
 pub mod std_impls;
@@ -239,7 +235,7 @@ mod refactor {
     //! ## Empty Expressions
     //! Most types that implement `Expression` or `RefExpression` should write some SQL.
     //! to use possbily empty types like `Option<T>`, `Vec<T>`
-    //! consider using Join or Prefix. As they do not implement `Expression` or `RefExpression`.
+    //! consider using Join or Prefix. As they do not implement `Expression` or `RefExpression` by themselves.
     //! Example:
     //! ```ignore
     //! fn test() {
@@ -249,11 +245,11 @@ mod refactor {
     //! ```
     //!
     //! Join type report on whether it will write any SQL by `OptionalExpression` trait.
-    //! Usually you don't need to implement this trait for types that implement `Expression` or `RefExpression`.
+    //! All `impl SealExpression` types are assumed to add some SQL to the statement.
     //!
     //! ## Protection against SQL injection
     //! Most area of accidental SQL injection are protected by either sanitization or binding.
-    //! All these types do not introduce SQL injection: "String::new("malicious_input")", "Bind(34)", .
+    //! All the following types do not introduce SQL injection: "String::new("malicious_input")", "Bind(34)", .
     //!
     //! Even `StatementBuilder::syntax` require `'static` constraints, so the only way to introduce SQL injection is
     //! like this:
@@ -285,6 +281,12 @@ mod refactor {
     /// Read module documentation [sqlx_query_builder/mod.rs](crate::sqlx_query_builder::mod.rs) for more information
     pub trait OptionalExpression {
         fn is_expression_present(&self) -> bool;
+    }
+
+    impl<T: SealExpression> OptionalExpression for T {
+        fn is_expression_present(&self) -> bool {
+            true
+        }
     }
 
     /// Read module documentation [sqlx_query_builder/mod.rs](crate::sqlx_query_builder::mod.rs) for more information
@@ -583,19 +585,19 @@ mod refactor_fix_lifetime_testsConnectInMemory {
 
     #[test]
     fn main() {
-        // refactor todo: SelectStatement is not ready yet on refactor branch, when it is, add this test back
+        use crate::sqlx_query_builder::statements::select_statement::SelectStatement;
 
-        // let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(SelectStatement {
-        //     select_items: ("1",),
-        //     from: "t",
-        //     joins: (),
-        //     wheres: (),
-        //     group_by: (),
-        //     order: (),
-        //     limit: (),
-        // });
+        let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(SelectStatement {
+            select_items: ("1",),
+            from: "t",
+            joins: (),
+            wheres: (),
+            group_by: (),
+            order: (),
+            limit: (),
+        });
 
-        // assert_eq!(stmt, r#"SELECT "1" FROM "t";"#);
+        assert_eq!(stmt, r#"SELECT "1" FROM "t";"#);
     }
 }
 

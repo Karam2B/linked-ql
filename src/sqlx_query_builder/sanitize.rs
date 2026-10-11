@@ -1,35 +1,26 @@
 /// Sanitize multiple items in a single expression.
 ///
 /// Supported for:
-/// - Vec<T>
-/// - Option<T>
-/// - tuples where each member is T
+/// - Vec<&T>
+/// - Option<&T>
+/// - tuples where each member is &T
 ///
 /// where T is either:
-/// - (&T,) where T: AsRef<str>
 /// - Option<&T> where T: AsRef<str>
+/// - str
 /// - usize
 pub struct Sanitize<T>(pub T);
 
 mod std_impls {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
-        sqlx_query_builder::{
-            OptionalExpression, RefExpression, SealExpression, SealRefExpression, StatementBuilder,
-        },
+        sqlx_query_builder::{RefExpression, SealExpression, SealRefExpression, StatementBuilder},
     };
     use std::sync::Arc;
 
     impl SealExpression for String {}
 
     impl SealRefExpression for String {}
-
-    impl OptionalExpression for String {
-        fn is_expression_present(&self) -> bool {
-            true
-        }
-    }
-
     impl<S> RefExpression<'_, S> for String
     where
         S: DatabaseStatementBuilder,
@@ -44,13 +35,6 @@ mod std_impls {
     impl SealExpression for Arc<str> {}
 
     impl SealRefExpression for Arc<str> {}
-
-    impl OptionalExpression for Arc<str> {
-        fn is_expression_present(&self) -> bool {
-            true
-        }
-    }
-
     impl<S> RefExpression<'_, S> for Arc<str>
     where
         S: DatabaseStatementBuilder,
@@ -65,13 +49,6 @@ mod std_impls {
     impl SealExpression for &'_ str {}
 
     impl SealRefExpression for &'_ str {}
-
-    impl OptionalExpression for &'_ str {
-        fn is_expression_present(&self) -> bool {
-            true
-        }
-    }
-
     impl<S> RefExpression<'_, S> for &'_ str
     where
         S: DatabaseStatementBuilder,
@@ -145,7 +122,7 @@ mod impl_sanitize_for_std_types {
 
     impl<T> SealRefExpression for Sanitize<T> {}
 
-    impl<'a, S, T> RefExpression<'a, S> for Sanitize<Vec<T>>
+    impl<'a, S, T> RefExpression<'a, S> for Sanitize<Vec<&T>>
     where
         S: DatabaseStatementBuilder,
         T: super::patched_to_string_trait::ToMutString<S>,
@@ -157,7 +134,7 @@ mod impl_sanitize_for_std_types {
         }
     }
 
-    impl<'a, S, T> RefExpression<'a, S> for Sanitize<Option<T>>
+    impl<'a, S, T> RefExpression<'a, S> for Sanitize<Option<&T>>
     where
         S: DatabaseStatementBuilder,
         T: super::patched_to_string_trait::ToMutString<S>,
@@ -223,7 +200,7 @@ mod tests {
     #[test]
     fn test_sanitize_vec() {
         let stmt =
-            RefExpression::<'_, sqlx::Sqlite>::ref_sql_statement(&Sanitize(vec![1usize, 2, 3]));
+            RefExpression::<'_, sqlx::Sqlite>::ref_sql_statement(&Sanitize(vec![&1usize, &2, &3]));
         assert_eq!(stmt, "\"123\"");
 
         let hello = String::from("hello_");

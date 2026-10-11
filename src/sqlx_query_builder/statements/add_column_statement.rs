@@ -10,8 +10,7 @@ pub struct DropColumn<Table, Name> {
     pub col_name: Name,
 }
 
-impl<Table, ColDef> OpExpression for AddColumn<Table, ColDef> {
-}
+impl<Table, ColDef> OpExpression for AddColumn<Table, ColDef> {}
 
 mod impl_for_sqlx_fo {
     use crate::{

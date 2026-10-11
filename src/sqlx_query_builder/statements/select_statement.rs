@@ -123,8 +123,7 @@ pub struct LimitClause<Limit> {
     pub limit: Limit,
 }
 
-impl<Limit> OpExpression for LimitClause<Limit> {
-}
+impl<Limit> OpExpression for LimitClause<Limit> {}
 
 impl<'q, S, Limit> Expression<'q, S> for LimitClause<Limit>
 where
@@ -143,8 +142,7 @@ pub struct FromClause<From> {
     pub from: From,
 }
 
-impl<From> OpExpression for FromClause<From> {
-}
+impl<From> OpExpression for FromClause<From> {}
 
 impl<'q, S, From> Expression<'q, S> for FromClause<From>
 where
@@ -164,8 +162,7 @@ pub struct Aliased<Alias, Aliased> {
     pub alias: Alias,
 }
 
-impl<A, Ad> OpExpression for Aliased<A, Ad> {
-}
+impl<A, Ad> OpExpression for Aliased<A, Ad> {}
 
 impl<'q, S, A, Ad> Expression<'q, S> for Aliased<A, Ad>
 where

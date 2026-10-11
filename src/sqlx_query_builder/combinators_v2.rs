@@ -83,22 +83,24 @@ impl OptionalExpression for () {
     }
 }
 
-impl<T: OptionalExpression> OptionalExpression for Option<T> {
+impl<T: SealExpression> OptionalExpression for Option<T> {
     fn is_expression_present(&self) -> bool {
-        self.as_ref()
-            .is_some_and(|item| item.is_expression_present())
+        // SealExpression are assumed to add some SQL to the statement.
+        self.is_some()
     }
 }
 
-impl<T: OptionalExpression> OptionalExpression for Vec<T> {
+impl<T: SealExpression> OptionalExpression for Vec<T> {
     fn is_expression_present(&self) -> bool {
-        self.iter().any(|item| item.is_expression_present())
+        // SealExpression are assumed to add some SQL to the statement.
+        !self.is_empty()
     }
 }
 
-impl<T: OptionalExpression, const N: usize> OptionalExpression for [T; N] {
+impl<T: SealExpression, const N: usize> OptionalExpression for [T; N] {
     fn is_expression_present(&self) -> bool {
-        self.iter().any(|item| item.is_expression_present())
+        // SealExpression are assumed to add some SQL to the statement.
+        N != 0
     }
 }
 
@@ -125,21 +127,7 @@ impl<T: OptionalExpression> OptionalExpression for Nest<T> {
 }
 
 impl<Items> SealExpression for Join<Items> {}
-
-impl<Items: OptionalExpression> OptionalExpression for Join<Items> {
-    fn is_expression_present(&self) -> bool {
-        self.items.is_expression_present()
-    }
-}
-
 impl<T> SealExpression for Prefixed<T> {}
-
-impl<T: OptionalExpression> OptionalExpression for Prefixed<T> {
-    fn is_expression_present(&self) -> bool {
-        self.inner.is_expression_present()
-    }
-}
-
 use crate::{
     extend_sqlx::DatabaseStatementBuilder,
     sqlx_query_builder::{Expression, StatementBuilder},
@@ -197,7 +185,7 @@ where
 impl<'q, T, S> Expression<'q, S> for Join<Option<T>>
 where
     S: DatabaseStatementBuilder,
-    T: OptionalExpression + Expression<'q, S>,
+    T: Expression<'q, S>,
 {
     fn expression(self, ctx: &mut StatementBuilder<'q, S>) {
         let Some(item) = self.items else {
@@ -211,14 +199,11 @@ where
 impl<'q, T, S> Expression<'q, S> for Join<Vec<T>>
 where
     S: DatabaseStatementBuilder,
-    T: Expression<'q, S> + OptionalExpression,
+    T: Expression<'q, S>,
 {
     fn expression(self, ctx: &mut StatementBuilder<'q, S>) {
         let mut started = false;
         for item in self.items {
-            if !item.is_expression_present() {
-                continue;
-            }
             if started {
                 ctx.syntax(self.separator);
             } else {
@@ -233,14 +218,11 @@ where
 impl<'q, T, const N: usize, S> Expression<'q, S> for Join<[T; N]>
 where
     S: DatabaseStatementBuilder,
-    T: Expression<'q, S> + OptionalExpression,
+    T: Expression<'q, S>,
 {
     fn expression(self, ctx: &mut StatementBuilder<'q, S>) {
         let mut started = false;
         for item in self.items {
-            if !item.is_expression_present() {
-                continue;
-            }
             if started {
                 ctx.syntax(self.separator);
             } else {
@@ -259,23 +241,17 @@ macro_rules! impl_tuple_join {
                 S: DatabaseStatementBuilder,
                 $(
                     $T: Expression<'q, S>,
-                    $T: OptionalExpression,
                 )+
             {
                 #[allow(non_snake_case, unused_assignments)]
                 fn expression(self, ctx: &mut StatementBuilder<'q, S>) {
-                    let mut started = false;
-                    let ($($T,)+) = self.items;
                     $(
-                        if $T.is_expression_present() {
-                            if started {
-                                ctx.syntax(self.separator);
-                            } else {
-                                ctx.syntax(self.start);
-                                started = true;
-                            }
-                            $T.expression(ctx);
+                        if $idx == 0 {
+                            ctx.syntax(self.start);
+                        } else {
+                            ctx.syntax(self.separator);
                         }
+                        self.items.$idx.expression(ctx);
                     )+
                 }
             }
@@ -372,27 +348,16 @@ mod nesting {
                     col: "column",
                     eq: Bind(34),
                 },
-                ColumnEqual {
-                    col: "column",
-                    eq: Bind(34),
-                },
-                ColumnEqual {
-                    col: "column",
-                    eq: Bind(34),
-                },
             ),
         };
 
         let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(join);
-        assert_eq!(
-            stmt,
-            r#"SELECT "column", "column" = $1, "column" = $2, "column" = $3"#
-        );
+        assert_eq!(stmt, r#"SELECT "column", "column" = $1"#);
 
         let join = Join {
             start: "SELECT ",
             separator: ", ",
-            items: ("column_1", "column_2"),
+            items: vec!["column_1", "column_2"],
         };
 
         let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(join);
@@ -401,9 +366,31 @@ mod nesting {
         let join = Join {
             start: "SELECT ",
             separator: ", ",
+            items: (),
+        };
+
+        let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(join);
+        assert_eq!(stmt, r#""#);
+
+        let join = Join {
+            start: "SELECT ",
+            separator: ", ",
+            items: Some("column_1"),
+        };
+
+        let (stmt, _args) = Expression::<'_, Sqlite>::sql_statement(join);
+        assert_eq!(stmt, r#"SELECT "column_1""#);
+
+        let join = Join {
+            start: "SELECT ",
+            separator: ", ",
             items: (
-                Nest(("column_1", "column_2")),
-                Nest(("column_3", "column_4", "column_5")),
+                Nest(Some("column_1")),
+                Nest(None::<String>),
+                Nest(("column_2",)),
+                Nest(()),
+                Nest(("column_3", "column_4")),
+                Nest(vec!["column_5"]),
             ),
         };
 

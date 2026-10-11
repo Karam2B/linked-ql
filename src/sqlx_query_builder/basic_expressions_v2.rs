@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    sqlx_query_builder::{OptionalExpression, SealExpression, SealRefExpression},
+    sqlx_query_builder::{SealExpression, SealRefExpression},
     update_mod::Update,
 };
 
@@ -14,12 +14,6 @@ impl<T: Clone> Clone for Bind<T> {
 }
 
 impl<T> SealExpression for Bind<T> {}
-
-impl<T> OptionalExpression for Bind<T> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
 
 mod impl_bind {
     use sqlx::{Encode, Type};
@@ -51,13 +45,6 @@ impl<T> Clone for TypeAsSyntax<T> {
 impl<T> SealExpression for TypeAsSyntax<T> {}
 
 impl<T> SealRefExpression for TypeAsSyntax<T> {}
-
-impl<T> OptionalExpression for TypeAsSyntax<T> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_type_as_syntax {
     use super::TypeAsSyntax;
     use crate::{
@@ -85,13 +72,6 @@ pub struct AliasedScopedColumn<T, C, A> {
 }
 
 impl<T, C, A> SealExpression for AliasedScopedColumn<T, C, A> {}
-
-impl<T, C, A> OptionalExpression for AliasedScopedColumn<T, C, A> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_aliased_scoped_column_for_sqlite {
     use sqlx::Sqlite;
 
@@ -126,13 +106,6 @@ pub struct ScopedColumn<T, C> {
 }
 
 impl<T, C> SealExpression for ScopedColumn<T, C> {}
-
-impl<T, C> OptionalExpression for ScopedColumn<T, C> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_scoped_column_for_sqlite {
     use sqlx::Sqlite;
 
@@ -158,19 +131,18 @@ mod impl_scoped_column_for_sqlite {
 }
 
 #[derive(Clone)]
+/// Represents a column being updated with a value.
+///
+/// there is three cases of using this:
+/// - UpdatingColumn<C, Bind<T>>: update C with the value of T
+/// - UpdatingColumn<C, Option<T>>: update C with the value of T if it is Some, otherwise set it to NULL
+/// - UpdatingColumn<C, Update<T>>: update C with the value of T if it is Set, otherwise do nothing
 pub struct UpdatingColumn<C, T> {
     pub col: C,
     pub set: T,
 }
 
 impl<C, T> SealExpression for UpdatingColumn<C, Bind<T>> {}
-
-impl<C, T> OptionalExpression for UpdatingColumn<C, Bind<T>> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_updating_column_bind_for_sqlite {
     use sqlx::{Encode, Sqlite, Type};
 
@@ -190,19 +162,12 @@ mod impl_updating_column_bind_for_sqlite {
         {
             self.col.expression(ctx);
             ctx.syntax(" = ");
-            super::Bind(self.set.0).expression(ctx);
+            self.set.expression(ctx);
         }
     }
 }
 
 impl<C, T> SealExpression for UpdatingColumn<C, Option<T>> {}
-
-impl<C, T> OptionalExpression for UpdatingColumn<C, Option<T>> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_updating_column_option_for_sqlite {
     use sqlx::Sqlite;
 
@@ -235,13 +200,6 @@ mod impl_updating_column_option_for_sqlite {
 }
 
 impl<C, T> SealExpression for UpdatingColumn<C, Update<T>> {}
-
-impl<C, T> OptionalExpression for UpdatingColumn<C, Update<T>> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_updating_column_update_for_sqlite {
     use sqlx::{Encode, Sqlite, Type};
 
@@ -281,13 +239,6 @@ macro_rules! column_compare {
         }
 
         impl<Col, Val> SealExpression for $name<Col, Val> {}
-
-        impl<Col, Val> OptionalExpression for $name<Col, Val> {
-            fn is_expression_present(&self) -> bool {
-                true
-            }
-        }
-
         paste::paste! {
             mod [<impl_ $name:snake _for_sqlite>] {
                 use sqlx::Sqlite;
@@ -316,6 +267,14 @@ macro_rules! column_compare {
     };
 }
 
+column_compare!(ColumnEqual, eq, " = ");
+column_compare!(ColumnNotEqual, ne, " != ");
+column_compare!(ColumnGreaterThan, gt, " > ");
+column_compare!(ColumnGreaterThanOrEqual, ge, " >= ");
+column_compare!(ColumnLessThan, lt, " < ");
+column_compare!(ColumnLessThanOrEqual, le, " <= ");
+column_compare!(ColumnContains, like, " LIKE ");
+
 macro_rules! column_is {
     ($name:ident, $op:literal) => {
         #[derive(Clone)]
@@ -324,13 +283,6 @@ macro_rules! column_is {
         }
 
         impl<Col> SealExpression for $name<Col> {}
-
-        impl<Col> OptionalExpression for $name<Col> {
-            fn is_expression_present(&self) -> bool {
-                true
-            }
-        }
-
         paste::paste! {
             mod [<impl_ $name:snake _for_sqlite>] {
                 use sqlx::Sqlite;
@@ -357,18 +309,15 @@ macro_rules! column_is {
     };
 }
 
+column_is!(ColumnIsNotNull, " IS NOT NULL");
+column_is!(ColumnIsNull, " IS NULL");
+
 macro_rules! group_with {
     ($name:ident, $op:literal) => {
         #[derive(Clone)]
         pub struct $name<T>(pub T);
 
-        impl<T: OptionalExpression> SealExpression for $name<T> {}
-
-        impl<T: OptionalExpression> OptionalExpression for $name<T> {
-            fn is_expression_present(&self) -> bool {
-                self.0.is_expression_present()
-            }
-        }
+        impl<T> SealExpression for $name<T> {}
 
         paste::paste! {
             mod [<impl_ $name:snake _for_sqlite>] {
@@ -404,17 +353,6 @@ macro_rules! group_with {
     };
 }
 
-column_compare!(ColumnEqual, eq, " = ");
-column_compare!(ColumnNotEqual, ne, " != ");
-column_compare!(ColumnGreaterThan, gt, " > ");
-column_compare!(ColumnGreaterThanOrEqual, ge, " >= ");
-column_compare!(ColumnLessThan, lt, " < ");
-column_compare!(ColumnLessThanOrEqual, le, " <= ");
-column_compare!(ColumnContains, like, " LIKE ");
-
-column_is!(ColumnIsNotNull, " IS NOT NULL");
-column_is!(ColumnIsNull, " IS NULL");
-
 group_with!(ExpressionsWithAnd, " AND ");
 group_with!(ExpressionsWithOr, " OR ");
 
@@ -425,12 +363,6 @@ pub struct ColumnIn<Col, V> {
 }
 
 impl<Col, V> SealExpression for ColumnIn<Col, V> {}
-
-impl<Col, V: OptionalExpression> OptionalExpression for ColumnIn<Col, V> {
-    fn is_expression_present(&self) -> bool {
-        self.values.is_expression_present()
-    }
-}
 
 mod impl_column_in_for_sqlite {
     use sqlx::Sqlite;
@@ -471,12 +403,6 @@ pub struct ManyColumnsLargerOrEqual<Ids, Values> {
 }
 
 impl<Ids, Values> SealExpression for ManyColumnsLargerOrEqual<Ids, Values> {}
-
-impl<Ids, Values> OptionalExpression for ManyColumnsLargerOrEqual<Ids, Values> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
 
 mod impl_many_columns_larger_or_equal_for_sqlite {
     use sqlx::Sqlite;
@@ -523,13 +449,6 @@ pub struct ForeignKey<Table, Column, Ons> {
 }
 
 impl<Table, Column, Ons> SealExpression for ForeignKey<Table, Column, Ons> {}
-
-impl<Table, Column, Ons> OptionalExpression for ForeignKey<Table, Column, Ons> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod imp_foriegn_key_for_sqlite {
     use sqlx::Sqlite;
 
@@ -575,15 +494,6 @@ impl<ForeignTable, ForeignColumn, LocalTable, LocalColumn> SealExpression
     for JoinExpression<ForeignTable, ForeignColumn, LocalTable, LocalColumn>
 {
 }
-
-impl<ForeignTable, ForeignColumn, LocalTable, LocalColumn> OptionalExpression
-    for JoinExpression<ForeignTable, ForeignColumn, LocalTable, LocalColumn>
-{
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_join_expression_for_sqlite {
     use sqlx::Sqlite;
 
@@ -621,13 +531,6 @@ mod impl_join_expression_for_sqlite {
 pub struct OnDeleteSetNull;
 
 impl SealExpression for OnDeleteSetNull {}
-
-impl OptionalExpression for OnDeleteSetNull {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod imp_on_delete_set_null_for_sqlite {
     use sqlx::Sqlite;
 
@@ -649,13 +552,6 @@ mod imp_on_delete_set_null_for_sqlite {
 pub struct OnDeleteCascase;
 
 impl SealExpression for OnDeleteCascase {}
-
-impl OptionalExpression for OnDeleteCascase {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod imp_on_delete_cascase_for_sqlite {
     use sqlx::Sqlite;
 
@@ -677,13 +573,6 @@ mod imp_on_delete_cascase_for_sqlite {
 pub struct CompositePrimaryKey<Cols>(pub Cols);
 
 impl<Cols> SealExpression for CompositePrimaryKey<Cols> {}
-
-impl<Cols> OptionalExpression for CompositePrimaryKey<Cols> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_composite_primary_key_for_sqlite {
     use sqlx::Sqlite;
 
@@ -712,13 +601,6 @@ pub struct DefaultExpression<T> {
 }
 
 impl<T> SealExpression for DefaultExpression<T> {}
-
-impl<T> OptionalExpression for DefaultExpression<T> {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod impl_default_expression_for_sqlite {
     use sqlx::Sqlite;
 
@@ -744,13 +626,6 @@ mod impl_default_expression_for_sqlite {
 pub struct CurrentTimestamp;
 
 impl SealExpression for CurrentTimestamp {}
-
-impl OptionalExpression for CurrentTimestamp {
-    fn is_expression_present(&self) -> bool {
-        true
-    }
-}
-
 mod current_timestamp_for_sqlite {
     use sqlx::Sqlite;
 
@@ -770,31 +645,15 @@ mod current_timestamp_for_sqlite {
 }
 
 pub mod sub_query_expressions {
-    use crate::sqlx_query_builder::{OptionalExpression, SealExpression};
+    use crate::sqlx_query_builder::SealExpression;
 
     pub struct CurrentTable;
     pub struct ColumnMatchNew<C>(pub C);
     pub struct ColumnNewEqualsOld<C>(pub C);
 
     impl SealExpression for CurrentTable {}
-    impl OptionalExpression for CurrentTable {
-        fn is_expression_present(&self) -> bool {
-            true
-        }
-    }
     impl<C> SealExpression for ColumnMatchNew<C> {}
-    impl<C> OptionalExpression for ColumnMatchNew<C> {
-        fn is_expression_present(&self) -> bool {
-            true
-        }
-    }
     impl<C> SealExpression for ColumnNewEqualsOld<C> {}
-    impl<C> OptionalExpression for ColumnNewEqualsOld<C> {
-        fn is_expression_present(&self) -> bool {
-            true
-        }
-    }
-
     mod impl_for_sqlite {
         use sqlx::Sqlite;
 

@@ -56,7 +56,8 @@ fn empty_pieces_write_no_sql() {
 
 #[test]
 fn sanitize_vec_and_tuple() {
-    let stmt = RefExpression::<'_, Sqlite>::ref_sql_statement(&Sanitize(vec![1usize, 2, 3]));
+    let stmt =
+        RefExpression::<'_, Sqlite>::ref_sql_statement(&Sanitize(vec![&1usize, &2, &3]));
     assert_eq!(stmt, "\"123\"");
 
     let hello = String::from("hello_");

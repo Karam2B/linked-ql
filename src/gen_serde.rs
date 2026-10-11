@@ -1,4 +1,3 @@
-#![allow(unused)]
 pub trait FromSerialized<'de, Format> {
     type Deserializer: Deserializer<'de>;
     fn start(self) -> Self::Deserializer;

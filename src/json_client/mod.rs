@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 /*
 THESE ARE NOTE FOR AI AGENT TO HELP DURING THE REFACTOR, AI AGENT, PLEASE READ, AND DON'T MODIFY, HAVE TO BE DELETED AFTER THE REFACTOR.
 
@@ -36,12 +34,11 @@ pub type DynOneToMany<S> = crate::links::relation_one_to_many::OneToMany<
     std::sync::Arc<crate::json_client::dynamic_collection::DynamicCollection<S>>,
     std::sync::Arc<crate::json_client::dynamic_collection::DynamicCollection<S>>,
 >;
-pub type DynOneToManyInverse<S> =
-    crate::links::relation_one_to_many_inverse::OneToManyInverse<
-        crate::links::DefaultRelationKey,
-        std::sync::Arc<crate::json_client::dynamic_collection::DynamicCollection<S>>,
-        std::sync::Arc<crate::json_client::dynamic_collection::DynamicCollection<S>>,
-    >;
+pub type DynOneToManyInverse<S> = crate::links::relation_one_to_many_inverse::OneToManyInverse<
+    crate::links::DefaultRelationKey,
+    std::sync::Arc<crate::json_client::dynamic_collection::DynamicCollection<S>>,
+    std::sync::Arc<crate::json_client::dynamic_collection::DynamicCollection<S>>,
+>;
 pub type DynManyToMany<S> = crate::links::relation_many_to_many::ManyToMany<
     false,
     crate::links::DefaultRelationKey,

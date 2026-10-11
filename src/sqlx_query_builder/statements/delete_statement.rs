@@ -6,8 +6,7 @@ pub struct DeleteStatement<TableName, Wheres, Returning> {
     pub returning: Returning,
 }
 
-impl<T, W, R> OpExpression for DeleteStatement<T, W, R> {
-}
+impl<T, W, R> OpExpression for DeleteStatement<T, W, R> {}
 
 impl<'q, S, TableName, Wheres, Returning> Expression<'q, S>
     for DeleteStatement<TableName, Wheres, Returning>
