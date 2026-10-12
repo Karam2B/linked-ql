@@ -8,22 +8,26 @@ pub struct ComposeOperation<TupleOp> {
     holding: PhantomData<TupleOp>,
 }
 
-impl<Op0, Op1> OperationOutput for ComposeOperation<(Op0, Op1)> {
-    type Output = ();
-}
+mod impl_operation_for_compose_operation {
+    use super::*;
 
-impl<S, Op0, Op1> Operation<S> for ComposeOperation<(Op0, Op1)>
-where
-    S: Database,
-    Op0: Send,
-    Op1: Send,
-{
-    async fn exec_operation(self, _pool: &mut S::Connection) -> Self::Output {
-        // let (to_first, to_second) = ..();
-        // let (to_output, to_second) = self.0.0.exec_operation(pool).await;
-        // let second_op = self.0.1.exec_operation(pool).await;
+    impl<Op0, Op1> OperationOutput for ComposeOperation<(Op0, Op1)> {
+        type Output = ();
+    }
 
-        // (first_op, second_op)
+    impl<S, Op0, Op1> Operation<S> for ComposeOperation<(Op0, Op1)>
+    where
+        S: Database,
+        Op0: Send,
+        Op1: Send,
+    {
+        async fn exec_operation(self, _pool: &mut S::Connection) -> Self::Output {
+            // let (to_first, to_second) = ..();
+            // let (to_output, to_second) = self.0.0.exec_operation(pool).await;
+            // let second_op = self.0.1.exec_operation(pool).await;
+
+            // (first_op, second_op)
+        }
     }
 }
 

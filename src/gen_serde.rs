@@ -46,9 +46,7 @@ mod impl_std_traits_for_trait_objects {
 }
 
 mod impl_my_types {
-    use crate::gen_serde::{
-        ListEncoding, ObjectEncoding, Serialize, json_serialize_side::JsonAsString,
-    };
+    use crate::gen_serde::{ListEncoding, Serialize};
 
     impl<F> Serialize<F> for Box<dyn Serialize<F>> {
         fn serialize(&self, ctx: &mut F) {
@@ -654,11 +652,9 @@ mod client_side {
     }
 }
 
-pub(crate) mod json_serialize_side {
+pub mod json_serialize_side {
 
     use crate::gen_serde::{ListEncoding, ObjectEncoding, Serialize};
-
-    use super::json_format_side::JsonFormat;
 
     #[derive(Default)]
     pub struct JsonAsBuffer(pub Vec<u8>);
@@ -828,7 +824,7 @@ pub(crate) mod json_serialize_side {
     }
 }
 
-pub(crate) mod json_format_side {
+pub mod json_format_side {
     use std::ops::Range;
     use std::sync::Arc;
 

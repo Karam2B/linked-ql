@@ -505,7 +505,7 @@ pub mod row_helpers {
 mod test {
     use sqlx::Sqlite;
 
-    use crate::connect_in_memory::ConnectInMemory;
+    use crate::extend_sqlx::InMemoryConnection;
     use crate::{
         define_collection::{Category, CategoryHandler},
         from_row::{FromRowAlias, RowStrAliased},

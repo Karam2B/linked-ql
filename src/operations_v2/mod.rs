@@ -1,24 +1,43 @@
-//! this module is to replace the old operations module
-//! the difference is this is more composible that the old one.
-//! and it distinguish operation that return streams from the one that return only one record.
+//! Wraps sqlx queries.
 //!
-//! in addition, part of the refactoring is that the new interface
-//! depends on the new sqlx_query_builder/valid_syntax module. while the
-//! old one depends on the old operation_expressions_crossover module.
-use futures::Future;
+//! # Single vs multiple results
+//! if the query returns S::Row or S::QueryResult, it is expected to use [Operation](crate::operations_v2::Operation).
+//!
+//! if the query return multiple rows, it is expected to use [StreamedOperation](crate::operations_v2::StreamedOperation).
+//!
+//! the output of the operation is specified by a non-generic trait [OperationOutput](crate::operations_v2::OperationOutput).
+//!
+//! All implementation of [StreamedOperation](crate::operations_v2::StreamedOperation) can be converted to [Operation](crate::operations_v2::Operation) as follows:
+//! - streamed_ops::OperationVec<T>: returns a vector of the output of the operation
+//! - streamed_ops::OperationHashed<T>: returns a hashmap if the output is (Key, Value)
+//! - streamed_ops::OneRecordOperation<T, PanicOnFailure>: returns only one record. panics if got multiple
+//! - streamed_ops::OneRecordOperation<T, ResultOnFailure>: returns only one record. returns an error if got multiple
+//!
+//! # Connection
+//! Operations are expected to run as a transactions.
+//!
+//! Operation methods take `&mut S::Connection` you can obtain it from `sqlx::Connection::connect`,
+//! if you have [Pool](sqlx::Pool) you can obtain it from `sqlx::Pool::begin`
+//!
+//! # Infalibility
+//! All operations are supposed to be infalible, if they can fail,
+//! the way to handle should be specified by the time you construct the type,
+//! the same way `OneRecordOperation` does.
 use futures::Stream;
 use sqlx::Database;
 
-pub trait OperationOutput {
-    type Output;
-}
-pub trait Operation<S>: OperationOutput<Output: Send> + Send {
-    fn exec_operation(self, conn: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
-    where
-        Self: Sized,
-        S: Database;
-}
+/// refactor todo:
+/// - I have some reimports, replace them by original code from crate::operations::*
+/// - replacing the original item's documentation by the documentation of the reimport
+/// - if the orignial item impl serde trait, remove that implementation
 
+/// See the [module level documentation](crate::operations_v2) for more details.
+pub use crate::operations::OperationOutput;
+
+/// See the [module level documentation](crate::operations_v2) for more details.
+pub use crate::operations::Operation;
+
+/// See the (module level documentation)[] for more details.
 pub trait StreamedOperation<S>: OperationOutput<Output: Send> + Send {
     fn stream_operation(self, conn: &mut S::Connection) -> impl Stream<Item = Self::Output> + Send
     where
@@ -26,13 +45,20 @@ pub trait StreamedOperation<S>: OperationOutput<Output: Send> + Send {
         S: Database;
 }
 
+pub use crate::operations::CollectionOutput;
+pub use crate::operations::IdOutput;
+pub use crate::operations::LinkedOutput;
+pub use crate::operations::ManyLinkOutput;
+pub use crate::operations::ManyOutput;
+
 pub mod streamed_ops {
     use std::{collections::HashMap, hash::Hash, pin::pin};
 
     use futures::StreamExt;
 
-    use crate::operations::v2::{Operation, OperationOutput, StreamedOperation};
+    use crate::operations_v2::{Operation, OperationOutput, StreamedOperation};
 
+    /// Streamed operation collected as a vector
     pub struct OperationVec<T>(pub T);
 
     impl<T> OperationOutput for OperationVec<T>
@@ -66,6 +92,7 @@ pub mod streamed_ops {
         }
     }
 
+    /// Streamed operation collected as a hashmap, where the output is (Key, Value)
     pub struct OperationHashed<T>(pub T);
 
     impl<T, Key, Value> OperationOutput for OperationHashed<T>
@@ -104,6 +131,9 @@ pub mod streamed_ops {
     pub struct PanicOnFailure;
     pub struct ResultOnFailure;
 
+    /// collect one record of a streamed operation, for infalibility you have two options:
+    /// - PanicOnFailure: panic if got multiple records
+    /// - ResultOnFailure: return an error if got multiple records
     pub struct OneRecordOperation<T, Infalibility> {
         pub operation: T,
         pub infalibility: Infalibility,
@@ -168,6 +198,49 @@ pub mod streamed_ops {
 
                 Ok(output)
             }
+        }
+    }
+}
+
+pub use crate::operations::boxed_operation;
+
+pub mod execute_expression {
+    use super::{Operation, OperationOutput};
+    use crate::execute::Executable;
+    use crate::extend_sqlx::DatabaseStatementBuilder;
+    use crate::fix_executor::ExecutorTrait;
+    use crate::sqlx_query_builder::Expression;
+    use sqlx::Database;
+
+    /// Convert an expression to an operation
+    pub struct ExpressionAsOperation<E>(pub E);
+
+    impl<E: Send> OperationOutput for ExpressionAsOperation<E> {
+        type Output = ();
+    }
+
+    impl<S, E> Operation<S> for ExpressionAsOperation<E>
+    where
+        E: for<'q> Expression<'q, S>,
+        E: Send,
+        S: DatabaseStatementBuilder,
+        S: ExecutorTrait,
+    {
+        async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output
+        where
+            S: Database,
+        {
+            let (stmt, arg) = self.0.sql_statement();
+
+            S::execute(
+                pool,
+                Executable {
+                    string: stmt.as_str(),
+                    arguments: arg,
+                },
+            )
+            .await
+            .unwrap();
         }
     }
 }

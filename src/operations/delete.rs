@@ -84,183 +84,200 @@ pub trait DeleteLink {
     ) -> Self::Output;
 }
 
-impl DeleteLinkSplit for () {
-    type Link = ();
+mod impl_delete_link_split_for_unit {
+    use super::*;
 
-    type InitSplitForPreOp = ();
+    impl DeleteLinkSplit for () {
+        type Link = ();
 
-    fn init_split(self) -> (Self::Link, Self::InitSplitForPreOp, DeleteLinkData<()>) {
-        ((), (), DeleteLinkData { wheres: () })
+        type InitSplitForPreOp = ();
+
+        fn init_split(self) -> (Self::Link, Self::InitSplitForPreOp, DeleteLinkData<()>) {
+            ((), (), DeleteLinkData { wheres: () })
+        }
+    }
+
+    use super::*;
+
+    impl<W: Clone> DeleteLinkPreOp<W> for () {
+        type InitSplitForPreOp = ();
+        type PreOp = ();
+        fn pre_op(&self, _: Self::InitSplitForPreOp, _: &W) -> Self::PreOp {}
+    }
+
+    impl DeleteLink for () {
+        type Output = ();
+        type PreOpOutput = ();
+        type PreOpSplitWheres = ();
+        type PreOpSplitTake = ();
+        fn split_pre_op(
+            &self,
+            _: Self::PreOpOutput,
+        ) -> (Self::PreOpSplitWheres, Self::PreOpSplitTake) {
+            ((), ())
+        }
+        type InitSplitForWheres = ();
+        type Wheres = ();
+        fn wheres(&self, _: Self::InitSplitForWheres, _: Self::PreOpSplitWheres) -> Self::Wheres {
+            ()
+        }
+
+        type DeleteReturnExpression = ();
+        fn delete_return_expression(&self) -> Self::DeleteReturnExpression {}
+
+        type DeleteReturnFromRow = ();
+        fn from_row(&self) -> Self::DeleteReturnFromRow {}
+
+        fn take_once(
+            &self,
+            _: <Self::DeleteReturnFromRow as FromRowData>::RData,
+            _: Self::PreOpSplitTake,
+        ) -> Self::Output {
+        }
+
+        fn take_mut(
+            &self,
+            _: <Self::DeleteReturnFromRow as FromRowData>::RData,
+            _: &mut Self::PreOpSplitTake,
+        ) -> Self::Output {
+        }
     }
 }
 
-impl<W: Clone> DeleteLinkPreOp<W> for () {
-    type InitSplitForPreOp = ();
-    type PreOp = ();
-    fn pre_op(&self, _: Self::InitSplitForPreOp, _: &W) -> Self::PreOp {}
-}
+mod impl_operation_for_delete {
+    use super::*;
 
-impl DeleteLink for () {
-    type Output = ();
-    type PreOpOutput = ();
-    type PreOpSplitWheres = ();
-    type PreOpSplitTake = ();
-    fn split_pre_op(&self, _: Self::PreOpOutput) -> (Self::PreOpSplitWheres, Self::PreOpSplitTake) {
-        ((), ())
-    }
-    type InitSplitForWheres = ();
-    type Wheres = ();
-    fn wheres(&self, _: Self::InitSplitForWheres, _: Self::PreOpSplitWheres) -> Self::Wheres {
-        ()
-    }
-
-    type DeleteReturnExpression = ();
-    fn delete_return_expression(&self) -> Self::DeleteReturnExpression {}
-
-    type DeleteReturnFromRow = ();
-    fn from_row(&self) -> Self::DeleteReturnFromRow {}
-
-    fn take_once(
-        &self,
-        _: <Self::DeleteReturnFromRow as FromRowData>::RData,
-        _: Self::PreOpSplitTake,
-    ) -> Self::Output {
-    }
-
-    fn take_mut(
-        &self,
-        _: <Self::DeleteReturnFromRow as FromRowData>::RData,
-        _: &mut Self::PreOpSplitTake,
-    ) -> Self::Output {
-    }
-}
-
-impl<Base, Wheres, PL, Links> OperationOutput for Delete<Base, Wheres, PL>
-where
-    Base: Collection,
-    PL: DeleteLinkSplit<Link = Links>,
-    Links: DeleteLink,
-{
-    type Output = Vec<
-        LinkedOutput<
-            <Base::Id as CollectionId>::IdData,
-            <Base as Collection>::OutputData,
-            Links::Output,
-        >,
-    >;
-}
-
-impl<S, Base, Wheres, PL, Links> Operation<S> for Delete<Base, Wheres, PL>
-where
-    S: DatabaseExt + ExecutorTrait,
-    PL: DeleteLinkSplit<Link = Links>,
-    PL::InitSplitForPreOp: Send,
-    PL: Send,
-    Base: Send,
-    Base: Collection,
-    Base: TableExpressions<Identifier: OptionalExpression, PascalCase: for<'q> Expression<'q, S>>,
-    for<'q> Join<Base::Identifier>: Expression<'q, S>,
-    Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
-    Base::OutputData: Send,
-    Base::Id: Send + CollectionId<IdData: Send>,
-    Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
-    for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
-    Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
-    Wheres: Send + OptionalExpression,
-    for<'q> Join<Wheres>: Expression<'q, S>,
-    Links: Send,
-    Links: DeleteLink,
-    Links::Output: Send,
-    Wheres: Clone,
-    Links: DeleteLinkPreOp<Wheres, InitSplitForPreOp = PL::InitSplitForPreOp>,
-    Links::PreOp: Send + Operation<S, Output = Links::PreOpOutput>,
-    Links::InitSplitForWheres: Send,
-    Links::Wheres: OptionalExpression,
-    for<'q> Join<Links::Wheres>: Expression<'q, S>,
-    Links::DeleteReturnExpression: OptionalExpression,
-    for<'q> Join<Links::DeleteReturnExpression>: Expression<'q, S>,
-    Links::DeleteReturnFromRow: Send,
-    Links::DeleteReturnFromRow: for<'r> FromRowAlias<'r, S::Row>,
-    Links::Output: Send,
-    // for closure
-    Links::DeleteReturnFromRow: Sync,
-    Links: Sync,
-    Links::PreOpSplitTake: Send,
-    Base::Id: Sync,
-    Base: Sync,
-{
-    fn exec_operation(self, pool: &mut <S>::Connection) -> impl Future<Output = Self::Output> + Send
+    impl<Base, Wheres, PL, Links> OperationOutput for Delete<Base, Wheres, PL>
     where
-        S: sqlx::Database,
-        Self: Sized,
+        Base: Collection,
+        PL: DeleteLinkSplit<Link = Links>,
+        Links: DeleteLink,
     {
-        async move {
-            let (link, init_pre_split, link_data) = self.links.init_split();
+        type Output = Vec<
+            LinkedOutput<
+                <Base::Id as CollectionId>::IdData,
+                <Base as Collection>::OutputData,
+                Links::Output,
+            >,
+        >;
+    }
 
-            let output = link
-                .pre_op(init_pre_split, &self.wheres)
-                .exec_operation(&mut *pool)
-                .await;
+    impl<S, Base, Wheres, PL, Links> Operation<S> for Delete<Base, Wheres, PL>
+    where
+        S: DatabaseExt + ExecutorTrait,
+        PL: DeleteLinkSplit<Link = Links>,
+        PL::InitSplitForPreOp: Send,
+        PL: Send,
+        Base: Send,
+        Base: Collection,
+        Base:
+            TableExpressions<Identifier: OptionalExpression, PascalCase: for<'q> Expression<'q, S>>,
+        for<'q> Join<Base::Identifier>: Expression<'q, S>,
+        Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
+        Base::OutputData: Send,
+        Base::Id: Send + CollectionId<IdData: Send>,
+        Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
+        for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
+        Base::Id: for<'r> FromRowAlias<'r, S::Row, RData = <Base::Id as CollectionId>::IdData>,
+        Wheres: Send + OptionalExpression,
+        for<'q> Join<Wheres>: Expression<'q, S>,
+        Links: Send,
+        Links: DeleteLink,
+        Links::Output: Send,
+        Wheres: Clone,
+        Links: DeleteLinkPreOp<Wheres, InitSplitForPreOp = PL::InitSplitForPreOp>,
+        Links::PreOp: Send + Operation<S, Output = Links::PreOpOutput>,
+        Links::InitSplitForWheres: Send,
+        Links::Wheres: OptionalExpression,
+        for<'q> Join<Links::Wheres>: Expression<'q, S>,
+        Links::DeleteReturnExpression: OptionalExpression,
+        for<'q> Join<Links::DeleteReturnExpression>: Expression<'q, S>,
+        Links::DeleteReturnFromRow: Send,
+        Links::DeleteReturnFromRow: for<'r> FromRowAlias<'r, S::Row>,
+        Links::Output: Send,
+        // for closure
+        Links::DeleteReturnFromRow: Sync,
+        Links: Sync,
+        Links::PreOpSplitTake: Send,
+        Base::Id: Sync,
+        Base: Sync,
+    {
+        fn exec_operation(
+            self,
+            pool: &mut <S>::Connection,
+        ) -> impl Future<Output = Self::Output> + Send
+        where
+            S: sqlx::Database,
+            Self: Sized,
+        {
+            async move {
+                let (link, init_pre_split, link_data) = self.links.init_split();
 
-            let (pre_op_split_wheres, mut pre_op_split_take) = link.split_pre_op(output);
+                let output = link
+                    .pre_op(init_pre_split, &self.wheres)
+                    .exec_operation(&mut *pool)
+                    .await;
 
-            let id = self.base.id();
+                let (pre_op_split_wheres, mut pre_op_split_take) = link.split_pre_op(output);
 
-            let (stmt, args) = StatementBuilder::<S>::new(DeleteStatement {
-                table_name: self.base.table_name_pascal_case(),
-                wheres: (
-                    Nest(self.wheres),
-                    Nest(link.wheres(link_data.wheres, pre_op_split_wheres)),
-                ),
-                returning: (
-                    Nest(id.identifier()),
-                    Nest(self.base.identifier()),
-                    Nest(link.delete_return_expression()),
-                ),
-            })
-            .unwrap();
+                let id = self.base.id();
 
-            let link_from_row = link.from_row();
+                let (stmt, args) = StatementBuilder::<S>::new(DeleteStatement {
+                    table_name: self.base.table_name_pascal_case(),
+                    wheres: (
+                        Nest(self.wheres),
+                        Nest(link.wheres(link_data.wheres, pre_op_split_wheres)),
+                    ),
+                    returning: (
+                        Nest(id.identifier()),
+                        Nest(self.base.identifier()),
+                        Nest(link.delete_return_expression()),
+                    ),
+                })
+                .unwrap();
 
-            let mut res = S::fetch_all_mapped(
-                &mut *pool,
-                Executable {
-                    string: &stmt,
-                    arguments: args,
-                },
-                |row| {
-                    let id = id.no_alias(&row).unwrap();
-                    let attributes = self.base.no_alias(&row).unwrap();
-                    let links = link_from_row.no_alias(&row).unwrap();
-                    LinkedOutput {
-                        id,
-                        attributes,
-                        links,
-                    }
-                },
-            )
-            .await
-            .unwrap();
+                let link_from_row = link.from_row();
 
-            if res.len() == 1 {
-                let first = res.pop().unwrap();
-                let links = link.take_once(first.links, pre_op_split_take);
-                return vec![LinkedOutput {
-                    id: first.id,
-                    attributes: first.attributes,
-                    links,
-                }];
-            } else {
-                res.into_iter()
-                    .map(|each| {
-                        let links = link.take_mut(each.links, &mut pre_op_split_take);
+                let mut res = S::fetch_all_mapped(
+                    &mut *pool,
+                    Executable {
+                        string: &stmt,
+                        arguments: args,
+                    },
+                    |row| {
+                        let id = id.no_alias(&row).unwrap();
+                        let attributes = self.base.no_alias(&row).unwrap();
+                        let links = link_from_row.no_alias(&row).unwrap();
                         LinkedOutput {
-                            id: each.id,
-                            attributes: each.attributes,
+                            id,
+                            attributes,
                             links,
                         }
-                    })
-                    .collect()
+                    },
+                )
+                .await
+                .unwrap();
+
+                if res.len() == 1 {
+                    let first = res.pop().unwrap();
+                    let links = link.take_once(first.links, pre_op_split_take);
+                    return vec![LinkedOutput {
+                        id: first.id,
+                        attributes: first.attributes,
+                        links,
+                    }];
+                } else {
+                    res.into_iter()
+                        .map(|each| {
+                            let links = link.take_mut(each.links, &mut pre_op_split_take);
+                            LinkedOutput {
+                                id: each.id,
+                                attributes: each.attributes,
+                                links,
+                            }
+                        })
+                        .collect()
+                }
             }
         }
     }

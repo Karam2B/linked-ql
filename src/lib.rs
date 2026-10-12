@@ -17,12 +17,26 @@ pub mod extend_sqlx;
 pub mod from_row;
 pub mod json_value_cmp;
 pub mod on_migrate;
-
+pub mod operations;
+/// refactor todos:
+/// - this module is to replace the old operations module
+/// - crate::operations::insert_id_mode should be removed at the expense of
+///         insert link called InsertId
+/// - crate::operations::by_id::OperationById is replaced by new OneRecordOperation
+/// - crate::operations::by_id::ExtendById is removed
+/// - crate::operations::on_one_record is removed
+/// - crate::operations::map_operation is removed
+#[cfg(feature = "refactor")]
+pub mod operations_v2;
 pub mod schema;
 pub mod singleton;
 pub mod sqlx_query_builder;
 pub mod tuple_trait;
 pub mod update_mod;
+/// refactor todos:
+/// - use this at the expense of crate::operations::operations_expressions_crossover::*;
+/// - new Operation implementations depends on this instead of the ones in operations_expressions_crossover::*;
+pub mod valid_syntax;
 pub mod macros {
     pub use linked_ql_macros::*;
 }
@@ -33,17 +47,9 @@ pub mod row_utils;
 pub mod json_client;
 #[cfg(not(feature = "refactor"))]
 pub mod links;
-#[cfg(not(feature = "refactor"))]
-pub mod operations;
 
 #[cfg(not(feature = "refactor"))]
 pub mod connect_in_memory;
-#[cfg(feature = "refactor")]
-/// refactor todo: remove this module when refactor is complete
-/// and replace all `use` that refer to these by `use` that refer to `extend_sqlx::*`
-mod connect_in_memory {
-    pub use crate::extend_sqlx::InMemoryConnection as ConnectInMemory;
-}
 #[cfg(not(feature = "refactor"))]
 pub mod database_extention;
 #[cfg(not(feature = "refactor"))]
@@ -334,8 +340,8 @@ pub mod fix_executor {
 
     #[cfg(test)]
     mod test {
-        use crate::connect_in_memory::ConnectInMemory;
         use crate::execute::Executable;
+        use crate::extend_sqlx::InMemoryConnection;
         use sqlx::{Row, Sqlite};
 
         use super::ExecutorTrait;
