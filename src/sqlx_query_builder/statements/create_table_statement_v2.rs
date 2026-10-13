@@ -1,52 +1,35 @@
 use crate::sqlx_query_builder::SealExpression;
 
-pub struct CreateTable<Init, TableName, ColDefs> {
-    pub init: Init,
+pub struct CreateTable<TableCondition, TableName, ColDefs> {
+    pub table_condition: TableCondition,
     pub name: TableName,
     pub col_defs: ColDefs,
 }
 
-pub mod expressions {
-    #![allow(non_camel_case_types)]
-
+pub mod table_conditions {
     use crate::sqlx_query_builder::SealExpression;
 
-    pub struct CreateTableInit;
+    pub struct IfNotExist;
 
-    impl SealExpression for CreateTableInit {}
+    impl SealExpression for IfNotExist {}
 
-    pub struct CreateTableInitIfNotExist;
-
-    impl SealExpression for CreateTableInitIfNotExist {}
-
-    mod impl_create_table_init_for_sqlite {
+    mod impl_if_not_exist_for_sqlite {
         use sqlx::Sqlite;
 
         use crate::{
             extend_sqlx::DatabaseStatementBuilder,
             sqlx_query_builder::{
-                statements::create_table_statement::expressions::{
-                    CreateTableInit, CreateTableInitIfNotExist,
-                },
                 Expression, StatementBuilder,
+                statements::create_table_statement::table_conditions::IfNotExist,
             },
         };
 
-        impl<'q> Expression<'q, Sqlite> for CreateTableInit {
+        impl<'q> Expression<'q, Sqlite> for IfNotExist {
             fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
             where
                 Sqlite: DatabaseStatementBuilder,
             {
-                ctx.syntax("CREATE TABLE");
-            }
-        }
-
-        impl<'q> Expression<'q, Sqlite> for CreateTableInitIfNotExist {
-            fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
-            where
-                Sqlite: DatabaseStatementBuilder,
-            {
-                ctx.syntax("CREATE TABLE IF NOT EXISTS");
+                ctx.syntax("IF NOT EXISTS");
             }
         }
     }
@@ -68,26 +51,32 @@ mod impl_create_table_for_sqlite {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
+            Expression, Join, Prefixed, StatementBuilder,
             statements::create_table_statement::{ColumnDefinition, CreateTable, NotNull},
-            Expression, Join, StatementBuilder,
         },
     };
 
-    impl<'q, Header, Table, Columns> Expression<'q, Sqlite> for CreateTable<Header, Table, Columns>
+    impl<'q, TableCondition, Table, ColumnsAndConstraints> Expression<'q, Sqlite>
+        for CreateTable<TableCondition, Table, ColumnsAndConstraints>
     where
-        Header: Expression<'q, Sqlite>,
+        Prefixed<TableCondition>: Expression<'q, Sqlite>,
         Table: Expression<'q, Sqlite>,
-        Join<Columns>: Expression<'q, Sqlite>,
+        Join<ColumnsAndConstraints>: Expression<'q, Sqlite>,
     {
         fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
         where
             Sqlite: DatabaseStatementBuilder,
         {
-            self.init.expression(ctx);
+            ctx.syntax("CREATE TABLE");
+            Prefixed {
+                prefix: " ",
+                inner: self.table_condition,
+            }
+            .expression(ctx);
+
             ctx.syntax(" ");
             self.name.expression(ctx);
-            ctx.syntax(" ");
-            ctx.syntax("(");
+            ctx.syntax(" (");
             Join {
                 start: "",
                 separator: ", ",

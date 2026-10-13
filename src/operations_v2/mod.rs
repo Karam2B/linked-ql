@@ -19,12 +19,69 @@
 //! Operation methods take `&mut S::Connection` you can obtain it from `sqlx::Connection::connect`,
 //! if you have [Pool](sqlx::Pool) you can obtain it from `sqlx::Pool::begin`
 //!
-//! # Infalibility
-//! All operations are supposed to be infalible, if they can fail,
-//! the way to handle should be specified by the time you construct the type,
-//! the same way `OneRecordOperation` does.
+//! # Fallibility
+//! Check the [fallibility](crate::operations_v2::fallibility) module for more details.
+//!
+
 use futures::Stream;
 use sqlx::Database;
+
+pub mod insert_one;
+pub mod fallibility {
+    //! # Infalibility
+    //! All operations are supposed to be infalible, if they can fail,
+    //! failure should be handled declaratively:
+    //!
+    //! ```ignore
+    //! pub struct InsertOne<Infalibility> {
+    //!     ... some code ...
+    //! }
+    //!
+    //! impl OperationOutput for InsertOne<PanicOnFailure> {
+    //!     type Output = OutputType;
+    //! }
+    //!
+    //! impl OperationOutput for InsertOne<ResultOnFailure> {
+    //!     type Output = Result<OutputType, ()>;
+    //! }
+    //!
+    //! ```
+    //!
+    //! There are two categories of failures:
+    //!     - what this crate expects to clear
+    //!         - syntax errors
+    //!         - not null constraint violation
+    //!         - check constraint violation
+    //!     - errors depends on the state of the database, like
+    //!         - foreign key violation
+    //!         - unique constraint violation
+    //!         - check constraint violation that depends on values of columns
+    //!
+    //! Any error of the first category is considered to be a bug in linked_ql.
+    //! Otherwise, the user has to be given a chance to handle the error, using any of
+    //! [Fallibility](crate::operations_v2::fallibility::Fallibility)
+    //!
+    //! Some constraints can be better handled by creating new type,
+    //! consider an integer that has to be more than 10, you can have
+    //! ```ignore
+    //! sqlx_new_type! {
+    //!     pub struct MoreThanTen(i32);
+    //! }
+    //!
+    //! impl MoreThanTen {
+    //!     pub fn new(value: i32) -> Option<Self> {
+    //!         if value > 10 {
+    //!             Some(Self(value))
+    //!         } else {
+    //!             None
+    //!         }
+    //!     }
+    //! }
+    //! ```
+
+    pub struct PanicOnFailure;
+    pub struct ResultOnFailure;
+}
 
 /// refactor todo:
 /// - I have some reimports, replace them by original code from crate::operations::*
