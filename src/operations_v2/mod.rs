@@ -113,7 +113,10 @@ pub mod streamed_ops {
 
     use futures::StreamExt;
 
-    use crate::operations_v2::{Operation, OperationOutput, StreamedOperation};
+    use crate::operations_v2::{
+        Operation, OperationOutput, StreamedOperation,
+        fallibility::{PanicOnFailure, ResultOnFailure},
+    };
 
     /// Streamed operation collected as a vector
     pub struct OperationVec<T>(pub T);
@@ -184,9 +187,6 @@ pub mod streamed_ops {
             }
         }
     }
-
-    pub struct PanicOnFailure;
-    pub struct ResultOnFailure;
 
     /// collect one record of a streamed operation, for infalibility you have two options:
     /// - PanicOnFailure: panic if got multiple records

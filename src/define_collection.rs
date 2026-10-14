@@ -406,11 +406,30 @@ macro_rules! define_collection {
             }
         };
 
+
+        ///////////////////////////////////
+        /// refactor
+        ///////////////////////////////////
+
+        // impl TableExpressions for <[ $pascal_case Handler ]>
+        #[cfg(feature = "refactor")]
+        const _: () = {
+            use $crate::valid_syntax::TableExpressions;
+
+            impl<'a> TableExpressions<'a> for [<$pascal_case Handler>] {
+                type SnakeCase = &'static str;
+                type PascalCase = &'static str;
+                fn pascal_case(&'a self) -> Self::SnakeCase {
+                    stringify!([<$pascal_case>])
+                }
+                fn snake_case(&'a self) -> Self::PascalCase {
+                    stringify!([<$pascal_case:snake>])
+                }
+            }
+        };
+
         // members
         pub mod [<$pascal_case:snake _members>] {
-            use $crate::sqlx_query_builder::{
-                basic_expressions::{AliasedScopedColumn, ScopedColumn},
-            };
             use $crate::collections::SingleColumnId;
             use $crate::collections::CollectionId;
 

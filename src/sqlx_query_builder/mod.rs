@@ -294,8 +294,10 @@ mod refactor {
     where
         S: DatabaseStatementBuilder,
     {
+        #[track_caller]
         fn ref_expression<'q>(&'a self, ctx: &mut StatementBuilder<'q, S>);
 
+        #[track_caller]
         fn ref_sql_statement(&'a self) -> String
         where
             S: DatabaseStatementBuilder,
@@ -322,6 +324,7 @@ mod refactor {
         where
             S: DatabaseStatementBuilder;
 
+        #[track_caller]
         fn sql_statement(self) -> (String, <S as Database>::Arguments<'q>)
         where
             Self: Sized,
@@ -336,6 +339,7 @@ mod refactor {
             (sb.stmt, sb.arg)
         }
 
+        #[track_caller]
         fn sql_statement_no_data(self) -> Option<String>
         where
             Self: Sized,

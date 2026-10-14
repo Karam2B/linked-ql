@@ -271,8 +271,8 @@ mod dynamic_client_side {
     use std::sync::Arc;
 
     use crate::gen_serde::{
-        Deserialize, DeserializeMap, DeserializeMapOrSeq, DeserializeSpec, Deserializer,
-        FromSerialized, KnownKey, MapOrSeq, deserialize, json_format_side::JsonFormat,
+        Deserialize, DeserializeMap, DeserializeMapOrSeq, DeserializeSpec, Deserializer, KnownKey,
+        MapOrSeq, deserialize, json_format_side::JsonFormat,
     };
 
     #[derive(Debug, PartialEq, Eq)]
@@ -384,12 +384,9 @@ mod dynamic_client_side {
 
 #[cfg(test)]
 mod client_side {
-    use axum::Json;
-
     use crate::gen_serde::{
         Deserialize, DeserializeMap, DeserializeMapOrSeq, DeserializeSpec, Deserializer,
-        FromSerialized, IntoSerializedString, KnownKey, MapOrSeq, ObjectEncoding, Serialize,
-        deserialize,
+        IntoSerializedString, KnownKey, MapOrSeq, ObjectEncoding, Serialize, deserialize,
         json_format_side::{JsonFormat, PartialDeserialize},
         json_serialize_side::JsonAsString,
     };

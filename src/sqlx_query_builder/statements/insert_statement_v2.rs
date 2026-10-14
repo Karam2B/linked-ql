@@ -44,8 +44,10 @@ mod impl_insert_statement_for_sqlite {
         Join<Identifiers>: Expression<'q, Sqlite>,
         Values: OptionalExpression,
         Join<Values>: Expression<'q, Sqlite>,
+        Returning: OptionalExpression,
         Join<Returning>: Expression<'q, Sqlite>,
     {
+        #[track_caller]
         fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
         where
             Sqlite: DatabaseStatementBuilder,

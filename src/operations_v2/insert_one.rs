@@ -221,8 +221,9 @@ pub struct InsertEntity<Attributes, Link> {
 
 mod impl_operation_for_insert_one {
     use super::*;
-    use crate::operations::OperationOutput;
+    use crate::operations::{Operation, OperationOutput};
     use crate::operations_v2::fallibility::PanicOnFailure;
+    use crate::sqlx_query_builder::statements::insert_statement::InsertStatement;
     use crate::{
         collections::{Collection, CollectionId},
         operations::LinkedOutput,
@@ -237,5 +238,99 @@ mod impl_operation_for_insert_one {
     {
         type Output =
             LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, LinkSpec::Output>;
+    }
+
+    impl<S, H, Link, LinkSpec> Operation<S>
+        for InsertOne<H, InsertEntity<H::InputData, Link>, PanicOnFailure>
+    where
+        Link: InsertLinkParts<LinkSpec = LinkSpec>,
+        LinkSpec: InsertOneLink,
+        H: Collection,
+        Self: Send,
+        Self::Output: Send,
+    {
+        fn exec_operation(self, _: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+        where
+            S: sqlx::Database,
+            Self: Sized,
+        {
+            async move { todo!() }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::Sqlite;
+
+    use crate::{
+        collections::{Collection, CollectionId},
+        define_collection::{Todo, TodoHandler},
+        execute::Executable,
+        extend_sqlx::InMemoryConnection,
+        fix_executor::ExecutorTrait,
+        operations::Operation,
+        operations_v2::fallibility::PanicOnFailure,
+        sqlx_query_builder::{
+            Expression,
+            statements::insert_statement::{InsertOne, InsertStatement},
+        },
+        valid_syntax::{MembersExpressions, TableExpressions},
+    };
+
+    use super::*;
+
+    #[tokio::test]
+    async fn operation_body_types_infered() {
+        let mut conn = Sqlite::in_memory_connection().await;
+        let handler = TodoHandler;
+
+        let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
+            table_name: TableExpressions::pascal_case(&handler),
+            identifiers: MembersExpressions::identifier(&handler),
+            values: InsertOne(InsertEntity {
+                attributes: Todo {
+                    title: "test".to_string(),
+                    done: false,
+                    description: Some("test".to_string()),
+                },
+                link: (),
+            }),
+            returning: (
+                MembersExpressions::identifier(&handler),
+                MembersExpressions::identifier(&Collection::id(&handler)),
+            ),
+        });
+
+        let res = <Sqlite as ExecutorTrait>::fetch_optional(
+            &mut conn,
+            Executable {
+                string: &sql,
+                arguments: arg,
+            },
+        )
+        .await
+        .unwrap();
+    }
+
+    #[linked_ql_macros::skip]
+    async fn test_insert_one() {
+        let mut conn = Sqlite::in_memory_connection().await;
+        let insert_one = Operation::<Sqlite>::exec_operation(
+            InsertOne {
+                handler: TodoHandler,
+                data: InsertEntity {
+                    attributes: Todo {
+                        title: "test".to_string(),
+                        done: false,
+                        description: Some("test".to_string()),
+                    },
+                    link: (),
+                },
+                infalibility: PanicOnFailure,
+            },
+            &mut conn,
+        )
+        .await;
     }
 }
