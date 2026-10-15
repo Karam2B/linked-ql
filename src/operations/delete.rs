@@ -97,8 +97,6 @@ mod impl_delete_link_split_for_unit {
         }
     }
 
-    use super::*;
-
     impl<W: Clone> DeleteLinkPreOp<W> for () {
         type InitSplitForPreOp = ();
         type PreOp = ();

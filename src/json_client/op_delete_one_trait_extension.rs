@@ -12,13 +12,11 @@ use crate::{
             delete_pre_op::ErasedDeletePreOp,
             raw_from_row::RawFromRow,
         },
-        dynamic_collection::DynamicCollection,
     },
     fix_executor::ExecutorTrait,
     from_row::FromRowData,
     gen_serde::{Serialize, json_serialize_side::JsonAsString},
     operations::{
-        Operation, OperationOutput,
         boxed_operation::BoxedOperation,
         delete::{DeleteLink, DeleteLinkData, DeleteLinkPreOp, DeleteLinkSplit},
     },

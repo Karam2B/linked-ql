@@ -1,3 +1,4 @@
+#[cfg(not(feature = "refactor"))]
 #[macro_export]
 macro_rules! define_collection {
     (struct $pascal_case:ident $size:literal {$(
@@ -648,6 +649,14 @@ macro_rules! define_collection {
 
 
     }};
+}
+
+#[cfg(feature = "refactor")]
+#[macro_export]
+macro_rules! define_collection_refactor {
+    (struct $pascal_case:ident $size:literal {$(
+        $member:ident: $type:ty,
+    )*}) => {};
 }
 
 #[cfg(test)]

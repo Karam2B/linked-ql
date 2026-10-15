@@ -30,7 +30,6 @@ use crate::{
     sqlx_query_builder::{
         Expression, Join,
         combinators::OptionalExpression,
-        trait_objects::{box_expression, BoxedExpression},
     },
 };
 

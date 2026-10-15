@@ -8,7 +8,7 @@ use tracing::warn;
 use crate::{
     database_extention::DatabaseExt,
     from_row::{FromRowAlias, FromRowData},
-    gen_serde::{Serialize, SerializedJson, json_serialize_side::JsonAsString},
+    gen_serde::{Serialize, json_serialize_side::JsonAsString},
     json_client::select_items_trait_object::{SelectItemsTraitObject, ToImplSelectItems},
     operations::{
         OperationOutput, boxed_operation::BoxedOperation, fetch_many::LinkFetch,

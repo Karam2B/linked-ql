@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use sqlx::ColumnIndex;
-
 use crate::{
     database_extention::DatabaseExt,
     fix_executor::ExecutorTrait,
@@ -13,7 +11,7 @@ use crate::{
     json_client::{
         DynManyToMany, DynOneToMany,
         client_interface::{
-            InsertManyError, InsertManyInput, InsertManyItem, InsertManyOutput, InsertOneError,
+            InsertOneError,
             InsertOneInput, InsertOneOutput, SupportedInsertLink,
         },
         dynamic_collection::{CollectionToSerialize, DynamicCollection, DynamicInsertInput},

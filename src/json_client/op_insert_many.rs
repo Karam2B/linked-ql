@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use sqlx::ColumnIndex;
-
 use crate::{
     database_extention::DatabaseExt,
     fix_executor::ExecutorTrait,

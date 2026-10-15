@@ -1,6 +1,5 @@
 use crate::json_client::client_interface::{
-    AddCollectionInput, Client, ClientOperationError, ClientOperationInput, ClientOperationOutput,
-    SupportedType,
+    Client, ClientOperationError, ClientOperationInput, ClientOperationOutput,
 };
 use crate::json_client::dynamic_collection::DynamicCollection;
 use crate::{
@@ -8,12 +7,12 @@ use crate::{
     operations::operations_expressions_crossover::MigrateExpression,
     sqlx_query_builder::Expression,
 };
-use sqlx::{IntoArguments, Pool, Sqlite};
+use sqlx::{IntoArguments, Pool};
 use std::collections::HashSet;
 use std::{
     collections::HashMap,
     marker::PhantomData,
-    sync::{Arc, Weak},
+    sync::Arc,
 };
 use tokio::sync::{RwLock as Trw, mpsc as tokio_mpsc};
 

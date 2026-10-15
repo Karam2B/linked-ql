@@ -475,11 +475,11 @@ mod client_side {
 
     const _: () = {
         struct Format;
-        fn _check_if_trait_o() -> Box<dyn Serialize<Format>> {
-            todo!()
-        }
+        let _witness = Format;
+        let _: Option<Box<dyn Serialize<Format>>> = None;
     };
 
+    #[test]
     fn te_serialize_basic_object() {
         let s = BasicObject {
             title: String::from("first_title"),

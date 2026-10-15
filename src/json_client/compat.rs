@@ -80,7 +80,6 @@ pub mod dynamic_input {
         database_extention::DatabaseExt,
         json_client::{ToBind, dynamic_collection::DynamicInsertInput},
         operations::operations_expressions_crossover::{NamedBind, SelfPrescribedInsert},
-        sqlx_query_builder::Join,
         tuple_trait::AsTuple,
     };
 

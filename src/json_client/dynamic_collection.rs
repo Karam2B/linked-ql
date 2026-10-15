@@ -9,10 +9,7 @@ use crate::{
         ToBind,
         client_interface::{AddCollectionInput, SupportedType},
     },
-    sqlx_query_builder::{
-        RefExpression, Sanitize, basic_expressions::TypeAsSyntax, trait_objects::BoxedExpression,
-    },
-    sub_arc::ArcSubStr,
+    sqlx_query_builder::{basic_expressions::TypeAsSyntax, trait_objects::BoxedExpression},
 };
 use convert_case::{Case, Casing};
 use core::fmt;
@@ -311,12 +308,9 @@ mod dynamic_insert_binds {
         database_extention::DatabaseExt,
         gen_serde::{
             Deserialize, DeserializeMap, DeserializeMapOrSeq, DeserializeSpec, Deserializer,
-            KnownKey, MapOrSeq, UnknownKey, json_format_side::PartialDeserialize,
+            MapOrSeq, UnknownKey, json_format_side::PartialDeserialize,
         },
-        json_client::{
-            ToBind,
-            dynamic_collection::{DynamicCollection, DynamicField},
-        },
+        json_client::{ToBind, dynamic_collection::DynamicCollection},
         sub_arc::ArcSubStr,
     };
 
@@ -488,11 +482,7 @@ pub(crate) mod collection_impls {
     use crate::{
         collections::{Collection, SingleIncremintalInt},
         database_extention::DatabaseExt,
-        gen_serde::{
-            Deserialize, Serialize, deserialize,
-            json_format_side::{JsonAsArcCursor, JsonFormat, PartialDeserialize},
-            json_serialize_side::JsonAsString,
-        },
+        gen_serde::{Serialize, json_serialize_side::JsonAsString},
         json_client::ToBind,
         sub_arc::ArcSubStr,
     };
@@ -593,79 +583,6 @@ pub(crate) mod collection_impls {
         }
     }
 
-    pub(crate) fn decode_json_scalar<T>(value: &Box<dyn Serialize<JsonAsString> + Send>) -> T
-    where
-        T: for<'de> Deserialize<'de, JsonAsArcCursor, Handler = ()>,
-    {
-        let mut json = JsonAsString::default();
-        Serialize::serialize(value.as_ref(), &mut json);
-        deserialize(Arc::from(json.0), (), JsonFormat).expect("decode json scalar")
-    }
-
-    pub(crate) fn dynamic_row_from_json<S>(
-        json: std::sync::Arc<str>,
-        dc: &std::sync::Arc<DynamicCollection<S>>,
-    ) -> CollectionToSerialize
-    where
-        S: sqlx::Database + DatabaseExt,
-        String: for<'q> sqlx::Encode<'q, S> + sqlx::Type<S>,
-        bool: for<'q> sqlx::Encode<'q, S> + sqlx::Type<S>,
-    {
-        use crate::gen_serde::{
-            Deserialize, DeserializeMap, DeserializeMapOrSeq, FromSerialized, MapOrSeq,
-            json_format_side::PartialDeserialize,
-        };
-        use crate::sub_arc::ArcSubStr;
-
-        let mut row = CollectionToSerialize::default();
-        let mut cursor = json.start();
-
-        match cursor.start_map_or_seq().expect("expected JSON object") {
-            MapOrSeq::Map(mut map) => {
-                while cursor.map_has_next(&mut map) {
-                    let (key, partial): (ArcSubStr, PartialDeserialize) =
-                        DeserializeMap::deserialize_with_unknown_key(&mut cursor, &mut map, (), ())
-                            .expect("decode json field");
-
-                    let Some(field) = dc
-                        .fields
-                        .iter()
-                        .find(|field| field.name.as_ref() == key.as_str())
-                    else {
-                        continue;
-                    };
-
-                    let value = (field.type_info.partial_to_row_value)(field.is_optional, partial)
-                        .expect("decode json field value");
-
-                    row.insert(Arc::clone(&field.name.snake_case), value);
-                }
-                DeserializeMapOrSeq::finish_map(&mut cursor, map).expect("finish json object");
-            }
-            MapOrSeq::Seq(_) => panic!("expected JSON object"),
-        }
-
-        row
-    }
-
-    pub(crate) fn serialize_dynamic_row(row: &CollectionToSerialize, keys: &[&str]) -> String {
-        let mut json = JsonAsString::default();
-        json.0.push('{');
-        for (i, key) in keys.iter().enumerate() {
-            if i > 0 {
-                json.0.push(',');
-            }
-            Serialize::serialize(*key, &mut json);
-            json.0.push(':');
-            let value = row
-                .get(*key)
-                .unwrap_or_else(|| panic!("missing field {key:?}"));
-            Serialize::serialize(value.as_ref(), &mut json);
-        }
-        json.0.push('}');
-        json.into()
-    }
-
     impl<S> Collection for Arc<DynamicCollection<S>>
     where
         S: sqlx::Database + DatabaseExt,
@@ -690,32 +607,27 @@ pub(crate) mod collection_impls {
 }
 
 pub(crate) use collection_impls::{CollectionToSerialize, DynamicInput as DynamicInsertInput};
-pub(crate) use collection_impls::{
-    decode_json_scalar, dynamic_row_from_json, serialize_dynamic_row,
-};
 pub(crate) use dynamic_insert_binds::DynamicUpdateInput;
 
 pub(crate) mod common_expression_impls {
-    use std::{ops::Not, sync::Arc};
+    use std::sync::Arc;
 
     use crate::{
         database_extention::DatabaseExt,
-        from_row::{FromRowAlias, FromRowData, FromRowError, from_row_v2::RowAliased},
+        from_row::{FromRowAlias, FromRowData, FromRowError},
         json_client::{
             ToBind,
             dynamic_collection::{
-                CollectionToSerialize, DynamicCollection, DynamicField, DynamicInsertInput,
-                DynamicUpdateInput,
+                CollectionToSerialize, DynamicCollection, DynamicInsertInput, DynamicUpdateInput,
             },
         },
         operations::operations_expressions_crossover::{
             ExpressionsForOperation, OnInsert, OnUpdate, TableExpressions,
         },
         sqlx_query_builder::{Expression, OpExpression, StatementBuilder},
-        sqlx_query_builder::{RefExpression, Sanitize},
         sub_arc::ArcSubStr,
     };
-    use sqlx::{ColumnIndex, Database, Row};
+    use sqlx::{ColumnIndex, Row};
 
     pub struct ToBindSetMany<S> {
         pub vec: Vec<Box<dyn ToBind<S> + Send>>,
@@ -1144,9 +1056,8 @@ mod arc_collection_impls {
         operations::operations_expressions_crossover::{
             ExpressionsForOperation, OnInsert, OnUpdate, TableExpressions,
         },
-        sub_arc::ArcSubStr,
     };
-    use sqlx::{ColumnIndex, Database, Row};
+    use sqlx::Row;
 
     impl<S> TableExpressions for Arc<DynamicCollection<S>>
     where
@@ -1360,10 +1271,6 @@ mod impl_on_migrate {
             ctx.syntax(";");
         }
     }
-}
-
-macro_rules! default_executor {
-    ($([$name:ident, $upper_case:ident]),*) => {};
 }
 
 pub use impl_on_migrate::MigrateDynamicCollection;

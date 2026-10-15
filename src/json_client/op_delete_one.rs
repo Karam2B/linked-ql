@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use sqlx::ColumnIndex;
-
 use crate::{
     collections::Collection,
     database_extention::DatabaseExt,
     fix_executor::ExecutorTrait,
     from_row::FromRowAlias,
     json_client::{
-        DynManyToMany, DynOneToMany,
+        DynOneToMany,
         client_interface::{DeleteOneError, DeleteOneInput, DeleteOneOutput, SupportedDeleteLink},
         dynamic_collection::{CollectionToSerialize, DynamicCollection},
         op_delete_one_trait_extension::{JsonDeleteOneLink, JsonDeleteOneToConsume},

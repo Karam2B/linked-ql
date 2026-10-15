@@ -1,6 +1,4 @@
 use super::client_interface::*;
-use super::op_fetch_many_trait_extension::JsonLinkFetchMany;
-use super::op_fetch_one_trait_extension::JsonLinkFetchOne;
 
 macro_rules! ops {
         ($([$snake_case:ident, $pascal_case:ident]),*) => {
@@ -196,7 +194,7 @@ macro_rules! ops {
 
                             let input = match $crate::json_client::string_client::StringClientInput::deserialize((), &mut cursor) {
                                 Ok(input) => input,
-                                Err(e) => return String::from(r#"{"error":"invalid_input"}"#),
+                                Err(_) => return String::from(r#"{"error":"invalid_input"}"#),
                             };
 
                             match input.op.as_str() {
@@ -204,7 +202,7 @@ macro_rules! ops {
                                     stringify!($snake_case) => {
                                         let body = match input.body.continue_deserialize() {
                                             Ok(body) => body,
-                                            Err(e) => return String::from(r#"{"error":"invalid_body"}"#),
+                                            Err(_) => return String::from(r#"{"error":"invalid_body"}"#),
                                         };
                                         let output = match self.inner.$snake_case(body).await {
                                             Ok(output) => output,

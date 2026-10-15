@@ -13,7 +13,7 @@ use crate::json_client::client_interface::{
     SupportedInsertLink, SupportedLinkFetchMany, SupportedLinkFetchOne, SupportedType,
     SupportedUpdateLink, UpdateOneInput,
 };
-use crate::sub_arc::{ArcSubStr, SubArc};
+use crate::sub_arc::ArcSubStr;
 
 impl Serialize<JsonAsString> for InsertManyOutput
 where

@@ -91,22 +91,6 @@
         .await;
     }
 
-    pub async fn category_is_timestamped(sc: &StringClient) {
-        sc.exec(
-            r#"
-        {
-            "op": "add_link",
-            "body": {
-                "ty": "timestamp",
-                "collection": "category"
-            }
-        }
-        "#
-            .to_string(),
-        )
-        .await;
-    }
-
     pub async fn todo_is_one_to_many_with_category(sc: &StringClient) {
         sc.exec(
             r#"
@@ -143,7 +127,7 @@
 
     /// use this utility function to make assertions between queries easier
     pub async fn clear_timestams(pool: Pool<Sqlite>) {
-        sqlx::query(
+        let _ = sqlx::query(
             r#"
             UPDATE "Todo" SET "created_at" = "demo created_at", "updated_at" = "demo updated_at";
             "#,

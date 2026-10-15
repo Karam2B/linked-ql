@@ -60,6 +60,7 @@ where
     S: crate::database_extention::DatabaseExt,
 {
     fn str_alias_erase(&self, alias: &'static str) -> Box<dyn BoxedExpression<S> + Send> {
+        let _ = &self.cast_from_row_result;
         box_expression(self.select_items.scoped_aliased(alias), ", ")
     }
     fn num_alias_erase(

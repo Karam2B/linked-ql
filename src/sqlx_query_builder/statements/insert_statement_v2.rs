@@ -21,9 +21,9 @@ impl<TableName, Identifiers, Values, Returning> SealExpression
 {
 }
 
-pub struct InsertOne<T>(pub T);
+pub struct InsertOneValue<T>(pub T);
 
-pub struct InsertMany<T>(pub T);
+pub struct InsertManyValues<T>(pub T);
 
 mod impl_insert_statement_for_sqlite {
     use sqlx::Sqlite;
@@ -32,12 +32,12 @@ mod impl_insert_statement_for_sqlite {
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
             Expression, Join, OptionalExpression, StatementBuilder,
-            statements::insert_statement::{InsertMany, InsertOne, InsertStatement},
+            statements::insert_statement::{InsertManyValues, InsertOneValue, InsertStatement},
         },
     };
 
     impl<'q, TableName, Identifiers, Values, Returning> Expression<'q, Sqlite>
-        for InsertStatement<TableName, Identifiers, InsertOne<Values>, Returning>
+        for InsertStatement<TableName, Identifiers, InsertOneValue<Values>, Returning>
     where
         TableName: Expression<'q, Sqlite>,
         Identifiers: OptionalExpression,
@@ -94,7 +94,7 @@ mod impl_insert_statement_for_sqlite {
     }
 
     impl<'q, TableName, Identifiers, Values, Returning> Expression<'q, Sqlite>
-        for InsertStatement<TableName, Identifiers, InsertMany<Values>, Returning>
+        for InsertStatement<TableName, Identifiers, InsertManyValues<Values>, Returning>
     where
         TableName: Expression<'q, Sqlite>,
         Identifiers: OptionalExpression,

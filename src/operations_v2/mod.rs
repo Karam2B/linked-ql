@@ -56,6 +56,7 @@ pub mod fallibility {
     //!         - foreign key violation
     //!         - unique constraint violation
     //!         - check constraint violation that depends on values of columns
+
     //!
     //! Any error of the first category is considered to be a bug in linked_ql.
     //! Otherwise, the user has to be given a chance to handle the error, using any of
@@ -64,6 +65,12 @@ pub mod fallibility {
     //! Some constraints can be better handled by creating new type,
     //! consider an integer that has to be more than 10, you can have
     //! ```ignore
+    //!
+    //! pub struct ShoppingEntity {
+    //!     pub name: String,
+    //!     pub price: MoreThanTen,
+    //! }
+    //!
     //! sqlx_new_type! {
     //!     pub struct MoreThanTen(i32);
     //! }
@@ -78,6 +85,20 @@ pub mod fallibility {
     //!     }
     //! }
     //! ```
+    //!
+    //! In this fation it's the user's responsibility to clear the error before constructing
+    //! an entity.
+    //!
+    //! ------
+    //! In addition to the two categories above, there are errors that pose design challenges.
+    //!
+    //! On theory all links are optional, and id is auto generated. but consider these cases:
+    //!
+    //! 1. missing non-auto-generated id
+    //!
+    //!
+    //! 2. missing required link
+    //!
 
     pub struct PanicOnFailure;
     pub struct ResultOnFailure;

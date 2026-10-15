@@ -7,7 +7,7 @@ use crate::{
     fix_executor::ExecutorTrait,
     json_client::{
         client_interface::{AddCollectionError, AddCollectionInput, AddCollectionOutput},
-        dynamic_collection::{DynamicCollection, FieldName},
+        dynamic_collection::DynamicCollection,
         sqlx_executor::SqlxExecutorData,
     },
     operations::operations_expressions_crossover::MigrateExpression,

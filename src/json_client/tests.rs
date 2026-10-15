@@ -8,7 +8,7 @@ use crate::{
 
 use super::test_utilities::{
     add_category_collection, add_todo_collection, clear_timestams, setup_todo_collection,
-    setup_todo_with_category_link, todo_is_one_to_many_with_category, todo_is_timestamped,
+    todo_is_one_to_many_with_category, todo_is_timestamped,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -2532,7 +2532,7 @@ mod comprehensive {
     use crate::{
         connect_in_memory::ConnectInMemory,
         json_client::client_interface::Client,
-        track_sqlx_query::{assert_sql_eq, watch_sqlx_calls},
+        track_sqlx_query::watch_sqlx_calls,
     };
 
     use super::super::test_utilities::{
