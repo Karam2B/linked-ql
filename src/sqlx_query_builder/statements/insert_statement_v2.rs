@@ -25,6 +25,9 @@ pub struct InsertOneValue<T>(pub T);
 
 pub struct InsertManyValues<T>(pub T);
 
+impl<T> SealExpression for InsertManyValues<T> {}
+impl<T> SealExpression for InsertOneValue<T> {}
+
 mod impl_insert_statement_for_sqlite {
     use sqlx::Sqlite;
 
@@ -36,94 +39,16 @@ mod impl_insert_statement_for_sqlite {
         },
     };
 
-    impl<'q, TableName, Identifiers, Values, Returning> Expression<'q, Sqlite>
-        for InsertStatement<TableName, Identifiers, InsertOneValue<Values>, Returning>
+    impl<'q, ManyValues> Expression<'q, Sqlite> for InsertManyValues<ManyValues>
     where
-        TableName: Expression<'q, Sqlite>,
-        Identifiers: OptionalExpression,
-        Join<Identifiers>: Expression<'q, Sqlite>,
-        Values: OptionalExpression,
-        Join<Values>: Expression<'q, Sqlite>,
-        Returning: OptionalExpression,
-        Join<Returning>: Expression<'q, Sqlite>,
-    {
-        #[track_caller]
-        fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
-        where
-            Sqlite: DatabaseStatementBuilder,
-        {
-            if !self.identifiers.is_expression_present() || !self.values.0.is_expression_present() {
-                panic!("insert_statment with empty values")
-            }
-            ctx.syntax("INSERT INTO ");
-            self.table_name.expression(ctx);
-            ctx.syntax(" ");
-            if self.identifiers.is_expression_present() {
-                Join {
-                    start: "(",
-                    separator: ", ",
-                    items: self.identifiers,
-                }
-                .expression(ctx);
-                ctx.syntax(")");
-            } else {
-                panic!("insert_statment with empty identifiers")
-            }
-
-            if self.values.0.is_expression_present() {
-                Join {
-                    start: "VALUES (",
-                    separator: ", ",
-                    items: self.values.0,
-                }
-                .expression(ctx);
-                ctx.syntax(")");
-            } else {
-                panic!("insert_statment with empty values")
-            }
-
-            Join {
-                start: " RETURNING ",
-                separator: ", ",
-                items: self.returning,
-            }
-            .expression(ctx);
-
-            ctx.syntax(";");
-        }
-    }
-
-    impl<'q, TableName, Identifiers, Values, Returning> Expression<'q, Sqlite>
-        for InsertStatement<TableName, Identifiers, InsertManyValues<Values>, Returning>
-    where
-        TableName: Expression<'q, Sqlite>,
-        Identifiers: OptionalExpression,
-        Join<Identifiers>: Expression<'q, Sqlite>,
-        Values: IntoIterator,
-        Join<Values::Item>: Expression<'q, Sqlite>,
-        Join<Returning>: Expression<'q, Sqlite>,
+        ManyValues: IntoIterator,
+        Join<ManyValues::Item>: Expression<'q, Sqlite>,
     {
         fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
         where
             Sqlite: DatabaseStatementBuilder,
         {
-            ctx.syntax("INSERT INTO ");
-            self.table_name.expression(ctx);
-            ctx.syntax(" ");
-            if self.identifiers.is_expression_present() {
-                Join {
-                    start: "(",
-                    separator: ", ",
-                    items: self.identifiers,
-                }
-                .expression(ctx);
-                ctx.syntax(")");
-            } else {
-                panic!("insert_statment with empty identifiers")
-            }
-            ctx.syntax(" VALUES ");
-
-            let mut iter = self.values.0.into_iter();
+            let mut iter = self.0.into_iter();
 
             let first = iter
                 .next()
@@ -147,6 +72,67 @@ mod impl_insert_statement_for_sqlite {
                 .expression(ctx);
                 ctx.syntax(")");
             }
+        }
+    }
+
+    impl<'q, OneValue> Expression<'q, Sqlite> for InsertOneValue<OneValue>
+    where
+        OneValue: OptionalExpression,
+        Join<OneValue>: Expression<'q, Sqlite>,
+    {
+        fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
+        where
+            Sqlite: DatabaseStatementBuilder,
+        {
+            if self.0.is_expression_present() {
+                Join {
+                    start: "(",
+                    separator: ", ",
+                    items: self.0,
+                }
+                .expression(ctx);
+                ctx.syntax(")");
+            } else {
+                panic!("insert_statment with empty values")
+            }
+        }
+    }
+
+    impl<'q, TableName, Identifiers, Values, Returning> Expression<'q, Sqlite>
+        for InsertStatement<TableName, Identifiers, Values, Returning>
+    where
+        TableName: Expression<'q, Sqlite>,
+        Identifiers: OptionalExpression,
+        Join<Identifiers>: Expression<'q, Sqlite>,
+        Values: Expression<'q, Sqlite>,
+        Returning: OptionalExpression,
+        Join<Returning>: Expression<'q, Sqlite>,
+    {
+        #[track_caller]
+        fn expression(self, ctx: &mut StatementBuilder<'q, Sqlite>)
+        where
+            Sqlite: DatabaseStatementBuilder,
+        {
+            if !self.identifiers.is_expression_present() {
+                panic!("insert_statment with empty values")
+            }
+            ctx.syntax("INSERT INTO ");
+            self.table_name.expression(ctx);
+            ctx.syntax(" ");
+            if self.identifiers.is_expression_present() {
+                Join {
+                    start: "(",
+                    separator: ", ",
+                    items: self.identifiers,
+                }
+                .expression(ctx);
+                ctx.syntax(")");
+            } else {
+                panic!("insert_statment with empty identifiers")
+            }
+
+            ctx.syntax(" VALUES ");
+            self.values.expression(ctx);
 
             Join {
                 start: " RETURNING ",

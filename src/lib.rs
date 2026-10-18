@@ -16,6 +16,11 @@ pub mod execute;
 pub mod extend_sqlx;
 pub mod from_row;
 pub mod json_value_cmp;
+#[cfg(not(feature = "refactor"))]
+pub mod links;
+#[cfg(feature = "refactor")]
+#[path = "links_v2/mod.rs"]
+pub mod links;
 pub mod on_migrate;
 pub mod operations;
 /// refactor todos:
@@ -44,10 +49,6 @@ pub mod macros {
 pub mod row_utils;
 
 #[cfg(not(feature = "refactor"))]
-pub mod json_client;
-#[cfg(not(feature = "refactor"))]
-pub mod links;
-
 #[cfg(not(feature = "refactor"))]
 pub mod connect_in_memory;
 #[cfg(not(feature = "refactor"))]
@@ -56,6 +57,8 @@ pub mod database_extention;
 pub mod extend_any;
 #[cfg(not(feature = "refactor"))]
 pub mod extend_sqlite;
+#[cfg(not(feature = "refactor"))]
+pub mod json_client;
 
 #[doc(hidden)]
 pub use paste as paste_crate;

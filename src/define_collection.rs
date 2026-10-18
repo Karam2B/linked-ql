@@ -646,22 +646,35 @@ macro_rules! define_collection {
 
 
         }
-
-
     }};
 }
 
 #[cfg(feature = "refactor")]
 #[macro_export]
-macro_rules! define_collection_refactor {
+macro_rules! define_collection {
     (struct $pascal_case:ident $size:literal {$(
         $member:ident: $type:ty,
-    )*}) => {};
+    )*}) => {
+        pub struct $pascal_case {
+            $(
+                pub $member: $type,
+            )*
+        }
+
+        paste::paste!(pub struct [<$pascal_case Handler>];);
+
+        pub struct [<$pascal_case Partial>];
+        {
+            $(
+                pub $member: $crate::update_mod::Update<$type>,
+            )*
+        }
+    };
 }
 
 #[cfg(test)]
-mod collections_example {
-    define_collection!(
+pub mod collections_example {
+    crate::define_collection!(
         struct Todo 3 {
             title: String,
             done: bool,
@@ -669,17 +682,168 @@ mod collections_example {
         }
     );
 
-    define_collection!(
+    crate::define_collection!(
         struct Category 1 {
             title: String,
         }
     );
 
-    define_collection!(
+    crate::define_collection!(
         struct Tag 1 {
             title: String,
         }
     );
+
+    mod expr_impls {
+        use super::*;
+        use crate::{
+            collections::Collection,
+            sqlx_query_builder::{
+                Sanitize,
+                basic_expressions::{AliasedScopedColumn, ScopedColumn},
+            },
+            update_mod::Update,
+            valid_syntax::{MembersAliasedExpressions, MembersExpressions, TableExpressions},
+        };
+
+        impl Collection for TodoHandler {
+            fn table_name_pascal_case(&self) -> &str {
+                "Todo"
+            }
+
+            fn table_name_snake_case(&self) -> &str {
+                "todo"
+            }
+
+            type InputData = Todo;
+
+            type OutputData = Todo;
+
+            type UpdateData = TodoPartial;
+
+            type InputIdData = i64;
+
+            type OutputIdData = i64;
+
+            type UpdateIdData = Update<i64>;
+
+            type IdHandler = StandardId<TodoHandler>;
+
+            fn id_handler(&self) -> Self::IdHandler {
+                StandardId(TodoHandler)
+            }
+        }
+
+        impl<'a> MembersExpressions<'a> for TodoHandler {
+            type Identifiers = [&'static str; 3];
+            fn identifiers(&'a self) -> Self::Identifiers {
+                ["title", "done", "description"]
+            }
+        }
+
+        impl<'a> MembersAliasedExpressions<'a> for TodoHandler {
+            type Scoped = [ScopedColumn<&'static str, &'static str>; 3];
+
+            fn scoped(&'a self) -> Self::Scoped {
+                [
+                    ScopedColumn {
+                        table: "todo",
+                        col: "title",
+                    },
+                    ScopedColumn {
+                        table: "todo",
+                        col: "done",
+                    },
+                    ScopedColumn {
+                        table: "todo",
+                        col: "description",
+                    },
+                ]
+            }
+
+            type ScopedAliased = [AliasedScopedColumn<
+                &'static str,
+                &'static str,
+                Sanitize<(&'static str, &'static str)>,
+            >; 3];
+
+            fn scoped_aliased(&'a self, alias: &'static str) -> Self::ScopedAliased {
+                [
+                    AliasedScopedColumn {
+                        table: "todo",
+                        column: "title",
+                        alias: Sanitize((alias, "_title")),
+                    },
+                    AliasedScopedColumn {
+                        table: "todo",
+                        column: "done",
+                        alias: Sanitize((alias, "_done")),
+                    },
+                    AliasedScopedColumn {
+                        table: "todo",
+                        column: "description",
+                        alias: Sanitize((alias, "_description")),
+                    },
+                ]
+            }
+
+            type NumScopedAliased = [AliasedScopedColumn<
+                &'static str,
+                &'static str,
+                Sanitize<(&'static str, &'static usize, &'static str)>,
+            >; 3];
+
+            fn num_scoped_aliased(
+                &'a self,
+                num: &'static usize,
+                alias: &'static str,
+            ) -> Self::NumScopedAliased {
+                [
+                    AliasedScopedColumn {
+                        table: "todo",
+                        column: "title",
+                        alias: Sanitize((alias, num, "_title")),
+                    },
+                    AliasedScopedColumn {
+                        table: "todo",
+                        column: "done",
+                        alias: Sanitize((alias, num, "_done")),
+                    },
+                    AliasedScopedColumn {
+                        table: "todo",
+                        column: "description",
+                        alias: Sanitize((alias, num, "_description")),
+                    },
+                ]
+            }
+
+            fn members(&self) -> (String, String, Vec<String>) {
+                (
+                    "todo".to_string(),
+                    "Todo".to_string(),
+                    vec![
+                        "title".to_string(),
+                        "done".to_string(),
+                        "description".to_string(),
+                    ],
+                )
+            }
+        }
+
+        impl<'a> TableExpressions<'a> for TodoHandler {
+            type PascalCase = &'static str;
+
+            type SnakeCase = &'static str;
+
+            fn pascal_case(&'a self) -> Self::PascalCase {
+                "Todo"
+            }
+
+            fn snake_case(&'a self) -> Self::SnakeCase {
+                "todo"
+            }
+        }
+    }
 
     #[cfg(not(feature = "refactor"))]
     impl crate::links::Link<TodoHandler> for CategoryHandler {
@@ -716,6 +880,3 @@ mod collections_example {
         }
     }
 }
-
-#[cfg(test)]
-pub use collections_example::*;

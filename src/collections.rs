@@ -5,30 +5,103 @@ pub use collection_stable::*;
 
 #[cfg(feature = "refactor")]
 pub mod collection_refactor {
+    /// Collection handler defines fundemental behavior for collections:
+    ///     1. user-facing types used in operations.
+    ///     2. id behavior
+    ///     3. table name
+    ///
+    ///
+    /// Use (define_collection)[crate::define_collection] macro to implement a collection.
+    ///
+    /// example
+    ///
+    /// ```ignore
+    /// define_collection!(
+    ///     pub struct Todo {
+    ///         title: String,
+    ///         done: bool
+    ///     }
+    /// );
+    /// ```
+    ///
+    /// ## Other traits to implement
+    /// In addition to this trait, collection handlers should implement:
+    ///     - (ValidSyntax)[crate::valid_syntax] traits
+    ///     - (FromRowAlias)[crate::from_row::FromRowAlias] trait
+    ///
+    /// ## What collection handlers look like
+    ///
+    /// Collection handler hold information about the collection, if `define_collection` macro is used, this
+    /// would be a zero-sized type that is uniquely identify the collection.
+    ///
+    /// This is a big picture of what is generated:
+    ///
+    /// ```ignore
+    /// define_collection!(
+    ///     pub struct Todo {
+    ///         title: String,
+    ///         done: bool
+    ///     }
+    /// );
+    ///
+    /// pub struct TodoHandler;
+    ///
+    /// pub struct TodoPartial {
+    ///     title: Update<String>,
+    ///     done: Update<bool>
+    /// }
+    ///
+    /// impl Collection for TodoHandler {
+    ///     fn table_name_pascal_case(&self) -> &str { "Todo" }
+    ///     fn table_name_snake_case(&self) -> &str { "todo" }
+    ///     type InputData = Todo;
+    ///     type OutputData = Todo;
+    ///     type UpdateData = TodoPartial;
+    ///     type InputIdData = i64;
+    ///     type OutputIdData = i64;
+    ///     type UpdateIdData = Update<i64>;
+    ///     type IdHandler = StandardId<TodoHandler>;
+    ///     fn id_handler(&self) -> Self::IdHandler { StandardId(TodoHandler) }
+    /// }
+    ///
+    /// ```
+    ///
+    /// For mutable dynamic collections, these information stored inside (DynamicCollection)[crate::json_client::dynamic_collection::DynamicCollection]
     pub trait Collection {
-        fn table_name(&self) -> &str;
-        fn table_name_lower_case(&self) -> &str;
+        fn table_name_pascal_case(&self) -> &str;
+        fn table_name_snake_case(&self) -> &str;
 
-        /// Collection as expected by insert operations.
+        /// Collection attributes as expected by insert operations.
         type InputData;
 
-        /// Collection as expected returned by SELECT/RETURNING operations.
+        /// Collection attributes as expected returned by SELECT/RETURNING operations.
         type OutputData;
 
-        /// Collection as expected by update operations.
+        /// Collection attributes as expected by update operations.
         type UpdateData;
-    }
 
-    pub trait CollectionId: Collection {
-        /// Id data as expected by insert operations.
+        /// Collection id as expected by insert operations.
         type InputIdData;
 
-        /// Id data as expected returned by SELECT/RETURNING operations.
+        /// Collection id as expected returned by SELECT/RETURNING operations.
         type OutputIdData;
 
-        /// Id constraints as expected by insert operations.
-        type InputIdConstraints;
+        /// Collection id as expected by update operations.
+        type UpdateIdData;
+
+        /// Id handler expected to implement valid_syntax::*, FromRow, etc.
+        type IdHandler;
+
+        fn id_handler(&self) -> Self::IdHandler;
     }
+
+    /// Typical id used to for collections, it is automatically assigned
+    /// when `define_collection` macro is used.
+    ///
+    /// This id is single field, decodes to i64, automatically incremented by the database.
+    ///
+    /// to specify a custom id, add `#[id] custom_id: ...` inside `define_collection` macro.
+    pub struct StandardId<CollectionHandler>(pub CollectionHandler);
 }
 
 #[cfg(not(feature = "refactor"))]
