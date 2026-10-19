@@ -114,7 +114,7 @@ mod impl_link_fetch {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{Category, CategoryHandler, Todo, TodoHandler},
+            define_collection::collections_example::{Category, CategoryHandler, Todo, TodoHandler},
             links::{DefaultRelationKey, relation_one_to_many_inverse::OneToManyInverse},
             operations::{CollectionOutput, LinkedOutput, Operation, fetch_one::FetchOne},
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},

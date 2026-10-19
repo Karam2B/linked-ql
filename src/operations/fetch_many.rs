@@ -452,7 +452,7 @@ mod test {
 
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::{Todo, TodoHandler, todo_members},
+        define_collection::collections_example::{Todo, TodoHandler, todo_members},
         operations::{
             LinkedOutput, Operation,
             fetch_many::{FetchMany, ManyOutput, NextItem},

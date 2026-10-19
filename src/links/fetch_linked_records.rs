@@ -105,7 +105,7 @@ mod impl_many_to_many_junction_names {
     #[cfg(test)]
     mod test {
         use crate::{
-            define_collection::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagHandler, TodoHandler},
             links::{
                 DefaultRelationKey, fetch_linked_records::ManyToManyJunctionNames,
                 relation_many_to_many::ManyToMany,
@@ -218,7 +218,7 @@ mod impl_insert_junction_row {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagHandler, TodoHandler},
             links::{
                 DefaultRelationKey, fetch_linked_records::InsertJunctionRow,
                 relation_many_to_many::ManyToMany,
@@ -370,7 +370,7 @@ mod impl_delete_junction_row {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagHandler, TodoHandler},
             links::{
                 DefaultRelationKey, fetch_linked_records::DeleteJunctionRow,
                 relation_many_to_many::ManyToMany,
@@ -541,7 +541,7 @@ mod impl_insert_junction_and_fetch {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{Tag, TagHandler, TodoHandler},
+            define_collection::collections_example::{Tag, TagHandler, TodoHandler},
             links::{
                 DefaultRelationKey, fetch_linked_records::InsertJunctionAndFetch,
                 relation_many_to_many::ManyToMany,
@@ -703,7 +703,7 @@ mod impl_select_junction_to_ids {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagHandler, TodoHandler},
             links::{
                 DefaultRelationKey, fetch_linked_records::SelectJunctionToIds,
                 relation_many_to_many::ManyToMany,
@@ -961,7 +961,7 @@ mod impl_fetch_one_to_many_inverse_linked {
     #[cfg(test)]
     mod test {
         use crate::{
-            define_collection::{CategoryHandler, TodoHandler},
+            define_collection::collections_example::{CategoryHandler, TodoHandler},
             links::{
                 DefaultRelationKey, fetch_linked_records::FetchOneToManyInverseLinked,
                 relation_one_to_many_inverse::OneToManyInverse,

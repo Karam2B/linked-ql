@@ -263,7 +263,7 @@ mod tests {
 
     use crate::{
         collections::{Collection, CollectionId},
-        define_collection::{Todo, TodoHandler},
+        define_collection::collections_example::{Todo, TodoHandler},
         execute::Executable,
         extend_sqlx::InMemoryConnection,
         fix_executor::ExecutorTrait,

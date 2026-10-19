@@ -55,10 +55,11 @@ mod impl_select_statement_for_sqlite {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
+            Expression, OptionalExpression, StatementBuilder,
+            combinators::{Join, Prefixed},
             statements::select_statement::{
                 Aliased, FromClause, LimitClause, SelectStatement, SelectStatementV2,
             },
-            Expression, Join, OptionalExpression, Prefixed, StatementBuilder,
         },
     };
 
@@ -193,8 +194,9 @@ mod tests {
     use sqlx::Sqlite;
 
     use crate::sqlx_query_builder::{
+        Expression,
+        basic_expressions::Bind,
         statements::select_statement::{Aliased, FromClause, LimitClause, SelectStatementV2},
-        Bind, Expression,
     };
 
     #[test]

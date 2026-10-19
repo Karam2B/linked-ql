@@ -393,22 +393,105 @@ pub trait TryFromRowAlias<'r, R>: FromRowData {
         R: Row;
 }
 
-impl FromRowData for () {
-    type RData = ();
-}
+mod impl_from_row_for_tuples {
+    use crate::from_row::FromRowAlias;
+    use crate::from_row::FromRowData;
+    use crate::from_row::FromRowError;
+    use crate::from_row::RowNumAliased;
+    use crate::from_row::RowStrAliased;
+    use sqlx::Row;
 
-impl<'r, R> FromRowAlias<'r, R> for ()
-where
-    R: Row,
-{
-    fn no_alias(&self, _: &'r R) -> Result<Self::RData, FromRowError> {
-        Ok(())
+    macro_rules! impl_from_row_for_tuples {
+        ($([$literal:literal $type:ty])*) => {
+            impl<$($type),*> FromRowData for ($($type,)*)
+            where
+                $($type: FromRowData,)*
+            {
+                type RData = ($(<$type as FromRowData>::RData,)*);
+            }
+            #[allow(unused)]
+            impl<'r, R, $($type,)*> FromRowAlias<'r, R> for ($($type,)*)
+            where
+                R: Row,
+                $($type: FromRowAlias<'r, R>,)*
+            {
+                fn no_alias(&self, row: &'r R) -> Result<<Self as FromRowData>::RData, FromRowError> {
+                    Ok(($(paste::paste!(self.$literal.no_alias(row)?),)*))
+                }
+                fn str_alias(&self, row: RowStrAliased<'r, R>) -> Result<<Self as FromRowData>::RData, FromRowError> {
+                    Ok(($(paste::paste!(self.$literal.str_alias(row.clone())?),)*))
+                }
+
+                fn num_alias(&self, row: RowNumAliased<'r, R>) -> Result<<Self as FromRowData>::RData, FromRowError> {
+                    Ok(($(paste::paste!(self.$literal.num_alias(row.clone())?),)*))
+                }
+            }
+        };
     }
-    fn str_alias(&self, _: RowStrAliased<'r, R>) -> Result<Self::RData, FromRowError> {
-        Ok(())
+
+    impl FromRowData for () {
+        type RData = ();
     }
-    fn num_alias(&self, _: RowNumAliased<'r, R>) -> Result<Self::RData, FromRowError> {
-        Ok(())
+    #[allow(unused)]
+    impl<'r, R> FromRowAlias<'r, R> for ()
+    where
+        R: Row,
+    {
+        fn no_alias(&self, row: &'r R) -> Result<<Self as FromRowData>::RData, FromRowError> {
+            Ok(())
+        }
+        fn str_alias(
+            &self,
+            row: RowStrAliased<'r, R>,
+        ) -> Result<<Self as FromRowData>::RData, FromRowError> {
+            Ok(())
+        }
+        fn num_alias(
+            &self,
+            row: RowNumAliased<'r, R>,
+        ) -> Result<<Self as FromRowData>::RData, FromRowError> {
+            Ok(())
+        }
+    }
+
+    impl<T0, T1> FromRowData for (T0, T1)
+    where
+        T0: FromRowData,
+        T1: FromRowData,
+    {
+        type RData = (<T0 as FromRowData>::RData, <T1 as FromRowData>::RData);
+    }
+    #[allow(unused)]
+    impl<'r, R, T0, T1> FromRowAlias<'r, R> for (T0, T1)
+    where
+        R: Row,
+        T0: FromRowAlias<'r, R>,
+        T1: FromRowAlias<'r, R>,
+    {
+        fn no_alias(&self, row: &'r R) -> Result<<Self as FromRowData>::RData, FromRowError> {
+            Ok((
+                paste::paste!(self.0.no_alias(row)?),
+                paste::paste!(self.1.no_alias(row)?),
+            ))
+        }
+        fn str_alias(
+            &self,
+            row: RowStrAliased<'r, R>,
+        ) -> Result<<Self as FromRowData>::RData, FromRowError> {
+            Ok((
+                paste::paste!(self.0.str_alias(row.clone())?),
+                paste::paste!(self.1.str_alias(row.clone())?),
+            ))
+        }
+        fn num_alias(
+            &self,
+            row: RowNumAliased<'r, R>,
+        ) -> Result<<Self as FromRowData>::RData, FromRowError> {
+            Ok((
+                paste::paste!(self.0.num_alias(row.clone())?),
+                paste::paste!(self.1.num_alias(row.clone())?),
+            ))
+        }
     }
 }
 
@@ -507,7 +590,7 @@ mod test {
 
     use crate::extend_sqlx::InMemoryConnection;
     use crate::{
-        define_collection::{Category, CategoryHandler},
+        define_collection::collections_example::{Category, CategoryHandler},
         from_row::{FromRowAlias, RowStrAliased},
     };
 

@@ -381,7 +381,7 @@ mod test {
     use crate::{
         collections::Collection,
         connect_in_memory::ConnectInMemory,
-        define_collection::{Todo, TodoHandler, TodoPartial},
+        define_collection::collections_example::{Todo, TodoHandler, TodoPartial},
         from_row::FromRowAlias,
         operations::{
             CollectionOutput, LinkedOutput, Operation, insert::AbortOperation,

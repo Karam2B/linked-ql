@@ -139,7 +139,7 @@ mod impl_on_migrate {
     mod test {
 
         use crate::{
-            define_collection::TodoHandler, links::timestamp::Timestamp,
+            define_collection::collections_example::TodoHandler, links::timestamp::Timestamp,
             operations::operations_expressions_crossover::MigrateExpression,
             sqlx_query_builder::StatementBuilder,
         };
@@ -439,7 +439,7 @@ pub mod impl_fetch_many {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{TodoHandler, todo_members},
+            define_collection::collections_example::{TodoHandler, todo_members},
             links::timestamp::Timestamp,
             operations::{Operation, fetch_many::FetchMany},
             track_sqlx_query::watch_sqlx_calls,
@@ -635,7 +635,7 @@ mod impl_on_insert {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::{Todo, TodoHandler},
+            define_collection::collections_example::{Todo, TodoHandler},
             links::timestamp::Timestamp,
             operations::{
                 Operation,

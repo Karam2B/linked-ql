@@ -285,7 +285,7 @@ mod impl_operation_for_delete {
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::{Todo, TodoHandler},
+        define_collection::collections_example::{Todo, TodoHandler},
         operations::{LinkedOutput, Operation, delete::Delete},
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
         track_sqlx_query::watch_sqlx_calls,

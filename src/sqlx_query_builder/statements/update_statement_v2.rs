@@ -17,8 +17,9 @@ mod impl_update_statement_for_sqlite {
 
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
+        sqlx_query_builder::combinators::Join,
         sqlx_query_builder::{
-            statements::update_statement::UpdateStatement, Expression, Join, StatementBuilder,
+            Expression, StatementBuilder, statements::update_statement::UpdateStatement,
         },
     };
 

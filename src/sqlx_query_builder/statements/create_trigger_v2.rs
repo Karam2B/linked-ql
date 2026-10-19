@@ -41,11 +41,12 @@ mod impl_create_trigger_for_sqlite {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
+            Expression, OptionalExpression, StatementBuilder,
+            combinators::Join,
             statements::create_trigger::{
                 CreateTrigger, TriggerLifetimeAfter, TriggerLifetimeBefore,
                 TriggerLifetimeInsteadOf, TriggerOperationNameInsert, TriggerOperationNameUpdate,
             },
-            Expression, Join, OptionalExpression, StatementBuilder,
         },
     };
 

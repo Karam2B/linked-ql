@@ -154,7 +154,7 @@ mod impl_sanitize_for_tuples {
 
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
-        sqlx_query_builder::{RefExpression, Sanitize, StatementBuilder},
+        sqlx_query_builder::{RefExpression, StatementBuilder, sanitize::Sanitize},
         tuple_trait::{RefTuple, TupleSpecRef},
     };
 

@@ -41,11 +41,12 @@ pub mod trait_objects;
 pub mod trait_objects;
 pub use statement_builder::*;
 
-// special types
+// -- refactor todo:
+//      - these are "spectial types", reimporting spetial types in forbidden in the new version
+#[cfg(not(feature = "refactor"))]
 pub use basic_expressions::Bind;
+#[cfg(not(feature = "refactor"))]
 pub use combinators::{Join, Prefixed};
-#[cfg(feature = "refactor")]
-pub use sanitize::Sanitize;
 #[cfg(not(feature = "refactor"))]
 pub use sanitize_combinator::Sanitize;
 

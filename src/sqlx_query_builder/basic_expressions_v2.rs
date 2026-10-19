@@ -325,7 +325,8 @@ macro_rules! group_with {
 
                 use crate::{
                     extend_sqlx::DatabaseStatementBuilder,
-                    sqlx_query_builder::{Expression, Join, OptionalExpression, StatementBuilder},
+                    sqlx_query_builder::{Expression, OptionalExpression, StatementBuilder},
+                    sqlx_query_builder::combinators::Join,
                 };
 
                 impl<'q, T> Expression<'q, Sqlite> for super::$name<T>
@@ -369,7 +370,8 @@ mod impl_column_in_for_sqlite {
 
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
-        sqlx_query_builder::{Expression, Join, OptionalExpression, StatementBuilder},
+        sqlx_query_builder::combinators::Join,
+        sqlx_query_builder::{Expression, OptionalExpression, StatementBuilder},
     };
 
     impl<'q, Col, V> Expression<'q, Sqlite> for super::ColumnIn<Col, V>
@@ -409,7 +411,8 @@ mod impl_many_columns_larger_or_equal_for_sqlite {
 
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
-        sqlx_query_builder::{Expression, Join, StatementBuilder},
+        sqlx_query_builder::combinators::Join,
+        sqlx_query_builder::{Expression, StatementBuilder},
     };
 
     impl<'q, Ids, Values> Expression<'q, Sqlite> for super::ManyColumnsLargerOrEqual<Ids, Values>
@@ -454,7 +457,8 @@ mod imp_foriegn_key_for_sqlite {
 
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
-        sqlx_query_builder::{Expression, Join, StatementBuilder},
+        sqlx_query_builder::combinators::Join,
+        sqlx_query_builder::{Expression, StatementBuilder},
     };
 
     impl<'q, Table, Column, Ons> Expression<'q, Sqlite> for super::ForeignKey<Table, Column, Ons>
@@ -707,7 +711,8 @@ mod tests {
     use sqlx::Sqlite;
 
     use crate::sqlx_query_builder::{
-        Bind, Expression, Join, basic_expressions::ColumnEqual, combinators::Nest,
+        Expression, basic_expressions::Bind, basic_expressions::ColumnEqual, combinators::Join,
+        combinators::Nest,
     };
 
     #[test]

@@ -14,7 +14,8 @@ mod impl_delete_statement_for_sqlite {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
-            statements::delete_statement::DeleteStatement, Expression, Join, StatementBuilder,
+            Expression, StatementBuilder, combinators::Join,
+            statements::delete_statement::DeleteStatement,
         },
     };
 

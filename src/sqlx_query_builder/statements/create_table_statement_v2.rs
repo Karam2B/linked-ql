@@ -51,7 +51,8 @@ mod impl_create_table_for_sqlite {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
-            Expression, Join, Prefixed, StatementBuilder,
+            Expression, StatementBuilder,
+            combinators::{Join, Prefixed},
             statements::create_table_statement::{ColumnDefinition, CreateTable, NotNull},
         },
     };

@@ -1,4 +1,4 @@
-//! Types to compose expressions
+//! Types to compose multiple expressions
 //!
 //! ## Many expressions -- Join
 //!
@@ -24,11 +24,11 @@
 //! these types can be used in trait bounds to select for ManyExpressions
 //! and OptionalExpressions, like this
 //! ```ignore
-//! impl<'a, S, SelectItems> Expression<'a, S> for BasicSelectStatement<SelectItems>
+//! impl<'a, SelectItems> Expression<'a, Sqlite> for BasicSelectStatement<SelectItems>
 //! where
-//!     Join<SelectItems>: Expression<'a, S>
+//!     Join<SelectItems>: Expression<'a, Sqlite>
 //! {
-//!     fn expression(self, ctx: &mut StatementBuilder<'a, S>) {
+//!     fn expression(self, ctx: &mut StatementBuilder<'a, Sqlite>) {
 //!         Join {
 //!             start: "SELECT",
 //!             separator: ", ",
@@ -37,40 +37,57 @@
 //!         .expression(ctx);
 //!     }
 //! }
+//!
+//! fn use_basic_example() {
+//!     assert_eq!(
+//!         Expression::sql_statement(BasicSelectStatement(["col_1", "col_2"])).0,
+//!         "SELECT col_1, col_2"
+//!     )
+//! }
+//!
 //! ```
 //!
 //! Constructing these types is done internally by types that
 //! implement Expression, usually constructing them outside of
-//! Expression implementations is a mistake
+//! Expression implementations is a mistake, because a sequense
+//! may be joined differntly depending on sql dilect and location
 //!
 //! ## Nesting
-//! If you already selected many ManyExpressions you can nest each
-//! inside a Nest and put them together inside a tuple
-//! pass that tuple where ManyExpressions was expected, like
+
+//! If you already selected many ManyExpressions you can
+//! flatten them and pass the result where ManyExpressions
+//! is expected.
+//!
+//! This is done by wrapping each ManyExpressions by `Nest` and joined via a tuple
+//!
 //! ```ignore
-//! impl<S, Tuple1, Tuple2> SqlString<S, Tuple1, Tuple2>
+//! struct BasicSelectStatement<First, Second> { first: First, second: Second }
+//!
+//! impl<First, Second> BasicSelectStatement<First, Second>
 //! where
-//!     Join<Tuple1>: for<'q> Expression<'q, S>,
-//!     Join<Tuple2>: for<'q> Expression<'q, S>
+//!     Join<First>: for<'q> Expression<'q, Sqlite>,
+//!     Join<Second>: for<'q> Expression<'q, Sqlite>
 //! {
 //!     fn sql_string(self) -> String {
-//!         StatementBuilder::<S>::new(BasicSelectStatement {
+//!         StatementBuilder::<S>::new(SelectStatement {
 //!             select_items: (
-//!                 Nest(tuple_1),
-//!                 Nest(tuple_2),
-//!             )
+//!                 Nest(self.first),
+//!                 Nest(self.second),
+//!             ),
+//!             ... rest of select statement ...
 //!         }).unwrap().0
 //!     }
 //! }
 //!
 //! #[test]
 //! fn using_example() {
-//!     let sql_string = SqlString::<Sqlite, _, _>::new(
-//!         (
-//!             Nest(("column_1", "column_2")),
-//!             Nest(("column_3", "column_4", "column_5")),
+//!     let sql_string = BasicSelectStatement {
+//!         first: ("column_1", Some("column_2"), None::<String>),
+//!         second: (
+//!             Nest(("column_3", ())),
+//!             Nest(vec!["column_4", "column_5"]),
 //!         )
-//!     );
+//!     });
 //!     assert_eq!(sql_string, "SELECT column_1, column_2, column_3, column_4, column_5");
 //! }
 //!
@@ -105,6 +122,7 @@ impl<T: SealExpression, const N: usize> OptionalExpression for [T; N] {
 }
 
 #[derive(Clone)]
+/// See (module documentation)[crate::sqlx_query_builder::combinators] for details
 pub struct Join<Items> {
     pub start: &'static str,
     pub separator: &'static str,
@@ -112,12 +130,14 @@ pub struct Join<Items> {
 }
 
 #[derive(Clone)]
+/// See (module documentation)[crate::sqlx_query_builder::combinators] for details
 pub struct Prefixed<T> {
     pub prefix: &'static str,
     pub inner: T,
 }
 
 #[derive(Clone)]
+/// See (module documentation)[crate::sqlx_query_builder::combinators] for details
 pub struct Nest<T>(pub T);
 
 impl<T: OptionalExpression> OptionalExpression for Nest<T> {
@@ -332,7 +352,7 @@ mod nesting {
     use sqlx::Sqlite;
 
     use crate::sqlx_query_builder::{
-        Bind, Expression, basic_expressions::ColumnEqual, combinators::Nest,
+        Expression, basic_expressions::Bind, basic_expressions::ColumnEqual, combinators::Nest,
     };
 
     use super::Join;

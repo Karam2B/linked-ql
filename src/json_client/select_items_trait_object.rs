@@ -167,7 +167,7 @@ impl<'r, 'b, S: Database> FromRowAlias<'r, S::Row>
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::{CategoryHandler, TodoHandler},
+        define_collection::collections_example::{CategoryHandler, TodoHandler},
         links::{DefaultRelationKey, relation_one_to_many::OneToMany},
         operations::{Operation, fetch_many::FetchMany},
     };

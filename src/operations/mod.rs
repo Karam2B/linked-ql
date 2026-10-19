@@ -317,8 +317,8 @@ pub mod operations_expressions_crossover {
         use crate::{
             collections::SingleIncremintalInt,
             sqlx_query_builder::{
-                basic_expressions::{AliasedScopedColumn, ScopedColumn},
                 Sanitize,
+                basic_expressions::{AliasedScopedColumn, ScopedColumn},
             },
         };
 
@@ -481,15 +481,15 @@ mod impl_from_collection_output_for_id_output {
 #[cfg(not(feature = "refactor"))]
 pub mod by_id {
     use super::{
-        delete::Delete, operations_expressions_crossover::ExpressionsForOperation, update::Update,
-        Operation, OperationOutput,
+        Operation, OperationOutput, delete::Delete,
+        operations_expressions_crossover::ExpressionsForOperation, update::Update,
     };
     use crate::{
         collections::{Collection, CollectionId},
         sqlx_query_builder::{
+            Join,
             basic_expressions::{Bind, ColumnEqual},
             combinators::Nest,
-            Join,
         },
     };
 
@@ -771,8 +771,8 @@ pub mod by_id {
         use super::super::insert::AbortOperation;
         use super::{Operation, UpdateById};
         use crate::connect_in_memory::ConnectInMemory;
-        use crate::define_collection::TodoHandler;
-        use crate::define_collection::TodoPartial;
+        use crate::define_collection::collections_example::TodoHandler;
+        use crate::define_collection::collections_example::TodoPartial;
         use crate::update_mod::Update;
         use sqlx::Row;
         use sqlx::Sqlite;
@@ -841,7 +841,7 @@ pub mod by_id {
     #[cfg(test)]
     mod test {
         use super::{DeleteById, Operation};
-        use crate::{connect_in_memory::ConnectInMemory, define_collection::TodoHandler};
+        use crate::{connect_in_memory::ConnectInMemory, define_collection::collections_example::TodoHandler};
         use sqlx::{Row, Sqlite};
 
         #[tokio::test]
@@ -1008,7 +1008,7 @@ pub mod on_one_record {
         use super::{OnOneRecord, Operation};
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::TodoHandler,
+            define_collection::collections_example::TodoHandler,
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
         };
         use sqlx::{Connection, Sqlite};
@@ -1266,6 +1266,55 @@ pub mod map_operation {
                 let output = self.operation.exec_operation(pool).await;
                 (self.map_fn)(output)
             }
+        }
+    }
+}
+
+mod impl_for_tuples {
+    use super::{Operation, OperationOutput};
+    use sqlx::Database;
+
+    macro_rules! impl_for_tuples {
+        ($([$idx:literal $element:ident])*) => {
+            impl<$( $element, )*> OperationOutput for ($( $element, )*)
+            where
+                $( $element: OperationOutput, )*
+            {
+                type Output = ($( $element::Output, )*);
+            }
+
+            impl<S, $( $element, )*> Operation<S> for ($( $element, )*)
+            where
+                $( $element: Operation<S, Output: Send> + Send, )*
+                S: Database,
+            {
+                async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output {
+                    ($(
+                        paste::paste!(self.$idx.exec_operation(pool).await),
+                    )*)
+                }
+            }
+        };
+    }
+
+    impl<T0, T1> OperationOutput for (T0, T1)
+    where
+        T0: OperationOutput,
+        T1: OperationOutput,
+    {
+        type Output = (T0::Output, T1::Output);
+    }
+    impl<T0, T1, S> Operation<S> for (T0, T1)
+    where
+        T0: Operation<S, Output: Send> + Send,
+        T1: Operation<S, Output: Send> + Send,
+        S: Database,
+    {
+        async fn exec_operation(self, pool: &mut S::Connection) -> Self::Output {
+            (
+                paste::paste!(self.0.exec_operation(pool).await),
+                paste::paste!(self.1.exec_operation(pool).await),
+            )
         }
     }
 }

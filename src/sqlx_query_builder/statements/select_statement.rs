@@ -1,9 +1,13 @@
-use crate::{
-    database_extention::DatabaseExt,
-    sqlx_query_builder::{
-        Expression, Join, OpExpression, Prefixed, StatementBuilder, combinators::OptionalExpression,
-    },
+#[cfg(not(feature = "refactor"))]
+use crate::sqlx_query_builder::{
+    Expression, Join, OpExpression, Prefixed, StatementBuilder, combinators::OptionalExpression,
 };
+#[cfg(feature = "refactor")]
+use crate::sqlx_query_builder::{
+    Expression, OpExpression, OptionalExpression, StatementBuilder,
+    combinators::{Join, Prefixed},
+};
+use crate::database_extention::DatabaseExt;
 
 pub struct SelectStatement<SelectItems, From, Joins, Wheres, GroupBy, Order, Limit> {
     pub select_items: SelectItems,
@@ -44,7 +48,11 @@ where
             items: self.select_items,
         };
 
-        if join_select_items.items.is_oper() {
+        #[cfg(not(feature = "refactor"))]
+        let select_items_present = join_select_items.items.is_oper();
+        #[cfg(feature = "refactor")]
+        let select_items_present = join_select_items.items.is_expression_present();
+        if select_items_present {
             join_select_items.expression(ctx);
         } else {
             panic!("empty select item")

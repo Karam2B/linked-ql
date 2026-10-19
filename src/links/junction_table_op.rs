@@ -185,8 +185,8 @@ mod not_returning_from_id {
     #[cfg(test)]
     mod test {
         use crate::connect_in_memory::ConnectInMemory;
-        use crate::define_collection::Tag;
-        use crate::define_collection::{TagHandler, TodoHandler};
+        use crate::define_collection::collections_example::Tag;
+        use crate::define_collection::collections_example::{TagHandler, TodoHandler};
         use crate::links::DefaultRelationKey;
         use crate::operations::Operation;
         use crate::sqlx_query_builder::{
@@ -429,7 +429,7 @@ mod returning_from_id {
     }
     #[cfg(test)]
     mod test {
-        use crate::define_collection::{Tag, TagHandler, TodoHandler};
+        use crate::define_collection::collections_example::{Tag, TagHandler, TodoHandler};
         use crate::links::junction_table_op::seed_todo_tag_junction;
         use crate::sqlx_query_builder::{Bind, basic_expressions::ColumnIn};
         use crate::{

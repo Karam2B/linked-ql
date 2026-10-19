@@ -655,20 +655,73 @@ macro_rules! define_collection {
     (struct $pascal_case:ident $size:literal {$(
         $member:ident: $type:ty,
     )*}) => {
+        #[derive(Debug, PartialEq, Eq, Clone)]
         pub struct $pascal_case {
             $(
                 pub $member: $type,
             )*
         }
 
-        paste::paste!(pub struct [<$pascal_case Handler>];);
 
-        pub struct [<$pascal_case Partial>];
+        paste::paste!(
+        #[derive(Default, Debug, Clone)]
+        pub struct [<$pascal_case Handler>];);
+
+
+
+        paste::paste!(
+        #[derive(Default, Debug, Clone)]
+        pub struct [<$pascal_case Partial>]
         {
             $(
                 pub $member: $crate::update_mod::Update<$type>,
             )*
-        }
+        });
+
+        // impl FromRow for $pascal_case
+        const _: () = {
+            use $crate::from_row::{FromRow, FromRowAlias, FromRowData, FromRowError, RowStrAliased, RowNumAliased};
+            use sqlx::{Row, Type, Decode, ColumnIndex};
+
+
+            paste::paste!(
+                impl FromRowData for [<$pascal_case Handler>] {
+                    type RData = $pascal_case;
+                }
+                impl<'r, R> FromRow<'r, R> for [<$pascal_case Handler>]
+                where
+                    R: Row + 'r,
+                    $($type: Type<R::Database> + Decode<'r, R::Database>,)*
+                    for<'q> &'q str: ColumnIndex<R>,
+                {
+                    fn from_row_no_alias(&self, row: &'r R) -> Result<Self::RData, FromRowError> {
+                        Ok($pascal_case {
+                            $( $member: row.try_get(stringify!($member))?, )*
+                        })
+                    }
+                }
+
+                impl<'r, R> FromRowAlias<'r, R> for [<$pascal_case Handler>]
+                where
+                    R: Row + 'r,
+                    $($type: Type<R::Database> + Decode<'r, R::Database>,)*
+                    for<'q> &'q str: ColumnIndex<R>,
+                {
+                    fn from_row_str_alias(&self, row: RowStrAliased<'r, R>) -> Result<Self::RData, FromRowError> {
+                        Ok($pascal_case {
+                            $( $member: row.try_get(stringify!($member))?, )*
+                        })
+                    }
+                    fn from_row_num_alias(&self, row: RowNumAliased<'r, R>) -> Result<Self::RData, FromRowError> {
+                        Ok($pascal_case {
+                            $( $member: row.try_get(stringify!($member))?, )*
+                        })
+                    }
+                }
+            );
+
+
+        };
     };
 }
 
@@ -694,16 +747,19 @@ pub mod collections_example {
         }
     );
 
+    #[cfg(feature = "refactor")]
     mod expr_impls {
         use super::*;
         use crate::{
-            collections::Collection,
+            collections::{Collection, standard_id::StandardId},
             sqlx_query_builder::{
-                Sanitize,
-                basic_expressions::{AliasedScopedColumn, ScopedColumn},
+                basic_expressions::{AliasedScopedColumn, Bind, ScopedColumn},
+                sanitize::Sanitize,
             },
             update_mod::Update,
-            valid_syntax::{MembersAliasedExpressions, MembersExpressions, TableExpressions},
+            valid_syntax::{
+                MembersAliasedExpressions, MembersExpressions, OnInsert, TableExpressions,
+            },
         };
 
         impl Collection for TodoHandler {
@@ -727,10 +783,10 @@ pub mod collections_example {
 
             type UpdateIdData = Update<i64>;
 
-            type IdHandler = StandardId<TodoHandler>;
+            type IdHandler = StandardId;
 
             fn id_handler(&self) -> Self::IdHandler {
-                StandardId(TodoHandler)
+                StandardId
             }
         }
 
@@ -841,6 +897,21 @@ pub mod collections_example {
 
             fn snake_case(&'a self) -> Self::SnakeCase {
                 "todo"
+            }
+        }
+
+        impl<'a> OnInsert<'a> for TodoHandler {
+            type InputData = Todo;
+
+            type InsertValues = (Bind<String>, Bind<bool>, Bind<Option<String>>);
+
+            type InsertIdentifiers = [&'static str; 3];
+
+            fn on_insert_identifiers(&'a self) -> Self::InsertIdentifiers {
+                ["title", "done", "description"]
+            }
+            fn on_insert_values(&'a self, input: Todo) -> Self::InsertValues {
+                (Bind(input.title), Bind(input.done), Bind(input.description))
             }
         }
     }

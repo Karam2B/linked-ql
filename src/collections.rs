@@ -95,13 +95,38 @@ pub mod collection_refactor {
         fn id_handler(&self) -> Self::IdHandler;
     }
 
-    /// Typical id used to for collections, it is automatically assigned
-    /// when `define_collection` macro is used.
-    ///
-    /// This id is single field, decodes to i64, automatically incremented by the database.
-    ///
-    /// to specify a custom id, add `#[id] custom_id: ...` inside `define_collection` macro.
-    pub struct StandardId<CollectionHandler>(pub CollectionHandler);
+    pub mod standard_id {
+        use crate::{
+            sqlx_query_builder::basic_expressions::Bind,
+            valid_syntax::{MembersExpressions, OnInsert},
+        };
+
+        /// When creating a collection using `define_collection` macro, it is
+        /// assumed that this collection's primary key is a single column,
+        /// named `id`, decodes to i64, automatically incremented by the database.
+        ///
+        /// This standard behavior is specified by this Type.
+        pub struct StandardId;
+
+        impl<'a> OnInsert<'a> for StandardId {
+            type InputData = i64;
+            type InsertValues = Bind<i64>;
+            type InsertIdentifiers = &'static str;
+            fn on_insert_values(&'a self, input: i64) -> Bind<i64> {
+                Bind(input)
+            }
+            fn on_insert_identifiers(&'a self) -> &'static str {
+                "id"
+            }
+        }
+
+        impl<'a> MembersExpressions<'a> for StandardId {
+            type Identifiers = &'static str;
+            fn identifiers(&'a self) -> &'static str {
+                "id"
+            }
+        }
+    }
 }
 
 #[cfg(not(feature = "refactor"))]

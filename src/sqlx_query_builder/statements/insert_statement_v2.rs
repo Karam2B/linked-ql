@@ -34,7 +34,8 @@ mod impl_insert_statement_for_sqlite {
     use crate::{
         extend_sqlx::DatabaseStatementBuilder,
         sqlx_query_builder::{
-            Expression, Join, OptionalExpression, StatementBuilder,
+            Expression, OptionalExpression, StatementBuilder,
+            combinators::Join,
             statements::insert_statement::{InsertManyValues, InsertOneValue, InsertStatement},
         },
     };

@@ -47,21 +47,24 @@ pub trait MembersAliasedExpressions<'a>: MembersExpressions<'a> {
     fn members(&self) -> (String, String, Vec<String>);
 }
 
-pub trait OnInsertHandler<'a, Input> {
-    type InsertValue;
-    type InsertIdentifier;
-    fn on_insert(&'a self, input: Input) -> (Self::InsertIdentifier, Self::InsertValue);
+/// bind data to sql in insert statements
+/// used in `INSERT INTO Table ($identifiers) Values ($values), ($values)`
+///
+/// ## Associated Types
+/// - InputData is user-facing type, expected to be passed to Operations
+/// - both Join<InsertValues> and Join<InsertIdentifiers> are expected to implement Expression
+pub trait OnInsert<'a> {
+    type InputData;
+    type InsertValues;
+    type InsertIdentifiers;
+    fn on_insert_values(&'a self, input: Self::InputData) -> Self::InsertValues;
+    fn on_insert_identifiers(&'a self) -> Self::InsertIdentifiers;
 }
 
-pub trait OnInsert {
-    type InsertValue;
-    type InsertIdentifier;
-    fn on_insert(self) -> (Self::InsertIdentifier, Self::InsertValue);
-}
-
-pub trait OnUpdate<'a, Input> {
+pub trait OnUpdate<'a> {
+    type InputData;
     type UpdateSets;
-    fn on_update(&'a self, input: Input) -> Self::UpdateSets;
+    fn on_update_sets(&'a self, input: Self::InputData) -> Self::UpdateSets;
 }
 
 pub trait MigrationExpression<'a> {

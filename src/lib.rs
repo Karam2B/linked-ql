@@ -14,6 +14,10 @@ pub mod execute;
 /// - use at the expense of crate::database_extention
 /// - use at the expense of crate::connect_in_memory
 pub mod extend_sqlx;
+#[cfg(not(feature = "refactor"))]
+pub mod from_row;
+#[cfg(feature = "refactor")]
+#[path = "from_row_v2.rs"]
 pub mod from_row;
 pub mod json_value_cmp;
 #[cfg(not(feature = "refactor"))]
