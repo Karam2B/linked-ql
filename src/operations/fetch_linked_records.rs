@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use sqlx::{Decode, Encode, Row, Type};
 
 use crate::{
-    collections::{Collection, CollectionId, SingleColumnId},
+    collections::{CollectionMeta, CollectionId, SingleColumnId},
     database_extention::DatabaseExt,
     execute::Executable,
     expressions::{filters::ColumnIn, table},
@@ -38,7 +38,7 @@ fn rows_to_linked_map<S, FromId, ToId, ToOutput, To>(
 where
     S: DatabaseExt,
     FromId: Copy + Clone + std::hash::Hash + Eq + for<'r> Decode<'r, S> + Type<S>,
-    To: Collection + Members,
+    To: CollectionMeta + Members,
     To::OutputData: Send,
     ToId: Send,
     To: for<'r> FromRowAlias<'r, S::Row, RData = ToOutput>,
@@ -94,8 +94,8 @@ mod impl_expression_for_inverse_linked_select {
 
 pub struct FetchOneToManyInverseLinked<Key, From, To>
 where
-    From: Collection,
-    To: Collection + Members + TableNameExpression,
+    From: CollectionMeta,
+    To: CollectionMeta + Members + TableNameExpression,
 {
     pub link: OneToManyInverse<Key, From, To>,
     pub from_ids: Vec<<From::Id as CollectionId>::IdData>,
@@ -110,8 +110,8 @@ mod impl_clone_for_fetch_one_to_many_inverse_linked {
     impl<Key, From, To> Clone for FetchOneToManyInverseLinked<Key, From, To>
     where
         Key: Clone,
-        From: Collection + Clone,
-        To: Collection + Members + TableNameExpression + Clone,
+        From: CollectionMeta + Clone,
+        To: CollectionMeta + Members + TableNameExpression + Clone,
         <From::Id as CollectionId>::IdData: Clone,
     {
         fn clone(&self) -> Self {
@@ -131,8 +131,8 @@ mod impl_operation_for_fetch_one_to_many_inverse_linked {
 
     impl<Key, From, To> OperationOutput for FetchOneToManyInverseLinked<Key, From, To>
     where
-        From: Collection,
-        To: Collection + Members + TableNameExpression,
+        From: CollectionMeta,
+        To: CollectionMeta + Members + TableNameExpression,
     {
         type Output = OneToManyInverseLinkedMap<
             <From::Id as CollectionId>::IdData,
@@ -145,7 +145,7 @@ mod impl_operation_for_fetch_one_to_many_inverse_linked {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <From::Id as CollectionId>::IdData: Copy
             + Clone
             + std::hash::Hash
@@ -154,7 +154,7 @@ mod impl_operation_for_fetch_one_to_many_inverse_linked {
             + for<'q> Encode<'q, S>
             + Type<S>
             + for<'r> Decode<'r, S>,
-        To: Collection<Id: SingleColumnId + Identifier>
+        To: CollectionMeta<Id: SingleColumnId + Identifier>
             + TableNameExpression
             + Members
             + Clone
@@ -215,8 +215,8 @@ mod impl_fetch_one_to_many_inverse_linked_for_self {
     impl<Key, From, To> FetchOneToManyInverseLinked<Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection + TableNameExpression + Clone,
-        To: Collection + TableNameExpression + Members + Clone,
+        From: CollectionMeta + TableNameExpression + Clone,
+        To: CollectionMeta + TableNameExpression + Members + Clone,
     {
         pub fn new(
             link: OneToManyInverse<Key, From, To>,
@@ -274,8 +274,8 @@ mod impl_expression_for_many_to_many_linked_select {
 
 pub struct FetchManyToManyLinked<Key, From, To>
 where
-    From: Collection,
-    To: Collection + Members + TableNameExpression,
+    From: CollectionMeta,
+    To: CollectionMeta + Members + TableNameExpression,
 {
     pub link: ManyToMany<false, Key, From, To>,
     pub from_ids: Vec<<From::Id as CollectionId>::IdData>,
@@ -291,8 +291,8 @@ mod impl_clone_for_fetch_many_to_many_linked {
     impl<Key, From, To> Clone for FetchManyToManyLinked<Key, From, To>
     where
         Key: Clone,
-        From: Collection + Clone,
-        To: Collection + Members + TableNameExpression + Clone,
+        From: CollectionMeta + Clone,
+        To: CollectionMeta + Members + TableNameExpression + Clone,
         <From::Id as CollectionId>::IdData: Clone,
     {
         fn clone(&self) -> Self {
@@ -313,8 +313,8 @@ mod impl_operation_for_fetch_many_to_many_linked {
 
     impl<Key, From, To> OperationOutput for FetchManyToManyLinked<Key, From, To>
     where
-        From: Collection,
-        To: Collection + Members + TableNameExpression,
+        From: CollectionMeta,
+        To: CollectionMeta + Members + TableNameExpression,
     {
         type Output = ManyToManyLinkedMap<
             <From::Id as CollectionId>::IdData,
@@ -327,7 +327,7 @@ mod impl_operation_for_fetch_many_to_many_linked {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <From::Id as CollectionId>::IdData: Copy
             + Clone
             + std::hash::Hash
@@ -336,7 +336,7 @@ mod impl_operation_for_fetch_many_to_many_linked {
             + for<'q> Encode<'q, S>
             + Type<S>
             + for<'r> Decode<'r, S>,
-        To: Collection<Id: SingleColumnId + Identifier>
+        To: CollectionMeta<Id: SingleColumnId + Identifier>
             + TableNameExpression
             + Members
             + Clone
@@ -406,8 +406,8 @@ mod impl_fetch_many_to_many_linked_for_self {
     impl<Key, From, To> FetchManyToManyLinked<Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone,
-        To: Collection<Id: SingleColumnId> + TableNameExpression + Members + Clone,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Members + Clone,
     {
         pub fn new(
             link: ManyToMany<false, Key, From, To>,

@@ -2,7 +2,7 @@
 //!
 //! This module differs from `sqlx::FromRow` in that:
 //! - allows aliasing, which is important for links and operations
-//! - seperate handlers from data, which allows a more flexible system.
+//! - seperate metas from data, which allows a more flexible system.
 //! - focuses on errors that can be caused during decoding.
 //!
 use sqlx::{ColumnIndex, Decode, Row, Type};
@@ -240,7 +240,7 @@ mod test {
 
     use crate::extend_sqlx::InMemoryConnection;
     use crate::{
-        define_collection::collections_example::{Category, CategoryHandler},
+        define_collection::collections_example::{Category, CategoryMeta},
         from_row::{FromRow, FromRowAlias, RowStrAliased},
     };
 
@@ -259,7 +259,7 @@ mod test {
         .await
         .unwrap();
 
-        let s = CategoryHandler
+        let s = CategoryMeta
             .from_row_str_alias(RowStrAliased::new(&row, "cat_"))
             .unwrap();
 
@@ -270,7 +270,7 @@ mod test {
             },
         );
 
-        let s = CategoryHandler.from_row_no_alias(&row).unwrap();
+        let s = CategoryMeta.from_row_no_alias(&row).unwrap();
 
         assert_eq!(
             s,

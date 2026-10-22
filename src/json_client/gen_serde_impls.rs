@@ -27,7 +27,7 @@ where
 }
 
 impl DeserializeSpec for SupportedType {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedType
@@ -36,7 +36,7 @@ where
     PartialDeserialize: Deserialize<'de, S>,
     S::Err: From<&'static str> + From<String>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let partial = PartialDeserialize::deserialize((), serialized)?;
         deserialize_supported_type_partial(&partial).map_err(S::Err::from)
     }
@@ -73,7 +73,7 @@ fn deserialize_supported_type_partial(
 }
 
 impl DeserializeSpec for DynamicFieldInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for DynamicFieldInput
@@ -85,7 +85,7 @@ where
     bool: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let name = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "name", ())?;
         let type_info =
@@ -102,7 +102,7 @@ where
 }
 
 impl DeserializeSpec for AddCollectionInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for AddCollectionInput
@@ -113,7 +113,7 @@ where
     Vec<DynamicFieldInput>: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let name = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "name", ())?;
         let fields =
@@ -124,7 +124,7 @@ where
 }
 
 impl DeserializeSpec for InsertOneInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for InsertOneInput
@@ -138,7 +138,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let base = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "base", ())?;
         let data = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "data", ())?;
@@ -149,7 +149,7 @@ where
 }
 
 impl DeserializeSpec for InsertManyItem {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for InsertManyItem
@@ -161,7 +161,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let data = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "data", ())?;
         let links = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "links", ())?;
@@ -171,7 +171,7 @@ where
 }
 
 impl DeserializeSpec for InsertManyInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for InsertManyInput
@@ -184,7 +184,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let base = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "base", ())?;
         let items = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "items", ())?;
@@ -194,7 +194,7 @@ where
 }
 
 impl DeserializeSpec for SupportedInsertLink {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedInsertLink
@@ -207,7 +207,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -234,7 +234,7 @@ where
 }
 
 impl DeserializeSpec for SupportedUpdateLink {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedUpdateLink
@@ -247,7 +247,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -286,7 +286,7 @@ where
 }
 
 impl DeserializeSpec for SupportedLinkFetchMany {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedFilter
@@ -299,7 +299,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -398,7 +398,7 @@ where
 }
 
 impl DeserializeSpec for SupportedFilter {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedLinkFetchMany
@@ -409,7 +409,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -433,7 +433,7 @@ where
 }
 
 impl DeserializeSpec for AddLinkInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for AddLinkInput
@@ -444,7 +444,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -480,7 +480,7 @@ where
 }
 
 impl DeserializeSpec for SupportedLinkFetchOne {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedLinkFetchOne
@@ -491,7 +491,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -515,7 +515,7 @@ where
 }
 
 impl DeserializeSpec for FetchOneInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for FetchOneInput
@@ -529,7 +529,7 @@ where
     Vec<SupportedLinkFetchOne>: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let base = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "base", ())?;
         let id = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "id", ())?;
@@ -547,7 +547,7 @@ where
 }
 
 impl DeserializeSpec for FetchManyInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for FetchManyInput
@@ -561,7 +561,7 @@ where
     Pagination: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let base = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "base", ())?;
         let filters =
@@ -580,7 +580,7 @@ where
 }
 
 impl DeserializeSpec for Pagination {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for Pagination
@@ -592,7 +592,7 @@ where
     Vec<OrderBy>: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let limit = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "limit", ())?;
         let first_item =
@@ -609,7 +609,7 @@ where
 }
 
 impl DeserializeSpec for FirstItem {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for FirstItem
@@ -620,7 +620,7 @@ where
     BTreeMap<ArcSubStr, PartialDeserialize>: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let id = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "id", ())?;
         let data = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "data", ())?;
@@ -630,7 +630,7 @@ where
 }
 
 impl DeserializeSpec for BTreeMap<ArcSubStr, PartialDeserialize> {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for BTreeMap<ArcSubStr, PartialDeserialize>
@@ -640,7 +640,7 @@ where
     ArcSubStr: UnknownKey<S> + Deserialize<'de, S>,
     PartialDeserialize: Deserialize<'de, S>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map_access = DeserializeMap::start_map(serialized)?;
         let mut ret = BTreeMap::new();
         while DeserializeMap::map_has_next(serialized, &map_access) {
@@ -654,7 +654,7 @@ where
 }
 
 impl DeserializeSpec for OrderBy {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for OrderBy
@@ -665,7 +665,7 @@ where
     Direction: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let col = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "col", ())?;
         let direction =
@@ -676,7 +676,7 @@ where
 }
 
 impl DeserializeSpec for Direction {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for Direction
@@ -685,7 +685,7 @@ where
     String: Deserialize<'de, S>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         match String::deserialize((), serialized)?.as_str() {
             "asc" => Ok(Direction::Asc),
             "desc" => Ok(Direction::Desc),
@@ -695,7 +695,7 @@ where
 }
 
 impl DeserializeSpec for UpdateOneInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for UpdateOneInput
@@ -709,7 +709,7 @@ where
     i64: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let base = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "base", ())?;
         let id = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "id", ())?;
@@ -726,11 +726,11 @@ where
 }
 
 impl DeserializeSpec for DeleteOneInput {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl DeserializeSpec for SupportedDeleteLink {
-    type Handler = ();
+    type Meta = ();
 }
 
 impl<'de, S> Deserialize<'de, S> for SupportedDeleteLink
@@ -741,7 +741,7 @@ where
     S: KnownKey<&'static str>,
     S::Err: From<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let ty: ArcSubStr =
             DeserializeMap::deserialize_with_known_key(serialized, &mut map, "ty", ())?;
@@ -773,7 +773,7 @@ where
     i64: Deserialize<'de, S>,
     S: KnownKey<&'static str>,
 {
-    fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+    fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
         let mut map = DeserializeMap::start_map(serialized)?;
         let base = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "base", ())?;
         let id = DeserializeMap::deserialize_with_known_key(serialized, &mut map, "id", ())?;

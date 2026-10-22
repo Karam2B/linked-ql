@@ -168,7 +168,7 @@ vtable! {
         [ T: crate::is_null::IsNull ],
         [ T: Serialize<JsonAsString> ],
         [
-            T: for<'de> Deserialize<'de, JsonAsArcCursor, Handler = ()>
+            T: for<'de> Deserialize<'de, JsonAsArcCursor, Meta = ()>
         ],
     {
         fn type_name() -> &'static str {{
@@ -320,7 +320,7 @@ mod dynamic_insert_binds {
     where
         S: sqlx::Database + DatabaseExt,
     {
-        type Handler = Arc<DynamicCollection<S>>;
+        type Meta = Arc<DynamicCollection<S>>;
     }
 
     impl<'de, D, S> Deserialize<'de, D> for DynamicInsertInput<S>
@@ -336,7 +336,7 @@ mod dynamic_insert_binds {
         <D as Deserializer<'de>>::Err: From<String>,
     {
         fn deserialize(
-            collection: Self::Handler,
+            collection: Self::Meta,
             serialized: &mut D,
         ) -> Result<Self, <D as Deserializer<'de>>::Err> {
             match serialized.start_map_or_seq()? {
@@ -404,7 +404,7 @@ mod dynamic_insert_binds {
     where
         S: sqlx::Database + DatabaseExt,
     {
-        type Handler = Arc<DynamicCollection<S>>;
+        type Meta = Arc<DynamicCollection<S>>;
     }
 
     impl<'de, D, S> Deserialize<'de, D> for DynamicUpdateInput<S>
@@ -420,7 +420,7 @@ mod dynamic_insert_binds {
         <D as Deserializer<'de>>::Err: From<String>,
     {
         fn deserialize(
-            collection: Self::Handler,
+            collection: Self::Meta,
             serialized: &mut D,
         ) -> Result<Self, <D as Deserializer<'de>>::Err> {
             match serialized.start_map_or_seq()? {
@@ -480,7 +480,7 @@ pub(crate) mod collection_impls {
     };
 
     use crate::{
-        collections::{Collection, SingleIncremintalInt},
+        collections::{CollectionMeta, SingleIncremintalInt},
         database_extention::DatabaseExt,
         gen_serde::{Serialize, json_serialize_side::JsonAsString},
         json_client::ToBind,
@@ -583,7 +583,7 @@ pub(crate) mod collection_impls {
         }
     }
 
-    impl<S> Collection for Arc<DynamicCollection<S>>
+    impl<S> CollectionMeta for Arc<DynamicCollection<S>>
     where
         S: sqlx::Database + DatabaseExt,
     {

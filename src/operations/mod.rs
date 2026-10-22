@@ -485,7 +485,7 @@ pub mod by_id {
         operations_expressions_crossover::ExpressionsForOperation, update::Update,
     };
     use crate::{
-        collections::{Collection, CollectionId},
+        collections::{CollectionMeta, CollectionId},
         sqlx_query_builder::{
             Join,
             basic_expressions::{Bind, ColumnEqual},
@@ -497,7 +497,7 @@ pub mod by_id {
     #[doc(hidden)]
     pub type ExtendExpressionByIdEqualTo<W, C>
     where
-        C: Collection,
+        C: CollectionMeta,
         C::Id: ExpressionsForOperation,
     = Join<(
         Nest<
@@ -516,7 +516,7 @@ pub mod by_id {
         id: <C::Id as CollectionId>::IdData,
     ) -> ExtendExpressionByIdEqualTo<W, C>
     where
-        C: Collection,
+        C: CollectionMeta,
         C::Id: ExpressionsForOperation,
     {
         Join {
@@ -549,7 +549,7 @@ pub mod by_id {
             ExtendById<<Base::Id as CollectionId>::IdData>
             for Update<Base, Partial, Wheres, Links, Infalibility>
         where
-            Base: Collection,
+            Base: CollectionMeta,
             Base::Id: ExpressionsForOperation,
         {
             type TransformedOperation = Update<
@@ -581,7 +581,7 @@ pub mod by_id {
         impl<Base, Wheres, Links> ExtendById<<Base::Id as CollectionId>::IdData>
             for Delete<Base, Wheres, Links>
         where
-            Base: Collection,
+            Base: CollectionMeta,
             Base::Id: ExpressionsForOperation,
         {
             type TransformedOperation =
@@ -647,7 +647,7 @@ pub mod by_id {
         }
     }
 
-    pub struct DeleteById<Base: Collection, Wheres, Links> {
+    pub struct DeleteById<Base: CollectionMeta, Wheres, Links> {
         pub base: Base,
         pub id: <Base::Id as CollectionId>::IdData,
         pub wheres: Wheres,
@@ -657,7 +657,7 @@ pub mod by_id {
     mod impl_operation_for_delete_by_id {
         use super::*;
 
-        impl<T, Base: Collection, Wheres, Links> OperationOutput for DeleteById<Base, Wheres, Links>
+        impl<T, Base: CollectionMeta, Wheres, Links> OperationOutput for DeleteById<Base, Wheres, Links>
         where
             OperationById<Delete<Base, Wheres, Links>, <Base::Id as CollectionId>::IdData>:
                 OperationOutput<Output = Option<T>>,
@@ -667,7 +667,7 @@ pub mod by_id {
 
         impl<S, T, Base, Wheres, Links> Operation<S> for DeleteById<Base, Wheres, Links>
         where
-            Base: Send + Collection,
+            Base: Send + CollectionMeta,
             Wheres: Send,
             Links: Send,
             T: Send,
@@ -699,7 +699,7 @@ pub mod by_id {
         }
     }
 
-    pub struct UpdateById<Base: Collection, Partial, Wheres, Links, Infalibility> {
+    pub struct UpdateById<Base: CollectionMeta, Partial, Wheres, Links, Infalibility> {
         pub base: Base,
         pub id: <Base::Id as CollectionId>::IdData,
         pub partial: Partial,
@@ -711,7 +711,7 @@ pub mod by_id {
     mod impl_operation_for_update_by_id {
         use super::*;
 
-        impl<T, Base: Collection, Partial, Wheres, Links, Infalibility> OperationOutput
+        impl<T, Base: CollectionMeta, Partial, Wheres, Links, Infalibility> OperationOutput
             for UpdateById<Base, Partial, Wheres, Links, Infalibility>
         where
             Update<Base, Partial, ExtendExpressionByIdEqualTo<Wheres, Base>, Links, Infalibility>:
@@ -725,7 +725,7 @@ pub mod by_id {
             for UpdateById<Base, Partial, Wheres, Links, Infalibility>
         where
             Infalibility: Send,
-            Base: Send + Collection,
+            Base: Send + CollectionMeta,
             Partial: Send,
             Wheres: Send,
             Links: Send,
@@ -771,7 +771,7 @@ pub mod by_id {
         use super::super::insert::AbortOperation;
         use super::{Operation, UpdateById};
         use crate::connect_in_memory::ConnectInMemory;
-        use crate::define_collection::collections_example::TodoHandler;
+        use crate::define_collection::collections_example::TodoMeta;
         use crate::define_collection::collections_example::TodoPartial;
         use crate::update_mod::Update;
         use sqlx::Row;
@@ -803,7 +803,7 @@ pub mod by_id {
 
             Operation::<Sqlite>::exec_operation(
                 UpdateById {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     id: 2,
                     partial: TodoPartial {
                         title: Update::Set("new_title".to_string()),
@@ -841,7 +841,7 @@ pub mod by_id {
     #[cfg(test)]
     mod test {
         use super::{DeleteById, Operation};
-        use crate::{connect_in_memory::ConnectInMemory, define_collection::collections_example::TodoHandler};
+        use crate::{connect_in_memory::ConnectInMemory, define_collection::collections_example::TodoMeta};
         use sqlx::{Row, Sqlite};
 
         #[tokio::test]
@@ -870,7 +870,7 @@ pub mod by_id {
 
             Operation::<Sqlite>::exec_operation(
                 DeleteById {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     id: 2,
                     links: (),
                     wheres: (),
@@ -1008,7 +1008,7 @@ pub mod on_one_record {
         use super::{OnOneRecord, Operation};
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::collections_example::TodoHandler,
+            define_collection::collections_example::TodoMeta,
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
         };
         use sqlx::{Connection, Sqlite};
@@ -1041,7 +1041,7 @@ pub mod on_one_record {
             Operation::<Sqlite>::exec_operation(
                 OnOneRecord {
                     operation: Delete {
-                        base: TodoHandler,
+                        base: TodoMeta,
                         links: (),
                         wheres: ColumnEqual {
                             col: ScopedColumn {

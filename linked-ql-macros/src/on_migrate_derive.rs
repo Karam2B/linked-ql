@@ -57,7 +57,7 @@ pub fn main(input: TokenStream) -> TokenStream {
                     create_table,
                     table_as_expression<#name>,
                     (
-                        <#name as Collection>::Id,
+                        <#name as CollectionMeta>::Id,
                         #(col_def_for_collection_member<#members::#mem_name>,)*
                     ),
                 >;
@@ -67,7 +67,7 @@ pub fn main(input: TokenStream) -> TokenStream {
                         init: create_table,
                         name: table_as_expression(#name),
                         col_defs: (
-                            Collection::id(self).clone(),
+                            CollectionMeta::id(self).clone(),
                             #(col_def_for_collection_member(#members::#mem_name),)*
                         ),
                     }
@@ -98,7 +98,7 @@ fn main_test() {
                     create_table,
                     table_as_expression<todo>,
                     (
-                        <todo as Collection>::Id,
+                        <todo as CollectionMeta>::Id,
                         col_def_for_collection_member<todo_members::title>,
                         col_def_for_collection_member<todo_members::done>,
                         col_def_for_collection_member<todo_members::description>,
@@ -110,7 +110,7 @@ fn main_test() {
                         init: create_table,
                         name: table_as_expression(todo),
                         col_defs: (
-                            Collection::id(self).clone(),
+                            CollectionMeta::id(self).clone(),
                             col_def_for_collection_member(todo_members::title),
                             col_def_for_collection_member(todo_members::done),
                             col_def_for_collection_member(todo_members::description),

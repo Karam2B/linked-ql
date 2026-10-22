@@ -1,5 +1,5 @@
 use crate::{
-    collections::{Collection, CollectionId, SingleColumnId},
+    collections::{CollectionMeta, CollectionId, SingleColumnId},
     database_extention::DatabaseExt,
     execute::Executable,
     fix_executor::ExecutorTrait,
@@ -212,7 +212,7 @@ mod impl_operation_for_fetch_many {
 
     impl<B, L, W, O, F> OperationOutput for FetchMany<B, L, W, O, F>
     where
-        B: Collection,
+        B: CollectionMeta,
         L: LinkFetch,
         O: FromRowData,
     {
@@ -242,7 +242,7 @@ mod impl_operation_for_fetch_many {
         for<'q> Join<Links::Join>: Expression<'q, S>,
         Links::Op: Operation<S>,
         Links::OpInput: Send,
-        Base: Collection<OutputData: Send, Id: Send>,
+        Base: CollectionMeta<OutputData: Send, Id: Send>,
         Base: TableExpressions<
                 PascalCase: for<'q> Expression<'q, S>,
                 ScopedAliased: OptionalExpression,
@@ -369,7 +369,7 @@ pub trait FirstItemTrait<B>: SealedFirstItemTrait {
     type WhereClause;
     fn where_clause(self, base_id: B::Id) -> Self::WhereClause
     where
-        B: Collection;
+        B: CollectionMeta;
 }
 
 mod impl_first_item_trait_for_unit {
@@ -382,7 +382,7 @@ mod impl_first_item_trait_for_unit {
 
         fn where_clause(self, _: <B>::Id) -> Self::WhereClause
         where
-            B: Collection,
+            B: CollectionMeta,
         {
         }
     }
@@ -395,7 +395,7 @@ mod impl_first_item_trait_for_tuple {
 
     impl<B, First> FirstItemTrait<B> for (<B::Id as CollectionId>::IdData, First)
     where
-        B: Collection<Id: ExpressionsForOperation + SingleColumnId>,
+        B: CollectionMeta<Id: ExpressionsForOperation + SingleColumnId>,
         First: SelfPrescribedInsert,
     {
         type WhereClause = ManyColumnsLargerOrEqual<
@@ -411,7 +411,7 @@ mod impl_first_item_trait_for_tuple {
 
         fn where_clause(self, base_id: B::Id) -> Self::WhereClause
         where
-            B: Collection,
+            B: CollectionMeta,
         {
             let (idents, values) = self.1.on_insert();
             ManyColumnsLargerOrEqual {
@@ -430,14 +430,14 @@ mod impl_first_item_trait_for_option {
     impl<B, First> FirstItemTrait<B> for Option<(<B::Id as CollectionId>::IdData, First)>
     where
         (<B::Id as CollectionId>::IdData, First): FirstItemTrait<B>,
-        B: Collection<Id: SingleColumnId>,
+        B: CollectionMeta<Id: SingleColumnId>,
     {
         type WhereClause =
             Option<<(<B::Id as CollectionId>::IdData, First) as FirstItemTrait<B>>::WhereClause>;
 
         fn where_clause(self, base_id: B::Id) -> Self::WhereClause
         where
-            B: Collection,
+            B: CollectionMeta,
         {
             self.map(|first| first.where_clause(base_id))
         }
@@ -452,7 +452,7 @@ mod test {
 
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::collections_example::{Todo, TodoHandler, todo_members},
+        define_collection::collections_example::{Todo, TodoMeta, todo_members},
         operations::{
             LinkedOutput, Operation,
             fetch_many::{FetchMany, ManyOutput, NextItem},
@@ -490,7 +490,7 @@ mod test {
 
             let output = Operation::<Sqlite>::exec_operation(
                 FetchMany {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     wheres: (),
                     links: (),
                     cursor_order_by: todo_members::title,

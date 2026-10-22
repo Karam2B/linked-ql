@@ -141,14 +141,14 @@ define_collection!(
     }
 );
 
-impl Link<TodoHandler> for CategoryHandler {
-    type Spec = OneToMany<DefaultRelationKey, TodoHandler, CategoryHandler>;
+impl Link<TodoMeta> for CategoryMeta {
+    type Spec = OneToMany<DefaultRelationKey, TodoMeta, CategoryMeta>;
 
     fn spec(self) -> Self::Spec {
         OneToMany {
             fk_unique_id: DefaultRelationKey,
-            from: TodoHandler,
-            to: CategoryHandler,
+            from: TodoMeta,
+            to: CategoryMeta,
         }
     }
 }
@@ -158,12 +158,12 @@ async fn test_zero_cost() {
     { ... initialize sqlx and load dumpy data }
 
     let todo = fetch_many(FetchManyOp {
-        base: TodoHandler,
+        base: TodoMeta,
         filters: ColumnLikeFilter {
             col: todo_members::TitleField,
             value: Bind("i"),
         },
-        links: CategoryHandler,
+        links: CategoryMeta,
         pagination: Pagination {
             limit: 10,
             offset: 0,

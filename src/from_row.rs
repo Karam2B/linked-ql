@@ -501,38 +501,38 @@ pub mod row_helpers {
     use crate::from_row::RowStrAliased;
     use sqlx::Row;
 
-    pub trait AliasRowHelper<'r, Handler>: Row + Sized + 'r {
+    pub trait AliasRowHelper<'r, Meta>: Row + Sized + 'r {
         type Output;
-        fn row_no_alias(&'r self, handler: &Handler) -> Result<Self::Output, FromRowError>;
+        fn row_no_alias(&'r self, meta: &Meta) -> Result<Self::Output, FromRowError>;
         fn row_str_alias(
             &'r self,
-            handler: &Handler,
+            meta: &Meta,
             str_alias_str: &'static str,
         ) -> Result<Self::Output, FromRowError>;
         fn row_num_alias(
             &'r self,
-            handler: &Handler,
+            meta: &Meta,
             str_alias_str: &'static str,
             num_alias_num: Option<usize>,
         ) -> Result<Self::Output, FromRowError>;
     }
 
-    impl<'r, Handler, Row_> AliasRowHelper<'r, Handler> for Row_
+    impl<'r, Meta, Row_> AliasRowHelper<'r, Meta> for Row_
     where
-        Handler: FromRowAlias<'r, Row_>,
+        Meta: FromRowAlias<'r, Row_>,
         Row_: Row + Sized + 'r,
     {
-        type Output = Handler::RData;
-        fn row_no_alias(&'r self, handler: &Handler) -> Result<Handler::RData, FromRowError> {
-            handler.no_alias(self)
+        type Output = Meta::RData;
+        fn row_no_alias(&'r self, meta: &Meta) -> Result<Meta::RData, FromRowError> {
+            meta.no_alias(self)
         }
         fn row_num_alias(
             &'r self,
-            handler: &Handler,
+            meta: &Meta,
             str_alias_str: &'static str,
             num_alias_num: Option<usize>,
         ) -> Result<Self::Output, FromRowError> {
-            handler.num_alias(super::RowNumAliased {
+            meta.num_alias(super::RowNumAliased {
                 row: self,
                 str_alias: str_alias_str,
                 num_alias: num_alias_num,
@@ -540,10 +540,10 @@ pub mod row_helpers {
         }
         fn row_str_alias(
             &'r self,
-            handler: &Handler,
+            meta: &Meta,
             str_alias_str: &'static str,
-        ) -> Result<Handler::RData, FromRowError> {
-            handler.str_alias(RowStrAliased::new(self, str_alias_str))
+        ) -> Result<Meta::RData, FromRowError> {
+            meta.str_alias(RowStrAliased::new(self, str_alias_str))
         }
     }
 
@@ -590,7 +590,7 @@ mod test {
 
     use crate::extend_sqlx::InMemoryConnection;
     use crate::{
-        define_collection::collections_example::{Category, CategoryHandler},
+        define_collection::collections_example::{Category, CategoryMeta},
         from_row::{FromRowAlias, RowStrAliased},
     };
 
@@ -609,7 +609,7 @@ mod test {
         .await
         .unwrap();
 
-        let s = CategoryHandler
+        let s = CategoryMeta
             .str_alias(RowStrAliased::new(&row, "cat_"))
             .unwrap();
 
@@ -620,7 +620,7 @@ mod test {
             },
         );
 
-        let s = CategoryHandler.no_alias(&row).unwrap();
+        let s = CategoryMeta.no_alias(&row).unwrap();
 
         assert_eq!(
             s,

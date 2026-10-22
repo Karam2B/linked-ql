@@ -1,6 +1,6 @@
-# Handlers
+# Metas
 
-A common pattern used in this crate is to create a zero-sized "handler" for other types, like this
+A common pattern used in this crate is to create a zero-sized "meta" for other types, like this
 
 ```rust
 
@@ -12,13 +12,13 @@ pub struct Todo {
 
 pub struct todo;
 
-impl Handler for todo {
+impl Meta for todo {
     type Data = Todo
 }
 
-fn behavior_1<H: Handler>(handler: &H) {}
-fn behavior_2<H: Handler>(handler: &H, collection: H::Data) {}
-fn behavior_3<H: Handler>(handler: &H) -> H::Data { todo!() }
+fn behavior_1<H: Meta>(meta: &H) {}
+fn behavior_2<H: Meta>(meta: &H, collection: H::Data) {}
+fn behavior_3<H: Meta>(meta: &H) -> H::Data { todo!() }
 
 // but why not
 
@@ -37,7 +37,7 @@ pub struct DynamicCollection {
     pub fields: Vec<(String, Box<dyn DynamicField>)>
 }
 
-impl Handler for DynamicCollection {
+impl Meta for DynamicCollection {
     type Data = JsonValue;
 }
 
@@ -47,12 +47,12 @@ this open the door for a more versatile generic codebase, for example:
 
 ```rust
 
-fn fetch_one<H>(handler: &H) -> H::Data {
+fn fetch_one<H>(meta: &H) -> H::Data {
     todo!()
 }
 
 fn client_side() {
-    let todo: Todo = fetch_one(&todo_handler);
+    let todo: Todo = fetch_one(&todo_meta);
 
     assert_eq!(todo, Todo {
         title: "first_todo",
@@ -79,7 +79,7 @@ fn client_side() {
 
 ```
 
-now you write generic code once, and you decide to either use stack-heavy fetch_one (`todo_handler`) or use heap-heavy fetch_one (`DynamicCollectionHandler`), and guess what? they are interchangeable, if you do it the right way.
+now you write generic code once, and you decide to either use stack-heavy fetch_one (`todo_meta`) or use heap-heavy fetch_one (`DynamicCollectionMeta`), and guess what? they are interchangeable, if you do it the right way.
 
 A use case for this pattern in this crate is the fact that when you create an HTTP REST server, the stack-heavy fetch_one is useless, but if you wanna use an RPC, you might wanna use the stack-heavy fetch_one for performance reasons.
 
@@ -90,33 +90,33 @@ Another pattern is to use pair of traits, where one is heavy on generics, and an
 
 ```rust
 
-pub trait Collection {
+pub trait CollectionMeta {
     type Data;
     fn fetch_one() -> Self::Data;
 }
 
-impl Collection for todo {
+impl CollectionMeta for todo {
     type Data = Todo;
     fn fetch_one() -> Self::Data {
         todo!()
     }
 }
 
-impl Collection for category {
+impl CollectionMeta for category {
     type Data = Category;
     fn fetch_one() -> Self::Data {
         todo!()
     }
 }
 
-impl Collection for tags {
+impl CollectionMeta for tags {
     type Data = Tag;
     fn fetch_one() -> Self::Data {
         todo!()
     }
 }
 
-impl Collection for DynamicCollection {
+impl CollectionMeta for DynamicCollection {
     type Data = JsonValue;
     fn fetch_one(&self) -> Self::Data {
         todo!()
@@ -130,12 +130,12 @@ pub trait JsonCollection {
 // this is automatically implemented for todo, category, tags, and DynamicCollection. 
 impl<T> JsonCollection for T 
 where 
-    T: Collection,
+    T: CollectionMeta,
     T::Data: Serialize + Deserialize,
 {}
 
 // full-circle trait extentions
-impl<'generic> Collection for Box<dyn JsonCollection + 'generic>
+impl<'generic> CollectionMeta for Box<dyn JsonCollection + 'generic>
 {
     type Data = JsonValue;
     fn fetch_one() -> Self::Data {
@@ -144,7 +144,7 @@ impl<'generic> Collection for Box<dyn JsonCollection + 'generic>
 }
 
 // full-circle trait extentions
-impl<'generic> Collection for Arc<dyn JsonCollection + 'generic>
+impl<'generic> CollectionMeta for Arc<dyn JsonCollection + 'generic>
 {
     type Data = JsonValue;
     fn fetch_one() -> Self::Data {
@@ -153,9 +153,9 @@ impl<'generic> Collection for Arc<dyn JsonCollection + 'generic>
 }
 ```
 
-Now in generic context, you use `T: Collection` in where predicates, but you are free to construct `Box<dyn JsonCollection>` and pass them to any generic function that is expecting `T: Collection`.
+Now in generic context, you use `T: CollectionMeta` in where predicates, but you are free to construct `Box<dyn JsonCollection>` and pass them to any generic function that is expecting `T: CollectionMeta`.
 
-This is allows versatile generic code, and freedom to switch between stack-heavy and heap-heavy code, just like handler pattern.
+This is allows versatile generic code, and freedom to switch between stack-heavy and heap-heavy code, just like meta pattern.
 
 # new sqlx::Executor trait
 

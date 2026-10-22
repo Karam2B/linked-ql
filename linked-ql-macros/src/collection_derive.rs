@@ -94,12 +94,12 @@ pub fn main(input: TokenStream) -> TokenStream {
                     }
                 }
                 impl Member for #mem_name {
-                    type CollectionHandler = #this_lowercase;
+                    type CollectionMeta = #this_lowercase;
                     type Data = #mem_ty;
                 }
             )*
 
-            // because Collection::id = SigngleIncId
+            // because CollectionMeta::id = SigngleIncId
             pub struct id;
             impl MemberBasic for id {
                 fn name(&self) -> &str {
@@ -107,7 +107,7 @@ pub fn main(input: TokenStream) -> TokenStream {
                 }
             }
             impl Member for id {
-                type CollectionHandler = #this_lowercase;
+                type CollectionMeta = #this_lowercase;
                 type Data = <SingleIncremintalInt as Id>::Data;
             }
         }
@@ -126,7 +126,7 @@ pub fn main(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl Collection for #this_lowercase {
+        impl CollectionMeta for #this_lowercase {
             type InputData = #this;
             type UpdateData = #partial;
             type OutputData = #this;
@@ -136,12 +136,12 @@ pub fn main(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl HasHandler for #this {
-            type Handler = #this_lowercase;
+        impl HasMeta for #this {
+            type Meta = #this_lowercase;
         }
 
-        impl HasHandler for #partial {
-            type Handler = #this_lowercase;
+        impl HasMeta for #partial {
+            type Meta = #this_lowercase;
         }
         
         impl<S> Members<S> for #this_lowercase
@@ -160,7 +160,7 @@ pub fn main(input: TokenStream) -> TokenStream {
                 use ::linked_ql::prelude::inventory::*;
 
                 submit!(Migration { obj: || Box::new(#this_lowercase) });
-                submit!(Collection { obj: || Box::new(#this_lowercase) });
+                submit!(CollectionMeta { obj: || Box::new(#this_lowercase) });
             };
         ));
     }
@@ -206,7 +206,7 @@ fn test_collection_derive() {
                 }
             }
             impl Member for title {
-                type CollectionHandler = todo;
+                type CollectionMeta = todo;
                 type Data = String;
             }
             #[derive(Clone, Default)]
@@ -217,7 +217,7 @@ fn test_collection_derive() {
                 }
             }
             impl Member for done {
-                type CollectionHandler = todo;
+                type CollectionMeta = todo;
                 type Data = bool;
             }
             #[derive(Clone, Default)]
@@ -228,7 +228,7 @@ fn test_collection_derive() {
                 }
             }
             impl Member for description {
-                type CollectionHandler = todo;
+                type CollectionMeta = todo;
                 type Data = Option<String>;
             }
 
@@ -239,7 +239,7 @@ fn test_collection_derive() {
                 }
             }
             impl Member for id {
-                type CollectionHandler = todo;
+                type CollectionMeta = todo;
                 type Data = <SingleIncremintalInt as Id>::Data;
             }
         }
@@ -257,7 +257,7 @@ fn test_collection_derive() {
                 }
             }
 
-            impl Collection for todo {
+            impl CollectionMeta for todo {
                 type InputData = Todo;
                 type UpdateData = TodoPartial;
                 type OutputData = Todo;
@@ -271,12 +271,12 @@ fn test_collection_derive() {
                 }
             }
 
-            impl HasHandler for Todo {
-                type Handler = todo;
+            impl HasMeta for Todo {
+                type Meta = todo;
             }
 
-            impl HasHandler for TodoPartial {
-                type Handler = todo;
+            impl HasMeta for TodoPartial {
+                type Meta = todo;
             }
 
             impl<S> Members<S> for todo

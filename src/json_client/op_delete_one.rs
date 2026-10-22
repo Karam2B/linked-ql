@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    collections::Collection,
+    collections::CollectionMeta,
     database_extention::DatabaseExt,
     fix_executor::ExecutorTrait,
     from_row::FromRowAlias,

@@ -5,7 +5,7 @@ pub use collection_stable::*;
 
 #[cfg(feature = "refactor")]
 pub mod collection_refactor {
-    /// Collection handler defines fundemental behavior for collections:
+    /// Collection meta defines fundemental behavior for collections:
     ///     1. user-facing types used in operations.
     ///     2. id behavior
     ///     3. table name
@@ -25,13 +25,13 @@ pub mod collection_refactor {
     /// ```
     ///
     /// ## Other traits to implement
-    /// In addition to this trait, collection handlers should implement:
+    /// In addition to this trait, collection metas should implement:
     ///     - (ValidSyntax)[crate::valid_syntax] traits
     ///     - (FromRowAlias)[crate::from_row::FromRowAlias] trait
     ///
-    /// ## What collection handlers look like
+    /// ## What collection metas look like
     ///
-    /// Collection handler hold information about the collection, if `define_collection` macro is used, this
+    /// Collection meta hold information about the collection, if `define_collection` macro is used, this
     /// would be a zero-sized type that is uniquely identify the collection.
     ///
     /// This is a big picture of what is generated:
@@ -44,14 +44,14 @@ pub mod collection_refactor {
     ///     }
     /// );
     ///
-    /// pub struct TodoHandler;
+    /// pub struct TodoMeta;
     ///
     /// pub struct TodoPartial {
     ///     title: Update<String>,
     ///     done: Update<bool>
     /// }
     ///
-    /// impl Collection for TodoHandler {
+    /// impl CollectionMeta for TodoMeta {
     ///     fn table_name_pascal_case(&self) -> &str { "Todo" }
     ///     fn table_name_snake_case(&self) -> &str { "todo" }
     ///     type InputData = Todo;
@@ -60,39 +60,39 @@ pub mod collection_refactor {
     ///     type InputIdData = i64;
     ///     type OutputIdData = i64;
     ///     type UpdateIdData = Update<i64>;
-    ///     type IdHandler = StandardId<TodoHandler>;
-    ///     fn id_handler(&self) -> Self::IdHandler { StandardId(TodoHandler) }
+    ///     type IdMeta = StandardId<TodoMeta>;
+    ///     fn id_meta(&self) -> Self::IdMeta { StandardId(TodoMeta) }
     /// }
     ///
     /// ```
     ///
     /// For mutable dynamic collections, these information stored inside (DynamicCollection)[crate::json_client::dynamic_collection::DynamicCollection]
-    pub trait Collection {
+    pub trait CollectionMeta {
         fn table_name_pascal_case(&self) -> &str;
         fn table_name_snake_case(&self) -> &str;
 
-        /// Collection attributes as expected by insert operations.
+        /// CollectionMeta attributes as expected by insert operations.
         type InputData;
 
-        /// Collection attributes as expected returned by SELECT/RETURNING operations.
+        /// CollectionMeta attributes as expected returned by SELECT/RETURNING operations.
         type OutputData;
 
-        /// Collection attributes as expected by update operations.
+        /// CollectionMeta attributes as expected by update operations.
         type UpdateData;
 
-        /// Collection id as expected by insert operations.
+        /// CollectionMeta id as expected by insert operations.
         type InputIdData;
 
-        /// Collection id as expected returned by SELECT/RETURNING operations.
+        /// CollectionMeta id as expected returned by SELECT/RETURNING operations.
         type OutputIdData;
 
-        /// Collection id as expected by update operations.
+        /// CollectionMeta id as expected by update operations.
         type UpdateIdData;
 
-        /// Id handler expected to implement valid_syntax::*, FromRow, etc.
-        type IdHandler;
+        /// Id meta expected to implement valid_syntax::*, FromRow, etc.
+        type IdMeta;
 
-        fn id_handler(&self) -> Self::IdHandler;
+        fn id_meta(&self) -> Self::IdMeta;
     }
 
     pub mod standard_id {
@@ -131,7 +131,7 @@ pub mod collection_refactor {
 
 #[cfg(not(feature = "refactor"))]
 pub mod collection_stable {
-    pub trait Collection {
+    pub trait CollectionMeta {
         fn table_name(&self) -> &str;
         fn table_name_lower_case(&self) -> &str;
         /// Wire or expression input for insert-style operations.
@@ -144,7 +144,7 @@ pub mod collection_stable {
         fn id(&self) -> Self::Id;
     }
 
-    /// dyn-compatable parts of Collection
+    /// dyn-compatable parts of CollectionMeta
     pub trait CollectionBasic {
         fn table_name(&self) -> &str;
         fn table_name_lower_case(&self) -> &str;
@@ -152,7 +152,7 @@ pub mod collection_stable {
 
     impl<T> CollectionBasic for T
     where
-        T: Collection,
+        T: CollectionMeta,
     {
         fn table_name(&self) -> &str {
             self.table_name()
@@ -165,11 +165,11 @@ pub mod collection_stable {
     pub trait Member {
         fn name(&self) -> &str;
         type Data;
-        type CollectionHandler;
+        type CollectionMeta;
     }
 
-    pub trait HasHandler {
-        type Handler;
+    pub trait HasMeta {
+        type Meta;
     }
 
     pub trait CollectionId {

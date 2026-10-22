@@ -28,11 +28,11 @@
 //!     and passed to InsertOne::link. Please provide documentation and
 //!     public constructor. This type has to implement InsertOneLink trait.
 //! 2. implement InsertOneLink: defines the starting point of the link, in
-//!     addition to the "LinkHandler", which is private type, shared by
+//!     addition to the "LinkMeta", which is private type, shared by
 //!     reference and has to implement the rest of the system for the link to work
-//! 3. implement OnInsert for LinkHandler: OnInsert define the valid syntax
+//! 3. implement OnInsert for LinkMeta: OnInsert define the valid syntax
 //!     inside the sql statement
-//! 4. implement OnInsertLinkHandler for LinkHandler: define the remaining
+//! 4. implement OnInsertLinkMeta for LinkMeta: define the remaining
 //!     behavior of the link.
 //!
 //! ## Multiple links
@@ -48,12 +48,12 @@ use crate::{from_row::FromRowData, operations::OperationOutput, valid_syntax::On
 /// Types implementing this trait are used directly by the user
 /// to use a link in an insert one operation.
 pub trait InsertOneLink<Base> {
-    type LinkHandler: InsertOneLinkHandler
+    type LinkMeta: InsertOneLinkMeta
         + for<'a> OnInsert<
             'a,
             InputData = InsertOneLinkOnInsertParts<
-                <Self::LinkHandler as InsertOneLinkHandler>::Init_OnInsert,
-                <Self::LinkHandler as InsertOneLinkHandler>::PreOperation_OnInsert,
+                <Self::LinkMeta as InsertOneLinkMeta>::Init_OnInsert,
+                <Self::LinkMeta as InsertOneLinkMeta>::PreOperation_OnInsert,
             >,
         >;
 
@@ -62,10 +62,10 @@ pub trait InsertOneLink<Base> {
         self,
         base: Base,
     ) -> InsertParts<
-        Self::LinkHandler,
-        <Self::LinkHandler as InsertOneLinkHandler>::PreOperation,
-        <Self::LinkHandler as InsertOneLinkHandler>::Init_OnInsert,
-        <Self::LinkHandler as InsertOneLinkHandler>::Init_SqlStatement,
+        Self::LinkMeta,
+        <Self::LinkMeta as InsertOneLinkMeta>::PreOperation,
+        <Self::LinkMeta as InsertOneLinkMeta>::Init_OnInsert,
+        <Self::LinkMeta as InsertOneLinkMeta>::Init_SqlStatement,
     >;
 }
 
@@ -74,8 +74,8 @@ pub struct InsertOneLinkOnInsertParts<FromInit, FromPreOperation> {
     pub from_pre_operation: FromPreOperation,
 }
 
-pub struct InsertParts<Handler, PreOperation, Init_OnInsert, Init_SqlStatement> {
-    pub link_handler: Handler,
+pub struct InsertParts<Meta, PreOperation, Init_OnInsert, Init_SqlStatement> {
+    pub link_meta: Meta,
     pub pre_operation: PreOperation,
     pub init_on_insert: Init_OnInsert,
     pub init_sql_statement: Init_SqlStatement,
@@ -97,7 +97,7 @@ pub struct SqlStatmentParts<PostOperation, SqlStatment_Output> {
 ///
 /// Data extracted by `Operation` or `FromRowAlias` is assumed
 /// to be expensive and cloning is discouraged.
-pub trait InsertOneLinkHandler {
+pub trait InsertOneLinkMeta {
     /// passed from `init` to `sql_statement` method
     type Init_SqlStatement;
 
@@ -159,8 +159,8 @@ pub trait InsertOneLinkHandler {
 // === / Insert One Link Trait System ===
 // ======================================
 
-pub struct InsertOne<Handler, Attributes, Link, Infalibility> {
-    pub handler: Handler,
+pub struct InsertOne<Meta, Attributes, Link, Infalibility> {
+    pub meta: Meta,
     pub attributes: Attributes,
     pub link: Link,
     pub infalibility: Infalibility,
@@ -171,24 +171,24 @@ mod impl_operation_for_insert_one {
     use crate::operations::{Operation, OperationOutput};
     use crate::operations_v2::fallibility::PanicOnFailure;
     use crate::sqlx_query_builder::statements::insert_statement::InsertStatement;
-    use crate::{collections::Collection, operations::LinkedOutput};
+    use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
-    impl<Handler, Link, LinkSpec> OperationOutput
-        for InsertOne<Handler, Handler::InputData, Link, PanicOnFailure>
+    impl<Meta, Link, LinkSpec> OperationOutput
+        for InsertOne<Meta, Meta::InputData, Link, PanicOnFailure>
     where
-        Link: InsertOneLink<Handler, LinkHandler = LinkSpec>,
-        LinkSpec: InsertOneLinkHandler,
-        Handler: Collection,
+        Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
+        LinkSpec: InsertOneLinkMeta,
+        Meta: CollectionMeta,
     {
-        type Output = LinkedOutput<Handler::OutputIdData, Handler::OutputData, LinkSpec::Output>;
+        type Output = LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkSpec::Output>;
     }
 
-    impl<S, Handler, Link, LinkSpec> Operation<S>
-        for InsertOne<Handler, Handler::InputData, Link, PanicOnFailure>
+    impl<S, Meta, Link, LinkSpec> Operation<S>
+        for InsertOne<Meta, Meta::InputData, Link, PanicOnFailure>
     where
-        Link: InsertOneLink<Handler, LinkHandler = LinkSpec>,
-        LinkSpec: InsertOneLinkHandler,
-        Handler: Collection,
+        Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
+        LinkSpec: InsertOneLinkMeta,
+        Meta: CollectionMeta,
         Self: Send,
         Self::Output: Send,
     {
@@ -214,9 +214,9 @@ pub mod insert_id_link {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::Collection,
+        collections::CollectionMeta,
         operations_v2::insert_one::{
-            InsertOneLink, InsertOneLinkHandler, InsertOneLinkOnInsertParts,
+            InsertOneLink, InsertOneLinkMeta, InsertOneLinkOnInsertParts,
         },
         valid_syntax::OnInsert,
     };
@@ -226,7 +226,7 @@ pub mod insert_id_link {
     /// example:
     /// ```rust
     /// let result = Operation::execute(InsertOne {
-    ///     handler: TodoHandler,
+    ///     meta: TodoMeta,
     ///     attributes: Todo {
     ///         .. some code ..
     ///     },
@@ -239,26 +239,26 @@ pub mod insert_id_link {
     /// ```
     pub struct InsertId<InputIdData>(pub InputIdData);
 
-    pub struct InsertIdHandler<IdHandler>(IdHandler);
+    pub struct InsertIdMeta<IdMeta>(IdMeta);
 
     impl<Base> InsertOneLink<Base> for InsertId<Base::InputIdData>
     where
-        Base: Collection,
-        Base::IdHandler: for<'a> OnInsert<'a, InputData = Base::InputIdData>,
+        Base: CollectionMeta,
+        Base::IdMeta: for<'a> OnInsert<'a, InputData = Base::InputIdData>,
     {
-        type LinkHandler = InsertIdHandler<Base::IdHandler>;
+        type LinkMeta = InsertIdMeta<Base::IdMeta>;
 
         fn init(
             self,
             base: Base,
         ) -> super::InsertParts<
-            Self::LinkHandler,
-            <Self::LinkHandler as super::InsertOneLinkHandler>::PreOperation,
-            <Self::LinkHandler as super::InsertOneLinkHandler>::Init_OnInsert,
-            <Self::LinkHandler as super::InsertOneLinkHandler>::Init_SqlStatement,
+            Self::LinkMeta,
+            <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
+            <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
+            <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
         > {
             super::InsertParts {
-                link_handler: InsertIdHandler(base.id_handler()),
+                link_meta: InsertIdMeta(base.id_meta()),
                 pre_operation: (),
                 init_on_insert: self.0,
                 init_sql_statement: (),
@@ -266,15 +266,15 @@ pub mod insert_id_link {
         }
     }
 
-    impl<'a, IdHandler> OnInsert<'a> for InsertIdHandler<IdHandler>
+    impl<'a, IdMeta> OnInsert<'a> for InsertIdMeta<IdMeta>
     where
-        IdHandler: OnInsert<'a>,
+        IdMeta: OnInsert<'a>,
     {
-        type InputData = InsertOneLinkOnInsertParts<IdHandler::InputData, ()>;
+        type InputData = InsertOneLinkOnInsertParts<IdMeta::InputData, ()>;
 
-        type InsertValues = IdHandler::InsertValues;
+        type InsertValues = IdMeta::InsertValues;
 
-        type InsertIdentifiers = IdHandler::InsertIdentifiers;
+        type InsertIdentifiers = IdMeta::InsertIdentifiers;
 
         fn on_insert_values(&'a self, input: Self::InputData) -> Self::InsertValues {
             self.0.on_insert_values(input.from_init)
@@ -285,9 +285,9 @@ pub mod insert_id_link {
         }
     }
 
-    impl<IdHandler, OnInsertInputData> InsertOneLinkHandler for InsertIdHandler<IdHandler>
+    impl<IdMeta, OnInsertInputData> InsertOneLinkMeta for InsertIdMeta<IdMeta>
     where
-        IdHandler: for<'a> OnInsert<'a, InputData = OnInsertInputData>,
+        IdMeta: for<'a> OnInsert<'a, InputData = OnInsertInputData>,
     {
         type Init_OnInsert = OnInsertInputData;
 
@@ -351,13 +351,13 @@ pub mod insert_id_link {
 mod impl_insert_one_system_for_many_links {
     use crate::{
         operations_v2::insert_one::{
-            InsertOneLink, InsertOneLinkHandler, InsertOneLinkOnInsertParts,
+            InsertOneLink, InsertOneLinkMeta, InsertOneLinkOnInsertParts,
         },
         sqlx_query_builder::combinators::Nest,
         valid_syntax::OnInsert,
     };
 
-    pub struct TupleHandler<T>(T);
+    pub struct TupleMeta<T>(T);
 
     macro_rules! impl_tuple {
         ($([$idx:literal $element:ident])*) => {
@@ -556,18 +556,18 @@ mod impl_insert_one_system_for_many_links {
     where
         Base: Clone,
     {
-        type LinkHandler = TupleHandler<()>;
+        type LinkMeta = TupleMeta<()>;
         fn init(
             self,
             base: Base,
         ) -> super::InsertParts<
-            Self::LinkHandler,
-            <Self::LinkHandler as super::InsertOneLinkHandler>::PreOperation,
-            <Self::LinkHandler as super::InsertOneLinkHandler>::Init_OnInsert,
-            <Self::LinkHandler as super::InsertOneLinkHandler>::Init_SqlStatement,
+            Self::LinkMeta,
+            <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
+            <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
+            <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
         > {
             super::InsertParts {
-                link_handler: TupleHandler(()),
+                link_meta: TupleMeta(()),
                 pre_operation: (),
                 init_on_insert: (),
                 init_sql_statement: (),
@@ -575,7 +575,7 @@ mod impl_insert_one_system_for_many_links {
         }
     }
 
-    impl InsertOneLinkHandler for TupleHandler<()> {
+    impl InsertOneLinkMeta for TupleMeta<()> {
         type Init_OnInsert = ();
         type Init_SqlStatement = ();
         type PreOperation = ();
@@ -625,7 +625,7 @@ mod impl_insert_one_system_for_many_links {
         type Output = ();
     }
 
-    impl<'a> OnInsert<'a> for TupleHandler<()> {
+    impl<'a> OnInsert<'a> for TupleMeta<()> {
         type InputData = InsertOneLinkOnInsertParts<(), ()>;
 
         type InsertValues = ();
@@ -645,24 +645,24 @@ mod impl_insert_one_system_for_many_links {
             T1: InsertOneLink<Base>,
             Base: Clone,
         {
-            type LinkHandler = TupleHandler<(T0::LinkHandler, T1::LinkHandler)>;
+            type LinkMeta = TupleMeta<(T0::LinkMeta, T1::LinkMeta)>;
             fn init(
                 self,
                 base: Base,
             ) -> super::InsertParts<
-                Self::LinkHandler,
-                <Self::LinkHandler as super::InsertOneLinkHandler>::PreOperation,
-                <Self::LinkHandler as super::InsertOneLinkHandler>::Init_OnInsert,
-                <Self::LinkHandler as super::InsertOneLinkHandler>::Init_SqlStatement,
+                Self::LinkMeta,
+                <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
+                <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
+                <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
             > {
                 let init_tuple = (
                     paste::paste!(self.0.init(base.clone())),
                     paste::paste!(self.1.init(base.clone())),
                 );
                 super::InsertParts {
-                    link_handler: TupleHandler((
-                        paste::paste!(init_tuple.0.link_handler),
-                        paste::paste!(init_tuple.1.link_handler),
+                    link_meta: TupleMeta((
+                        paste::paste!(init_tuple.0.link_meta),
+                        paste::paste!(init_tuple.1.link_meta),
                     )),
                     pre_operation: (
                         paste::paste!(init_tuple.0.pre_operation),
@@ -680,9 +680,9 @@ mod impl_insert_one_system_for_many_links {
             }
         }
 
-        impl<'a, T0, T1> OnInsert<'a> for TupleHandler<(T0, T1)>
+        impl<'a, T0, T1> OnInsert<'a> for TupleMeta<(T0, T1)>
         where
-            T0: InsertOneLinkHandler
+            T0: InsertOneLinkMeta
                 + OnInsert<
                     'a,
                     InputData = InsertOneLinkOnInsertParts<
@@ -690,7 +690,7 @@ mod impl_insert_one_system_for_many_links {
                         T0::PreOperation_OnInsert,
                     >,
                 >,
-            T1: InsertOneLinkHandler
+            T1: InsertOneLinkMeta
                 + OnInsert<
                     'a,
                     InputData = InsertOneLinkOnInsertParts<
@@ -730,10 +730,10 @@ mod impl_insert_one_system_for_many_links {
         }
 
         #[allow(unused)]
-        impl<T0, T1> InsertOneLinkHandler for TupleHandler<(T0, T1)>
+        impl<T0, T1> InsertOneLinkMeta for TupleMeta<(T0, T1)>
         where
-            T0: InsertOneLinkHandler,
-            T1: InsertOneLinkHandler,
+            T0: InsertOneLinkMeta,
+            T1: InsertOneLinkMeta,
         {
             type Init_OnInsert = (T0::Init_OnInsert, T1::Init_OnInsert);
             type Init_SqlStatement = (T0::Init_SqlStatement, T1::Init_SqlStatement);
@@ -836,9 +836,9 @@ mod impl_insert_one_system_for_many_links {
 mod tests {
     use sqlx::Sqlite;
 
-    use crate::collections::Collection;
+    use crate::collections::CollectionMeta;
     use crate::define_collection::collections_example::{
-        Category, CategoryHandler, Todo, TodoHandler,
+        Category, CategoryMeta, Todo, TodoMeta,
     };
     use crate::links::SetNew;
     use crate::operations_v2::insert_one::insert_id_link::InsertId;
@@ -868,7 +868,7 @@ mod tests {
     async fn insert_one_operation_body_types_infered() {
         let mut conn = Sqlite::in_memory_connection().await;
         let this = InsertOne {
-            handler: TodoHandler,
+            meta: TodoMeta,
             attributes: Todo {
                 title: "test".to_string(),
                 done: false,
@@ -878,23 +878,23 @@ mod tests {
             infalibility: PanicOnFailure,
         };
 
-        let id_handler = this.handler.id_handler();
-        let link = this.link.init(this.handler.clone());
+        let id_meta = this.meta.id_meta();
+        let link = this.link.init(this.meta.clone());
 
         let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
-            table_name: TableExpressions::pascal_case(&this.handler),
+            table_name: TableExpressions::pascal_case(&this.meta),
             identifiers: (
                 // attributes
-                Nest(this.handler.on_insert_identifiers()),
+                Nest(this.meta.on_insert_identifiers()),
                 // links
-                Nest(link.link_handler.on_insert_identifiers()),
+                Nest(link.link_meta.on_insert_identifiers()),
             ),
             values: InsertOneValue((
                 // attributes
-                Nest(this.handler.on_insert_values(this.attributes)),
+                Nest(this.meta.on_insert_values(this.attributes)),
                 // links
                 Nest(
-                    link.link_handler
+                    link.link_meta
                         .on_insert_values(InsertOneLinkOnInsertParts {
                             from_init: link.init_on_insert,
                             from_pre_operation: (),
@@ -902,9 +902,9 @@ mod tests {
                 ),
             )),
             returning: (
-                Nest(id_handler.identifiers()),
-                Nest(this.handler.identifiers()),
-                Nest(link.link_handler.on_insert_identifiers()),
+                Nest(id_meta.identifiers()),
+                Nest(this.meta.identifiers()),
+                Nest(link.link_meta.on_insert_identifiers()),
             ),
         });
 
@@ -924,7 +924,7 @@ mod tests {
         let mut conn = Sqlite::in_memory_connection().await;
         let insert_one = Operation::<Sqlite>::exec_operation(
             InsertOneValue {
-                handler: TodoHandler,
+                meta: TodoMeta,
                 data: InsertEntity {
                     attributes: Todo {
                         title: "test".to_string(),

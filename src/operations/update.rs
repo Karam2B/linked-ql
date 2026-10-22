@@ -1,5 +1,5 @@
 use crate::{
-    collections::{Collection, CollectionId},
+    collections::{CollectionMeta, CollectionId},
     database_extention::DatabaseExt,
     execute::Executable,
     fix_executor::ExecutorTrait,
@@ -206,15 +206,15 @@ mod impl_update_link_for_unit {
 mod impl_operation_for_update {
     use super::*;
 
-    impl<Handler, Partial, Wheres, PL, Links> OperationOutput
-        for Update<Handler, Partial, Wheres, PL, AbortOperation>
+    impl<Meta, Partial, Wheres, PL, Links> OperationOutput
+        for Update<Meta, Partial, Wheres, PL, AbortOperation>
     where
-        Handler: Collection,
+        Meta: CollectionMeta,
         PL: UpdateLinkSplit<Link = Links>,
         Links: UpdateLink,
     {
         type Output = Vec<
-            LinkedOutput<<Handler::Id as CollectionId>::IdData, Handler::OutputData, Links::Output>,
+            LinkedOutput<<Meta::Id as CollectionId>::IdData, Meta::OutputData, Links::Output>,
         >;
     }
 
@@ -236,7 +236,7 @@ mod impl_operation_for_update {
         for<'q> Join<<Base::Id as ExpressionsForOperation>::Identifier>: Expression<'q, S>,
         // Base: Identifier<Identifier: Send + for<'q> Expression<'q, S>>,
         // Base: TableNameExpression<TableNameExpression: for<'q> Expression<'q, S>>,
-        Base: Collection<OutputData: Send>,
+        Base: CollectionMeta<OutputData: Send>,
         // Base:
         //     V0OnUpdate<UpdateInput = Partial, UpdateExpression: Send + for<'q> Expression<'q, S>>,
         Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
@@ -379,9 +379,9 @@ mod impl_operation_for_update {
 #[cfg(test)]
 mod test {
     use crate::{
-        collections::Collection,
+        collections::CollectionMeta,
         connect_in_memory::ConnectInMemory,
-        define_collection::collections_example::{Todo, TodoHandler, TodoPartial},
+        define_collection::collections_example::{Todo, TodoMeta, TodoPartial},
         from_row::FromRowAlias,
         operations::{
             CollectionOutput, LinkedOutput, Operation, insert::AbortOperation,
@@ -419,7 +419,7 @@ mod test {
 
             let output = Operation::<Sqlite>::exec_operation(
                 UpdateOp {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     wheres: ColumnEqual {
                         col: ScopedColumn {
                             table: "Todo",
@@ -466,8 +466,8 @@ mod test {
                 .unwrap()
                 .into_iter()
                 .map(|row| CollectionOutput {
-                    id: TodoHandler.id().no_alias(&row).unwrap(),
-                    attributes: TodoHandler.no_alias(&row).unwrap(),
+                    id: TodoMeta.id().no_alias(&row).unwrap(),
+                    attributes: TodoMeta.no_alias(&row).unwrap(),
                 })
                 .collect::<Vec<_>>();
 

@@ -26,14 +26,14 @@ define_collection!(
     }
 );
 
-impl Link<TodoHandler> for CategoryHandler {
-    type Spec = OneToMany<DefaultRelationKey, TodoHandler, CategoryHandler>;
+impl Link<TodoMeta> for CategoryMeta {
+    type Spec = OneToMany<DefaultRelationKey, TodoMeta, CategoryMeta>;
 
     fn spec(self) -> Self::Spec {
         OneToMany {
             fk_unique_id: DefaultRelationKey,
-            from: TodoHandler,
-            to: CategoryHandler,
+            from: TodoMeta,
+            to: CategoryMeta,
         }
     }
 }
@@ -76,12 +76,12 @@ async fn test_zero_cost() {
 
         let todo = Operation::<Sqlite>::exec_operation(
             FetchMany {
-                base: TodoHandler,
+                base: TodoMeta,
                 wheres: ColumnContains {
                     col: todo_members::title.scoped(),
                     like: Bind(String::from("%i%")),
                 },
-                links: Link::<TodoHandler>::spec(CategoryHandler),
+                links: Link::<TodoMeta>::spec(CategoryMeta),
                 cursor_order_by: (),
                 cursor_first_item: (3i64, ()),
                 limit: 3,

@@ -10,7 +10,7 @@ pub trait Members {
 
 impl<T> Members for T
 where
-    T: crate::collections::Collection,
+    T: crate::collections::CollectionMeta,
     T::InputData: crate::tuple_trait::AsTuple,
     // T: crate::struct_as_tuple::AsTuple,
 {
@@ -495,7 +495,7 @@ pub mod as_member_helper {
 //     use std::marker::PhantomData;
 
 //     use crate::{
-//         collections::Collection,
+//         collections::CollectionMeta,
 //         database_extention::DatabaseExt,
 //         extentions::CommonExpressions,
 //         query_builder::{
@@ -509,7 +509,7 @@ pub mod as_member_helper {
 
 //     impl<T> CommonExpressions for T
 //     where
-//         T: Collection,
+//         T: CollectionMeta,
 //         T: Singleton,
 //         T::Data: AsTuple,
 //         T::UpdateData: AsTuple,

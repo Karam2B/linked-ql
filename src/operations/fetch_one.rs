@@ -1,5 +1,5 @@
 use crate::{
-    collections::{Collection, CollectionId},
+    collections::{CollectionMeta, CollectionId},
     database_extention::DatabaseExt,
     execute::Executable,
     fix_executor::ExecutorTrait,
@@ -27,7 +27,7 @@ mod impl_operation_for_fetch_one {
 
     impl<B, L, W> OperationOutput for FetchOne<B, L, W>
     where
-        B: Collection,
+        B: CollectionMeta,
         L: LinkFetch,
     {
         type Output =
@@ -39,7 +39,7 @@ mod impl_operation_for_fetch_one {
         S: DatabaseExt,
         S: ExecutorTrait,
         Base: Send,
-        Base: Collection,
+        Base: CollectionMeta,
         Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
         Base::Id: Send + CollectionId<IdData: Send>,
         Base::Id: ExpressionsForOperation<ScopedAliased: OptionalExpression>,
@@ -133,7 +133,7 @@ mod impl_operation_for_fetch_one {
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::collections_example::{Todo, TodoHandler},
+        define_collection::collections_example::{Todo, TodoMeta},
         operations::{fetch_one::FetchOne, LinkedOutput, Operation},
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
         track_sqlx_query::watch_sqlx_calls,
@@ -166,7 +166,7 @@ mod test {
 
             let output = Operation::<Sqlite>::exec_operation(
                 FetchOne {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     links: (),
                     wheres: ColumnEqual {
                         col: ScopedColumn {

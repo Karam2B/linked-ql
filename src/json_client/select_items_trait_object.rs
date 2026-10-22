@@ -167,7 +167,7 @@ impl<'r, 'b, S: Database> FromRowAlias<'r, S::Row>
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::collections_example::{CategoryHandler, TodoHandler},
+        define_collection::collections_example::{CategoryMeta, TodoMeta},
         links::{DefaultRelationKey, relation_one_to_many::OneToMany},
         operations::{Operation, fetch_many::FetchMany},
     };
@@ -211,11 +211,11 @@ mod test {
 
         let output = Operation::<Sqlite>::exec_operation(
             FetchMany {
-                base: TodoHandler,
+                base: TodoMeta,
                 wheres: (),
                 links: OneToMany {
-                    from: TodoHandler,
-                    to: CategoryHandler,
+                    from: TodoMeta,
+                    to: CategoryMeta,
                     fk_unique_id: DefaultRelationKey,
                 },
                 cursor_order_by: (),

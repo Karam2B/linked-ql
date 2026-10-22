@@ -17,7 +17,7 @@ mod impl_link_fetch {
     use std::collections::HashSet;
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         from_row::FromRowData,
         links::fetch_linked_records::{FetchOneToManyInverseLinked, OneToManyInverseLinkedMap},
         links::relation_one_to_many_inverse::OneToManyInverse,
@@ -33,9 +33,9 @@ mod impl_link_fetch {
     impl<Key, From, To> LinkFetch for OneToManyInverse<Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        From: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         <From as TableExpressions>::SnakeCase: AsRef<str>,
-        To: Collection<Id: SingleColumnId> + TableExpressions + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + TableExpressions + Clone,
         To: ExpressionsForOperation<Identifier: IdentifierColNames>,
         <To as TableExpressions>::SnakeCase: AsRef<str>,
         <To as TableExpressions>::PascalCase: AsRef<str>,
@@ -114,7 +114,7 @@ mod impl_link_fetch {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::collections_example::{Category, CategoryHandler, Todo, TodoHandler},
+            define_collection::collections_example::{Category, CategoryMeta, Todo, TodoMeta},
             links::{DefaultRelationKey, relation_one_to_many_inverse::OneToManyInverse},
             operations::{CollectionOutput, LinkedOutput, Operation, fetch_one::FetchOne},
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
@@ -152,12 +152,12 @@ mod impl_link_fetch {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     FetchOne {
-                        base: CategoryHandler,
+                        base: CategoryMeta,
                         wheres: ColumnEqual { col: "id", eq: Bind(1) },
                         links: OneToManyInverse {
                             fk_unique_id: DefaultRelationKey,
-                            from: CategoryHandler,
-                            to: TodoHandler,
+                            from: CategoryMeta,
+                            to: TodoMeta,
                         },
                     },
                     &mut conn,

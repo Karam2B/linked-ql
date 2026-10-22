@@ -1,5 +1,5 @@
 use crate::{
-    collections::{Collection, CollectionId},
+    collections::{CollectionMeta, CollectionId},
     database_extention::DatabaseExt,
     execute::Executable,
     fix_executor::ExecutorTrait,
@@ -77,8 +77,8 @@ impl InsertLink for () {
     }
 }
 
-pub struct InsertOne<Handler, Data, Links> {
-    pub base: Handler,
+pub struct InsertOne<Meta, Data, Links> {
+    pub base: Meta,
     pub data: Data,
     pub links: Links,
 }
@@ -86,7 +86,7 @@ pub struct InsertOne<Handler, Data, Links> {
 impl<H, L> OperationOutput for InsertOne<H, H::InputData, L>
 where
     L: InsertLink,
-    H: Collection,
+    H: CollectionMeta,
 {
     type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
 }
@@ -97,7 +97,7 @@ where
     S: ExecutorTrait,
     Link: InsertLink<Output: Send>,
     Link: Send,
-    Base: Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
+    Base: CollectionMeta<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
     Base: Send,
     Base: Clone,
     Base: ExpressionsForOperation<Identifier: for<'q> Expression<'q, S>>,
@@ -193,7 +193,7 @@ mod test {
         from_row::FromRowAlias,
         operations::{CollectionOutput, LinkedOutput, Operation},
         links::v1_insert_one::InsertOne,
-        test_module::{self, Todo, todo_members, TodoHandler},
+        test_module::{self, Todo, todo_members, TodoMeta},
     };
     use sqlx::{Sqlite, query};
 
@@ -223,7 +223,7 @@ mod test {
                     done: false,
                     description: None,
                 },
-                base: test_module::TodoHandler,
+                base: test_module::TodoMeta,
                 links: (),
             },
             &mut conn,
@@ -250,7 +250,7 @@ mod test {
             .into_iter()
             .map(|row| CollectionOutput {
                 id: todo_members::id.no_alias(&row).unwrap(),
-                attributes: test_module::TodoHandler.no_alias(&row).unwrap(),
+                attributes: test_module::TodoMeta.no_alias(&row).unwrap(),
             })
             .collect::<Vec<_>>();
 

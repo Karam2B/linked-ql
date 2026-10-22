@@ -17,7 +17,7 @@ mod impl_on_migrate {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, SingleColumnId},
+        collections::{CollectionMeta, SingleColumnId},
         links::{
             relation_one_to_many::OneToMany,
             utils::{ConventionalForeignKeyName, conventional_foreign_key_name},
@@ -38,8 +38,8 @@ mod impl_on_migrate {
     impl<Key, F, T> MigrateExpression for OneToMany<Key, F, T>
     where
         Key: AsRef<str>,
-        F: Collection + Clone,
-        T: Collection<Id: SingleColumnId> + Clone,
+        F: CollectionMeta + Clone,
+        T: CollectionMeta<Id: SingleColumnId> + Clone,
         T::Id: ExpressionsForOperation,
         T: TableExpressions,
         F: TableExpressions,
@@ -82,13 +82,13 @@ mod impl_on_migrate {
             links::Link,
             operations::operations_expressions_crossover::MigrateExpression,
             sqlx_query_builder::StatementBuilder,
-            define_collection::collections_example::{CategoryHandler, TodoHandler},
+            define_collection::collections_example::{CategoryMeta, TodoMeta},
         };
 
         #[test]
         fn on_migrate() {
             let sl = StatementBuilder::<sqlx::Sqlite>::new_no_data(
-                Link::<TodoHandler>::spec(CategoryHandler).migrate(),
+                Link::<TodoMeta>::spec(CategoryMeta).migrate(),
             )
             .unwrap();
 
@@ -104,7 +104,7 @@ mod one_to_many_items_names {
     use core::fmt;
 
     use crate::{
-        collections::{Collection, CollectionId},
+        collections::{CollectionMeta, CollectionId},
         database_extention::DatabaseExt,
         from_row::{
             FromRowAlias, FromRowData, TryFromRowAlias,
@@ -193,7 +193,7 @@ mod one_to_many_items_names {
     impl<FromId, To> FromRowData for OneToManyItems<FromId, To::Id, To>
     where
         FromId: CollectionId,
-        To: FromRowData + Collection,
+        To: FromRowData + CollectionMeta,
         To::Id: FromRowData,
     {
         type RData = (
@@ -205,8 +205,8 @@ mod one_to_many_items_names {
     impl<'r, R, FromId, To> FromRowAlias<'r, R> for OneToManyItems<FromId, To::Id, To>
     where
         FromId: CollectionId + FromRowAlias<'r, R, RData = <FromId as CollectionId>::IdData>,
-        To: Collection,
-        To: FromRowAlias<'r, R, RData = <To as Collection>::OutputData>,
+        To: CollectionMeta,
+        To: FromRowAlias<'r, R, RData = <To as CollectionMeta>::OutputData>,
         To::Id: TryFromRowAlias<'r, R, RData = <To::Id as CollectionId>::IdData>,
         To::OutputData: fmt::Debug,
         FromId::IdData: fmt::Debug,
@@ -290,7 +290,7 @@ mod one_to_many_items_names {
 
 mod impl_link_fetch_many {
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         from_row::FromRowData,
         links::{
             relation_one_to_many::{OneToMany, one_to_many_items_names::OneToManyItems},
@@ -307,8 +307,8 @@ mod impl_link_fetch_many {
     impl<Key, F, T> LinkFetch for OneToMany<Key, F, T>
     where
         Key: Clone + AsRef<str>,
-        T: Collection<Id: SingleColumnId> + TableExpressions + Clone,
-        F: Collection + TableExpressions + Clone,
+        T: CollectionMeta<Id: SingleColumnId> + TableExpressions + Clone,
+        F: CollectionMeta + TableExpressions + Clone,
         T::Id: ExpressionsForOperation,
         // or maybe this
         OneToManyItems<F::Id, T::Id, T>: FromRowData<
@@ -403,7 +403,7 @@ mod impl_link_fetch_many {
                 CollectionOutput, LinkedOutput, Operation,
                 fetch_many::{FetchMany, ManyOutput},
             },
-            define_collection::collections_example::{Category, CategoryHandler, Todo, TodoHandler, todo_members},
+            define_collection::collections_example::{Category, CategoryMeta, Todo, TodoMeta, todo_members},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -440,14 +440,14 @@ mod impl_link_fetch_many {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     FetchMany {
-                        base: TodoHandler,
+                        base: TodoMeta,
                         wheres: (),
-                        links: Link::<TodoHandler>::spec(CategoryHandler),
+                        links: Link::<TodoMeta>::spec(CategoryMeta),
                         cursor_order_by: todo_members::title,
                         cursor_first_item: None::<(
                             i64,
                             crate::operations::operations_expressions_crossover::NamedBind<
-                                TodoHandler,
+                                TodoMeta,
                                 todo_members::title,
                                 String,
                             >,
@@ -507,7 +507,7 @@ mod impl_set_new_for_insert {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, CollectionId},
+        collections::{CollectionMeta, CollectionId},
         links::{
             relation_one_to_many::{OneToMany, one_to_many_items_names::OneToManySet},
             update_links::SetNew,
@@ -526,7 +526,7 @@ mod impl_set_new_for_insert {
 
     impl<Key, From, To> InsertLinkConsumeData for SetNew<OneToMany<Key, From, To>, To::InputData>
     where
-        To: Collection + TableExpressions,
+        To: CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         From: Clone,
         To: Clone,
@@ -563,7 +563,7 @@ mod impl_set_new_for_insert {
         To: Clone + TableExpressions,
         From: Clone,
         Key: Clone + AsRef<str>,
-        To: Collection,
+        To: CollectionMeta,
         To::Id: CollectionId<IdData: Clone>,
     {
         type PreOp = InsertOne<To, InsertEntity<To::InputData, ()>, AbortOperation>;
@@ -572,7 +572,7 @@ mod impl_set_new_for_insert {
 
         fn pre_operation_init(&self, input: Self::PreOpData) -> Self::PreOp {
             InsertOne {
-                handler: self.relation.to.clone(),
+                meta: self.relation.to.clone(),
                 data: InsertEntity {
                     attributes: input,
                     link: (),
@@ -674,7 +674,7 @@ mod impl_set_new_for_insert {
                 CollectionOutput, LinkedOutput, Operation,
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
-            define_collection::collections_example::{self, Category, CategoryHandler, Todo},
+            define_collection::collections_example::{self, Category, CategoryMeta, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -706,7 +706,7 @@ mod impl_set_new_for_insert {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     InsertOne {
-                        handler: collections_example::TodoHandler,
+                        meta: collections_example::TodoMeta,
                         data: InsertEntity {
                             attributes: Todo {
                                 title: "first_todo".to_string(),
@@ -714,7 +714,7 @@ mod impl_set_new_for_insert {
                                 description: None,
                             },
                             link: SetNew {
-                                relation: <CategoryHandler as Link<collections_example::TodoHandler>>::spec(CategoryHandler),
+                                relation: <CategoryMeta as Link<collections_example::TodoMeta>>::spec(CategoryMeta),
                                 data: Category {
                                     title: "category_1".to_string(),
                                 },
@@ -763,7 +763,7 @@ mod impl_set_id_for_insert {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, CollectionId},
+        collections::{CollectionMeta, CollectionId},
         from_row::named_col_from_row::NamedColFromRow,
         links::{
             relation_one_to_many::{OneToMany, one_to_many_items_names::OneToManySet},
@@ -782,7 +782,7 @@ mod impl_set_id_for_insert {
     impl<Key, From, To> InsertLinkConsumeData
         for SetId<OneToMany<Key, From, To>, <To::Id as CollectionId>::IdData>
     where
-        To: Collection + TableExpressions,
+        To: CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         From: Clone,
         To: Clone,
@@ -818,7 +818,7 @@ mod impl_set_id_for_insert {
         for SetId<OneToMany<Key, From, To>, PhantomData<<To::Id as CollectionId>::IdData>>
     where
         To: TableExpressions,
-        To: Collection,
+        To: CollectionMeta,
         Key: Clone + AsRef<str>,
         From: Clone,
         To: Clone,
@@ -951,7 +951,7 @@ mod impl_set_id_for_insert {
                 CollectionOutput, LinkedOutput, Operation,
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
-            define_collection::collections_example::{self, Category, CategoryHandler, Todo},
+            define_collection::collections_example::{self, Category, CategoryMeta, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -985,7 +985,7 @@ mod impl_set_id_for_insert {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     InsertOne {
-                        handler: collections_example::TodoHandler,
+                        meta: collections_example::TodoMeta,
                         data: InsertEntity {
                             attributes: Todo {
                                 title: "first_todo".to_string(),
@@ -994,7 +994,7 @@ mod impl_set_id_for_insert {
                             },
                             link: SetId {
                                 id: 1,
-                                relation: <CategoryHandler as Link<collections_example::TodoHandler>>::spec(CategoryHandler),
+                                relation: <CategoryMeta as Link<collections_example::TodoMeta>>::spec(CategoryMeta),
                             },
                         },
                         infalibility: AbortOperation,
@@ -1005,7 +1005,7 @@ mod impl_set_id_for_insert {
                         // }),
                         // links: SetId {
                         //     id: 1,
-                        //     relation: <CategoryHandler as Link<test_module::TodoHandler>>::spec(CategoryHandler),
+                        //     relation: <CategoryMeta as Link<test_module::TodoMeta>>::spec(CategoryMeta),
                         // },
                     },
                     &mut conn,
@@ -1049,7 +1049,7 @@ mod impl_set_id_for_update {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, CollectionId},
+        collections::{CollectionMeta, CollectionId},
         from_row::named_col_from_row::NamedColFromRow,
         links::{
             relation_one_to_many::{OneToMany, one_to_many_items_names::OneToManySet},
@@ -1069,7 +1069,7 @@ mod impl_set_id_for_update {
     impl<Key, From, To> UpdateLinkSplit
         for SetId<OneToMany<Key, From, To>, Option<<To::Id as CollectionId>::IdData>>
     where
-        To: Clone + Collection + TableExpressions,
+        To: Clone + CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         To::OutputData: Clone,
         <To::Id as CollectionId>::IdData: Clone,
@@ -1107,7 +1107,7 @@ mod impl_set_id_for_update {
     impl<Key, From, To> UpdateLink
         for SetId<OneToMany<Key, From, To>, PhantomData<<To::Id as CollectionId>::IdData>>
     where
-        To: Clone + Collection + TableExpressions,
+        To: Clone + CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         To::OutputData: Clone,
         To::Id: ExpressionsForOperation,
@@ -1274,7 +1274,7 @@ mod impl_set_id_for_update {
                 update::Update,
             },
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            define_collection::collections_example::{self, Category, CategoryHandler, Todo},
+            define_collection::collections_example::{self, Category, CategoryMeta, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -1313,7 +1313,7 @@ mod impl_set_id_for_update {
                 actions.clear();
 
                 let s = Update {
-                    base: collections_example::TodoHandler,
+                    base: collections_example::TodoMeta,
                     partial: Default::default(),
                     wheres: ColumnEqual {
                         col: "id",
@@ -1322,8 +1322,8 @@ mod impl_set_id_for_update {
                     links: SetId {
                         relation: OneToMany {
                             fk_unique_id: DefaultRelationKey,
-                            from: collections_example::TodoHandler,
-                            to: CategoryHandler,
+                            from: collections_example::TodoMeta,
+                            to: CategoryMeta,
                         },
                         id: None,
                     },
@@ -1360,14 +1360,14 @@ WHERE id = 1;
             let _ = actions.take();
 
             let s = Update {
-                base: collections_example::TodoHandler,
+                base: collections_example::TodoMeta,
                 partial: Default::default(),
                 wheres: ColumnEqual {
                     col: "id",
                     eq: Bind(2),
                 },
                 links: SetId {
-                    relation: <CategoryHandler as Link<collections_example::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryMeta as Link<collections_example::TodoMeta>>::spec(CategoryMeta),
                     id: Some(2),
                 },
                 infalibility: AbortOperation,
@@ -1406,7 +1406,7 @@ WHERE Todo.id = 2;
 
             pretty_assertions::assert_eq!(fk_category_def, Some(2));
 
-            let c = CategoryHandler.no_alias(&row).unwrap();
+            let c = CategoryMeta.no_alias(&row).unwrap();
 
             pretty_assertions::assert_eq!(
                 c,
@@ -1417,14 +1417,14 @@ WHERE Todo.id = 2;
             let _ = actions.take();
 
             let s = Update {
-                base: collections_example::TodoHandler,
+                base: collections_example::TodoMeta,
                 partial: Default::default(),
                 wheres: ColumnEqual {
                     col: "id",
                     eq: Bind(2),
                 },
                 links: SetNew {
-                    relation: <CategoryHandler as Link<collections_example::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryMeta as Link<collections_example::TodoMeta>>::spec(CategoryMeta),
                     data: Category {
                         title: "category_3".to_string(),
                     },
@@ -1465,7 +1465,7 @@ WHERE Todo.id = 2;
 
             pretty_assertions::assert_eq!(fk_category_def, Some(3));
 
-            let c = CategoryHandler.no_alias(&row).unwrap();
+            let c = CategoryMeta.no_alias(&row).unwrap();
 
             pretty_assertions::assert_eq!(
                 c,
@@ -1476,7 +1476,7 @@ WHERE Todo.id = 2;
             let _ = actions.take();
 
             let s = InsertOne {
-                handler: collections_example::TodoHandler,
+                meta: collections_example::TodoMeta,
                 data: InsertEntity {
                     attributes: Todo {
                     title: "todo_4".to_string(),
@@ -1484,7 +1484,7 @@ WHERE Todo.id = 2;
                     description: None,
                 },
                 link: SetId {
-                    relation: <CategoryHandler as Link<collections_example::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryMeta as Link<collections_example::TodoMeta>>::spec(CategoryMeta),
                     id: 3,
                 }},
                 infalibility: AbortOperation,
@@ -1522,7 +1522,7 @@ WHERE Todo.id = 2;
             );
 
             let s = InsertOne {
-                handler: collections_example::TodoHandler,
+                meta: collections_example::TodoMeta,
                 data: InsertEntity {
                     attributes: Todo {
                     title: "todo_5".to_string(),
@@ -1530,7 +1530,7 @@ WHERE Todo.id = 2;
                     description: None,
                 },
                 link: SetNew {
-                    relation: <CategoryHandler as Link<collections_example::TodoHandler>>::spec(CategoryHandler),
+                    relation: <CategoryMeta as Link<collections_example::TodoMeta>>::spec(CategoryMeta),
                     data: Category {
                         title: "category_4".to_string(),
                     },
@@ -1589,13 +1589,13 @@ LEFT JOIN Category ON Todo.fk_category_def = Category.id;
             .map(|e| {
                 let linked = e.get::<Option<i64>, _>("fk_category_def");
                 (
-                    collections_example::TodoHandler
+                    collections_example::TodoMeta
                         .str_alias(RowStrAliased::new(&e, "todo_"))
                         .unwrap(),
                     if let Some(linked) = linked {
                         Some(CollectionOutput {
                             id: linked,
-                            attributes: CategoryHandler
+                            attributes: CategoryMeta
                                 .str_alias(RowStrAliased::new(&e, "category_"))
                                 .unwrap(),
                         })
@@ -1681,7 +1681,7 @@ mod impl_set_new_for_update {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, CollectionId}, from_row::named_col_from_row::NamedColFromRow, links::{
+        collections::{CollectionMeta, CollectionId}, from_row::named_col_from_row::NamedColFromRow, links::{
             relation_one_to_many::{OneToMany, one_to_many_items_names::OneToManySet},
             update_links::SetNew,
             utils::{ConventionalForeignKeyName, conventional_foreign_key_name},
@@ -1692,7 +1692,7 @@ mod impl_set_new_for_update {
 
     impl<Key, From, To> UpdateLinkSplit for SetNew<OneToMany<Key, From, To>, To::InputData>
     where
-        To: Clone + Collection + TableExpressions,
+        To: Clone + CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         OneToMany<Key, From, To>: Clone,
         To::InputData: Clone,
@@ -1717,7 +1717,7 @@ mod impl_set_new_for_update {
 
     impl<Key, From, To> UpdateLink for SetNew<OneToMany<Key, From, To>, PhantomData<To::InputData>>
     where
-        To: Clone + Collection + TableExpressions,
+        To: Clone + CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         To::InputData: Clone,
         To::OutputData: Clone,
@@ -1734,7 +1734,7 @@ mod impl_set_new_for_update {
 
         fn pre_op(&self, init_split_for_pre_op: Self::InitSplitForPreOp) -> Self::PreOp {
             InsertOne {
-                handler: self.relation.to.clone(),
+                meta: self.relation.to.clone(),
                 data: InsertEntity {
                     attributes: init_split_for_pre_op,
                     link: (),
@@ -1849,7 +1849,7 @@ mod impl_set_new_for_update {
         use sqlx::Sqlite;
 
         use crate::{
-            connect_in_memory::ConnectInMemory, links::{DefaultRelationKey, relation_one_to_many::OneToMany, update_links::SetNew}, operations::{CollectionOutput, LinkedOutput, Operation, insert::AbortOperation, update::Update}, sqlx_query_builder::basic_expressions::{Bind, ColumnEqual}, define_collection::collections_example::{self, Category, CategoryHandler, Todo}, track_sqlx_query::watch_sqlx_calls,
+            connect_in_memory::ConnectInMemory, links::{DefaultRelationKey, relation_one_to_many::OneToMany, update_links::SetNew}, operations::{CollectionOutput, LinkedOutput, Operation, insert::AbortOperation, update::Update}, sqlx_query_builder::basic_expressions::{Bind, ColumnEqual}, define_collection::collections_example::{self, Category, CategoryMeta, Todo}, track_sqlx_query::watch_sqlx_calls,
         };
 
         #[tokio::test(flavor = "current_thread")]
@@ -1883,7 +1883,7 @@ mod impl_set_new_for_update {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     Update {
-                        base: collections_example::TodoHandler,
+                        base: collections_example::TodoMeta,
                         partial: Default::default(),
                         wheres: ColumnEqual {
                             col: "id",
@@ -1892,8 +1892,8 @@ mod impl_set_new_for_update {
                         links: SetNew {
                             relation: OneToMany {
                                 fk_unique_id: DefaultRelationKey,
-                                from: collections_example::TodoHandler,
-                                to: CategoryHandler,
+                                from: collections_example::TodoMeta,
+                                to: CategoryMeta,
                             },
                             data: Category {
                                 title: "category_1".to_string(),
@@ -1944,7 +1944,7 @@ mod impl_for_delete {
 
     use super::OneToMany;
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         from_row::named_col_from_row::NamedColFromRow,
         links::utils::{ConventionalForeignKeyName, conventional_foreign_key_name},
         operations::{
@@ -1960,8 +1960,8 @@ mod impl_for_delete {
     impl<Key, From, To> DeleteLinkSplit for OneToMany<Key, From, To>
     where
         Self: Clone,
-        From: Collection,
-        To: Collection + TableExpressions,
+        From: CollectionMeta,
+        To: CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         To::OutputData: Clone,
         <To::Id as CollectionId>::IdData: Clone,
@@ -1978,8 +1978,8 @@ mod impl_for_delete {
         Self: Clone,
         Key: Clone + AsRef<str>,
         To: TableExpressions,
-        From: Collection,
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        From: CollectionMeta,
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         From: TableExpressions + Clone,
         To::OutputData: Clone,
         <To::Id as CollectionId>::IdData: Clone,
@@ -2004,8 +2004,8 @@ mod impl_for_delete {
     impl<Key, From, To> DeleteLink for OneToMany<Key, From, To>
     where
         Self: Clone,
-        From: Collection,
-        To: Collection + TableExpressions,
+        From: CollectionMeta,
+        To: CollectionMeta + TableExpressions,
         Key: Clone + AsRef<str>,
         To::OutputData: Clone,
         <To::Id as CollectionId>::IdData: Clone,
@@ -2088,7 +2088,7 @@ mod impl_for_delete {
             links::{DefaultRelationKey, relation_one_to_many::OneToMany},
             operations::{CollectionOutput, LinkedOutput, Operation, delete::Delete},
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual, ScopedColumn},
-            define_collection::collections_example::{self, Category, CategoryHandler, Todo},
+            define_collection::collections_example::{self, Category, CategoryMeta, Todo},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -2121,7 +2121,7 @@ mod impl_for_delete {
                 actions.clear();
 
                 let s = Delete {
-                    base: collections_example::TodoHandler,
+                    base: collections_example::TodoMeta,
                     wheres: ColumnEqual {
                         col: ScopedColumn {
                             table: "Todo",
@@ -2131,8 +2131,8 @@ mod impl_for_delete {
                     },
                     links: OneToMany {
                         fk_unique_id: DefaultRelationKey,
-                        from: collections_example::TodoHandler,
-                        to: CategoryHandler,
+                        from: collections_example::TodoMeta,
+                        to: CategoryMeta,
                     },
                 };
 

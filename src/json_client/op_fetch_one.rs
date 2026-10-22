@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sqlx::ColumnIndex;
 
 use crate::{
-    collections::Collection,
+    collections::CollectionMeta,
     database_extention::DatabaseExt,
     fix_executor::ExecutorTrait,
     from_row::FromRowAlias,

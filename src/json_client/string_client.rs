@@ -22,7 +22,7 @@
     }
 
     impl crate::gen_serde::DeserializeSpec for StringClientInput {
-        type Handler = ();
+        type Meta = ();
     }
 
     pub(super) struct StringClientOutput<T> {
@@ -50,7 +50,7 @@
         S: crate::gen_serde::DeserializeMap<'de>,
         S: crate::gen_serde::KnownKey<&'static str>,
     {
-        fn deserialize(_handler: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+        fn deserialize(_meta: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
             let mut map = crate::gen_serde::DeserializeMap::start_map(serialized)?;
             let op = crate::gen_serde::DeserializeMap::deserialize_with_known_key(
                 serialized,

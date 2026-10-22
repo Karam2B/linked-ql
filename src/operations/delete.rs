@@ -1,5 +1,5 @@
 use crate::{
-    collections::{Collection, CollectionId},
+    collections::{CollectionMeta, CollectionId},
     database_extention::DatabaseExt,
     execute::Executable,
     fix_executor::ExecutorTrait,
@@ -147,14 +147,14 @@ mod impl_operation_for_delete {
 
     impl<Base, Wheres, PL, Links> OperationOutput for Delete<Base, Wheres, PL>
     where
-        Base: Collection,
+        Base: CollectionMeta,
         PL: DeleteLinkSplit<Link = Links>,
         Links: DeleteLink,
     {
         type Output = Vec<
             LinkedOutput<
                 <Base::Id as CollectionId>::IdData,
-                <Base as Collection>::OutputData,
+                <Base as CollectionMeta>::OutputData,
                 Links::Output,
             >,
         >;
@@ -167,7 +167,7 @@ mod impl_operation_for_delete {
         PL::InitSplitForPreOp: Send,
         PL: Send,
         Base: Send,
-        Base: Collection,
+        Base: CollectionMeta,
         Base:
             TableExpressions<Identifier: OptionalExpression, PascalCase: for<'q> Expression<'q, S>>,
         for<'q> Join<Base::Identifier>: Expression<'q, S>,
@@ -285,7 +285,7 @@ mod impl_operation_for_delete {
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::collections_example::{Todo, TodoHandler},
+        define_collection::collections_example::{Todo, TodoMeta},
         operations::{LinkedOutput, Operation, delete::Delete},
         sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
         track_sqlx_query::watch_sqlx_calls,
@@ -318,7 +318,7 @@ mod test {
 
             let output = Operation::<Sqlite>::exec_operation(
                 Delete {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     wheres: ColumnEqual { col: "id", eq: Bind(2) },
                     links: (),
                 },

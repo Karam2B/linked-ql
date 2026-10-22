@@ -11,7 +11,7 @@ pub fn on_migrate(input: TokenStream) -> TokenStream {
 }
 
 mod collection_derive;
-#[proc_macro_derive(Collection)]
+#[proc_macro_derive(CollectionMeta)]
 #[proc_macro_error]
 pub fn collection(input: TokenStream) -> TokenStream {
     collection_derive::main(input.into()).into()

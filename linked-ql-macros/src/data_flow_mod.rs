@@ -11,13 +11,13 @@ mod tests {
                 Key: Clone,
                 From: Clone,
                 To: Clone,
-                To: Collection,
+                To: CollectionMeta,
                 <To::Id as CollectionId>::IdData: Clone,
             {
-                let handler = use handler(self.relation);
+                let meta = use meta(self.relation);
 
                 let insert_new_one = use pre_op(InsertOne {
-                    base: handler.clone(),
+                    base: meta.clone(),
                     data: AutoGenerate,
                     data: this.data,
                     links: (),
@@ -35,19 +35,19 @@ mod tests {
                 Key: Clone,
                 From: Clone,
                 To: Clone,
-                To: Collection,
+                To: CollectionMeta,
                 <To::Id as CollectionId>::IdData: Clone,
             {
                 InsertLinkFromClosures {
-                    handler: move || self.relation,
-                    pre_op: move |handler| InsertOne {
-                        base: handler.clone(),
+                    meta: move || self.relation,
+                    pre_op: move |meta| InsertOne {
+                        base: meta.clone(),
                         data: AutoGenerate,
                         data: this.data,
                         links: (),
                     },
-                    insert_values: move |handler, pre_op| Bind(pre_op.id.clone()),
-                    output: move |handler, pre_op| pre_op,
+                    insert_values: move |meta, pre_op| Bind(pre_op.id.clone()),
+                    output: move |meta, pre_op| pre_op,
                 }
             }
         );

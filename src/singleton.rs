@@ -34,7 +34,7 @@
 /// example of how this is used in in this crate
 //
 /// ```ignore
-///     fn collection_basic<T: linked_ql::collections::Collection>(_: T) {}
+///     fn collection_basic<T: linked_ql::collections::CollectionMeta>(_: T) {}
 ///
 
 //
@@ -49,15 +49,15 @@
 /// ```
 ///
 /// can be usefull to get static strings from generic contexts,
-/// in this example `Collection::table_name` is `fn(&self) -> &str`,
+/// in this example `CollectionMeta::table_name` is `fn(&self) -> &str`,
 /// output string it can have any lifetime, but because of `Singleton` trait,
-/// we can get a `&'static str` in any `T: Collection + Singleton` context.
+/// we can get a `&'static str` in any `T: CollectionMeta + Singleton` context.
 ///
 /// ```no_run
-///     use linked_ql::collections::Collection;
+///     use linked_ql::collections::CollectionMeta;
 ///     use linked_ql::singleton::Singleton;
 ///
-///     fn access_static_str_in_generic_contexts<T: Collection + Singleton>() {
+///     fn access_static_str_in_generic_contexts<T: CollectionMeta + Singleton>() {
 ///         let _name: &'static str = T::singleton().table_name();
 ///     }
 /// ```
@@ -120,53 +120,53 @@ pub mod impl_default {
 // unstable interface for ValidateCollection
 pub mod impl_collectinos {
     use super::Singleton;
-    use crate::collections::{Collection, HasHandler, ValidateCollection};
+    use crate::collections::{CollectionMeta, HasMeta, ValidateCollection};
     use std::marker::PhantomData;
 
     impl<T> ValidateCollection for PhantomData<T>
     where
-        T: HasHandler,
-        T::Handler: Collection + Singleton + ValidateCollection,
+        T: HasMeta,
+        T::Meta: CollectionMeta + Singleton + ValidateCollection,
     {
-        type UpdateInput = <T::Handler as ValidateCollection>::UpdateInput;
-        type UpdateError = <T::Handler as ValidateCollection>::UpdateError;
+        type UpdateInput = <T::Meta as ValidateCollection>::UpdateInput;
+        type UpdateError = <T::Meta as ValidateCollection>::UpdateError;
         fn validate_on_update(
             &self,
             input: Self::UpdateInput,
         ) -> Result<Self::UpdateData, Self::UpdateError> {
-            T::Handler::singleton().validate_on_update(input)
+            T::Meta::singleton().validate_on_update(input)
         }
-        type DataInput = <T::Handler as ValidateCollection>::DataInput;
-        type DataError = <T::Handler as ValidateCollection>::DataError;
+        type DataInput = <T::Meta as ValidateCollection>::DataInput;
+        type DataError = <T::Meta as ValidateCollection>::DataError;
         fn validate_on_insert(
             &self,
             input: Self::DataInput,
         ) -> Result<Self::InsertData, Self::DataError> {
-            T::Handler::singleton().validate_on_insert(input)
+            T::Meta::singleton().validate_on_insert(input)
         }
     }
 
-    impl<T> Collection for PhantomData<T>
+    impl<T> CollectionMeta for PhantomData<T>
     where
-        T: HasHandler,
-        T::Handler: Collection + Singleton,
+        T: HasMeta,
+        T::Meta: CollectionMeta + Singleton,
     {
-        type InputData = <T::Handler as Collection>::InputData;
-        type UpdateData = <T::Handler as Collection>::UpdateData;
-        type OutputData = <T::Handler as Collection>::OutputData;
+        type InputData = <T::Meta as CollectionMeta>::InputData;
+        type UpdateData = <T::Meta as CollectionMeta>::UpdateData;
+        type OutputData = <T::Meta as CollectionMeta>::OutputData;
 
-        type Id = <T::Handler as Collection>::Id;
+        type Id = <T::Meta as CollectionMeta>::Id;
 
         fn id(&self) -> Self::Id {
-            T::Handler::id(Singleton::singleton())
+            T::Meta::id(Singleton::singleton())
         }
 
         fn table_name(&self) -> &str {
-            T::Handler::singleton().table_name()
+            T::Meta::singleton().table_name()
         }
 
         fn table_name_lower_case(&self) -> &str {
-            T::Handler::singleton().table_name_lower_case()
+            T::Meta::singleton().table_name_lower_case()
         }
     }
 }

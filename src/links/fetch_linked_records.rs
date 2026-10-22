@@ -3,7 +3,7 @@
 
 //! I tried to reuse code from operations::* but I failed for the following
 //! reasons:
-//!     1. to implement Collection::table_name for ConjuctionTable
+//!     1. to implement CollectionMeta::table_name for ConjuctionTable
 //!         you need to return a &str which is not possible because the
 //!         name is composed from 2 tables
 //!     2. To FetchMany<ConjunctionTable<Key, From, To>, _> I don't want
@@ -15,7 +15,7 @@
 //!           seems like violation of "Least Surprise Principle"
 //!     3. ConjuctionTable is the only use case I can think of where I
 //!         have 2 fields as an id, which if does not need to implment
-//!         `Collection` trait would mean that `Collection` trait is
+//!         `CollectionMeta` trait would mean that `CollectionMeta` trait is
 //!         over-engineered, and need to be simplified
 //!     4. I still can work on optimizing this module if ConjuctionTable is dead end
 //!
@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use sqlx::{Decode, Row, Type};
 
 use crate::{
-    collections::Collection, database_extention::DatabaseExt, from_row::FromRowAlias,
+    collections::CollectionMeta, database_extention::DatabaseExt, from_row::FromRowAlias,
     operations::CollectionOutput,
 };
 
@@ -44,7 +44,7 @@ fn rows_to_linked_map<S, FromId, ToId, ToOutput, To>(
 where
     S: DatabaseExt,
     FromId: Copy + Clone + std::hash::Hash + Eq + for<'r> Decode<'r, S> + Type<S>,
-    To: Collection,
+    To: CollectionMeta,
     To::OutputData: Send,
     ToId: Send,
     To: for<'r> FromRowAlias<'r, S::Row, RData = ToOutput>,
@@ -73,7 +73,7 @@ pub trait ManyToManyJunctionNames {
 
 mod impl_many_to_many_junction_names {
     use crate::{
-        collections::{Collection, SingleColumnId},
+        collections::{CollectionMeta, SingleColumnId},
         links::{fetch_linked_records::ManyToManyJunctionNames, relation_many_to_many::ManyToMany},
     };
 
@@ -81,8 +81,8 @@ mod impl_many_to_many_junction_names {
         for ManyToMany<INVERSE, Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection<Id: SingleColumnId> + Clone,
-        To: Collection<Id: SingleColumnId> + Clone,
+        From: CollectionMeta<Id: SingleColumnId> + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + Clone,
     {
         fn junction_table_as_str(&self) -> String {
             return format!(
@@ -105,7 +105,7 @@ mod impl_many_to_many_junction_names {
     #[cfg(test)]
     mod test {
         use crate::{
-            define_collection::collections_example::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagMeta, TodoMeta},
             links::{
                 DefaultRelationKey, fetch_linked_records::ManyToManyJunctionNames,
                 relation_many_to_many::ManyToMany,
@@ -116,8 +116,8 @@ mod impl_many_to_many_junction_names {
         fn junction_names_for_todo_tag() {
             let link = ManyToMany::<false, _, _, _> {
                 relation_key: DefaultRelationKey,
-                from: TodoHandler,
-                to: TagHandler,
+                from: TodoMeta,
+                to: TagMeta,
             };
 
             assert_eq!(link.junction_table_as_str(), "ct_todo_tag_def");
@@ -131,7 +131,7 @@ mod impl_insert_junction_row {
     use sqlx::{Encode, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -163,8 +163,8 @@ mod impl_insert_junction_row {
 
     impl<Key, From, To> crate::operations::OperationOutput for InsertJunctionRow<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = ();
     }
@@ -173,9 +173,9 @@ mod impl_insert_junction_row {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + Clone + Send,
         <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-        To: Collection<Id: SingleColumnId> + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + Clone + Send,
         <To::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
         i64: for<'q> Encode<'q, S> + Type<S> + Send,
     {
@@ -218,7 +218,7 @@ mod impl_insert_junction_row {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::collections_example::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagMeta, TodoMeta},
             links::{
                 DefaultRelationKey, fetch_linked_records::InsertJunctionRow,
                 relation_many_to_many::ManyToMany,
@@ -250,8 +250,8 @@ mod impl_insert_junction_row {
                     InsertJunctionRow::new(
                         ManyToMany::<false, _, _, _> {
                             relation_key: DefaultRelationKey,
-                            from: TodoHandler,
-                            to: TagHandler,
+                            from: TodoMeta,
+                            to: TagMeta,
                         },
                         1,
                         1,
@@ -277,7 +277,7 @@ mod impl_delete_junction_row {
     use sqlx::{Encode, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -309,8 +309,8 @@ mod impl_delete_junction_row {
 
     impl<Key, From, To> crate::operations::OperationOutput for DeleteJunctionRow<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = ();
     }
@@ -319,9 +319,9 @@ mod impl_delete_junction_row {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + Clone + Send,
         <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-        To: Collection<Id: SingleColumnId> + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + Clone + Send,
         <To::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
         i64: for<'q> Encode<'q, S> + Type<S> + Send,
     {
@@ -370,7 +370,7 @@ mod impl_delete_junction_row {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::collections_example::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagMeta, TodoMeta},
             links::{
                 DefaultRelationKey, fetch_linked_records::DeleteJunctionRow,
                 relation_many_to_many::ManyToMany,
@@ -403,8 +403,8 @@ mod impl_delete_junction_row {
                     DeleteJunctionRow::new(
                         ManyToMany::<false, _, _, _> {
                             relation_key: DefaultRelationKey,
-                            from: TodoHandler,
-                            to: TagHandler,
+                            from: TodoMeta,
+                            to: TagMeta,
                         },
                         1,
                         1,
@@ -430,7 +430,7 @@ mod impl_insert_junction_and_fetch {
     use sqlx::{Encode, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         fix_executor::ExecutorTrait,
         from_row::FromRowAlias,
@@ -465,8 +465,8 @@ mod impl_insert_junction_and_fetch {
 
     impl<Key, From, To> crate::operations::OperationOutput for InsertJunctionAndFetch<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = LinkedOutput<<To::Id as CollectionId>::IdData, To::OutputData, ()>;
     }
@@ -475,13 +475,13 @@ mod impl_insert_junction_and_fetch {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId>
+        From: CollectionMeta<Id: SingleColumnId>
             + TableExpressions<SnakeCase: AsRef<str>, PascalCase: AsRef<str>>
             + Clone
             + Send,
         <From::Id as CollectionId>::IdData:
             Send + for<'q> Encode<'q, S> + Type<S> + Copy + ::std::convert::From<i64>,
-        To: Collection<Id: SingleColumnId>
+        To: CollectionMeta<Id: SingleColumnId>
             + TableExpressions<
                 SnakeCase: AsRef<str>,
                 ScopedAliased: crate::sqlx_query_builder::combinators::OptionalExpression,
@@ -541,7 +541,7 @@ mod impl_insert_junction_and_fetch {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::collections_example::{Tag, TagHandler, TodoHandler},
+            define_collection::collections_example::{Tag, TagMeta, TodoMeta},
             links::{
                 DefaultRelationKey, fetch_linked_records::InsertJunctionAndFetch,
                 relation_many_to_many::ManyToMany,
@@ -573,8 +573,8 @@ mod impl_insert_junction_and_fetch {
                     InsertJunctionAndFetch::new(
                         ManyToMany::<false, _, _, _> {
                             relation_key: DefaultRelationKey,
-                            from: TodoHandler,
-                            to: TagHandler,
+                            from: TodoMeta,
+                            to: TagMeta,
                         },
                         1,
                         1,
@@ -610,7 +610,7 @@ mod impl_select_junction_to_ids {
     use sqlx::{Decode, Encode, Row, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -638,8 +638,8 @@ mod impl_select_junction_to_ids {
 
     impl<Key, From, To> crate::operations::OperationOutput for SelectJunctionToIds<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = Vec<i64>;
     }
@@ -648,9 +648,9 @@ mod impl_select_junction_to_ids {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableExpressions + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableExpressions + Clone + Send,
         <From::Id as CollectionId>::IdData: for<'q> Encode<'q, S> + Type<S> + Send + Copy,
-        To: Collection<Id: SingleColumnId> + TableExpressions + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + TableExpressions + Clone + Send,
         <To::Id as CollectionId>::IdData:
             for<'r> Decode<'r, S> + for<'q> Encode<'q, S> + Type<S> + Send + Copy,
         i64: for<'r> Decode<'r, S> + for<'q> Encode<'q, S> + Type<S> + Send,
@@ -703,7 +703,7 @@ mod impl_select_junction_to_ids {
 
         use crate::{
             connect_in_memory::ConnectInMemory,
-            define_collection::collections_example::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagMeta, TodoMeta},
             links::{
                 DefaultRelationKey, fetch_linked_records::SelectJunctionToIds,
                 relation_many_to_many::ManyToMany,
@@ -736,8 +736,8 @@ mod impl_select_junction_to_ids {
                     SelectJunctionToIds::new(
                         ManyToMany::<false, _, _, _> {
                             relation_key: DefaultRelationKey,
-                            from: TodoHandler,
-                            to: TagHandler,
+                            from: TodoMeta,
+                            to: TagMeta,
                         },
                         1,
                     ),
@@ -766,7 +766,7 @@ mod impl_fetch_one_to_many_inverse_linked {
     use sqlx::{Decode, Encode, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -819,8 +819,8 @@ mod impl_fetch_one_to_many_inverse_linked {
 
     pub struct FetchOneToManyInverseLinked<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         pub link: OneToManyInverse<Key, From, To>,
         pub from_ids: Vec<<From::Id as CollectionId>::IdData>,
@@ -832,8 +832,8 @@ mod impl_fetch_one_to_many_inverse_linked {
     impl<Key, From, To> Clone for FetchOneToManyInverseLinked<Key, From, To>
     where
         Key: Clone,
-        From: Collection + Clone,
-        To: Collection + Clone,
+        From: CollectionMeta + Clone,
+        To: CollectionMeta + Clone,
         <From::Id as CollectionId>::IdData: Clone,
     {
         fn clone(&self) -> Self {
@@ -850,8 +850,8 @@ mod impl_fetch_one_to_many_inverse_linked {
     impl<Key, From, To> crate::operations::OperationOutput
         for FetchOneToManyInverseLinked<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = OneToManyInverseLinkedMap<
             <From::Id as CollectionId>::IdData,
@@ -863,11 +863,11 @@ mod impl_fetch_one_to_many_inverse_linked {
     impl<Key, From, To> FetchOneToManyInverseLinked<Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection
+        From: CollectionMeta
             + crate::operations::operations_expressions_crossover::TableExpressions<
                 SnakeCase: AsRef<str>,
             > + Clone,
-        To: Collection
+        To: CollectionMeta
             + crate::operations::operations_expressions_crossover::TableExpressions<
                 PascalCase: AsRef<str>,
             > + crate::operations::operations_expressions_crossover::ExpressionsForOperation<
@@ -896,7 +896,7 @@ mod impl_fetch_one_to_many_inverse_linked {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + Clone + Send,
         <From::Id as CollectionId>::IdData: Copy
             + Clone
             + std::hash::Hash
@@ -905,7 +905,7 @@ mod impl_fetch_one_to_many_inverse_linked {
             + for<'q> Encode<'q, S>
             + Type<S>
             + for<'r> Decode<'r, S>,
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation> + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + Clone + Send,
         To::OutputData: Send,
         <To::Id as CollectionId>::IdData: Send,
         To: for<'r> FromRowAlias<'r, S::Row, RData = To::OutputData>,
@@ -961,7 +961,7 @@ mod impl_fetch_one_to_many_inverse_linked {
     #[cfg(test)]
     mod test {
         use crate::{
-            define_collection::collections_example::{CategoryHandler, TodoHandler},
+            define_collection::collections_example::{CategoryMeta, TodoMeta},
             links::{
                 DefaultRelationKey, fetch_linked_records::FetchOneToManyInverseLinked,
                 relation_one_to_many_inverse::OneToManyInverse,
@@ -973,8 +973,8 @@ mod impl_fetch_one_to_many_inverse_linked {
             let op = FetchOneToManyInverseLinked::new(
                 OneToManyInverse {
                     fk_unique_id: DefaultRelationKey,
-                    from: CategoryHandler,
-                    to: TodoHandler,
+                    from: CategoryMeta,
+                    to: TodoMeta,
                 },
                 vec![1],
             );
@@ -989,7 +989,7 @@ mod impl_fetch_many_to_many_linked {
     use sqlx::{Decode, Encode, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -1042,8 +1042,8 @@ mod impl_fetch_many_to_many_linked {
 
     pub struct FetchManyToManyLinked<Key, From, To>
     where
-        From: Collection,
-        To: Collection + ExpressionsForOperation,
+        From: CollectionMeta,
+        To: CollectionMeta + ExpressionsForOperation,
     {
         pub link: ManyToMany<false, Key, From, To>,
         pub from_ids: Vec<<From::Id as CollectionId>::IdData>,
@@ -1057,8 +1057,8 @@ mod impl_fetch_many_to_many_linked {
     impl<Key, From, To> Clone for FetchManyToManyLinked<Key, From, To>
     where
         Key: Clone,
-        From: Collection + Clone,
-        To: Collection + ExpressionsForOperation + Clone,
+        From: CollectionMeta + Clone,
+        To: CollectionMeta + ExpressionsForOperation + Clone,
         <From::Id as CollectionId>::IdData: Clone,
     {
         fn clone(&self) -> Self {
@@ -1076,8 +1076,8 @@ mod impl_fetch_many_to_many_linked {
 
     impl<Key, From, To> crate::operations::OperationOutput for FetchManyToManyLinked<Key, From, To>
     where
-        From: Collection,
-        To: Collection + ExpressionsForOperation,
+        From: CollectionMeta,
+        To: CollectionMeta + ExpressionsForOperation,
     {
         type Output = ManyToManyLinkedMap<
             <From::Id as CollectionId>::IdData,
@@ -1089,11 +1089,11 @@ mod impl_fetch_many_to_many_linked {
     impl<Key, From, To> FetchManyToManyLinked<Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection<Id: SingleColumnId>
+        From: CollectionMeta<Id: SingleColumnId>
             + crate::operations::operations_expressions_crossover::TableExpressions<
                 SnakeCase: AsRef<str>,
             > + Clone,
-        To: Collection<Id: SingleColumnId>
+        To: CollectionMeta<Id: SingleColumnId>
             + crate::operations::operations_expressions_crossover::TableExpressions<
                 SnakeCase: AsRef<str>,
                 PascalCase: AsRef<str>,
@@ -1128,7 +1128,7 @@ mod impl_fetch_many_to_many_linked {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + ExpressionsForOperation + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + ExpressionsForOperation + Clone + Send,
         <From::Id as CollectionId>::IdData: Copy
             + Clone
             + std::hash::Hash
@@ -1137,7 +1137,7 @@ mod impl_fetch_many_to_many_linked {
             + for<'q> Encode<'q, S>
             + Type<S>
             + for<'r> Decode<'r, S>,
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation>
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation>
             + TableExpressions
             + Clone
             + Send,

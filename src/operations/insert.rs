@@ -1,5 +1,5 @@
 use crate::{
-    collections::{Collection, CollectionId},
+    collections::{CollectionMeta, CollectionId},
     database_extention::DatabaseExt,
     execute::Executable,
     fix_executor::ExecutorTrait,
@@ -207,8 +207,8 @@ mod impl_insert_one_link_for_unit {
     }
 }
 
-pub struct InsertOne<Handler, Data, Infalibility> {
-    pub handler: Handler,
+pub struct InsertOne<Meta, Data, Infalibility> {
+    pub meta: Meta,
     pub data: Data,
     pub infalibility: Infalibility,
 }
@@ -228,7 +228,7 @@ mod impl_operation_for_insert_one {
     where
         PreL: InsertLinkConsumeData<Link = L>,
         L: InsertOneLink,
-        H: Collection,
+        H: CollectionMeta,
     {
         type Output = LinkedOutput<<H::Id as CollectionId>::IdData, H::OutputData, L::Output>;
     }
@@ -248,8 +248,8 @@ mod impl_operation_for_insert_one {
         for<'q> Join<Base::Identifier>: Expression<'q, S>,
         Base: OnInsert<Base::InputData, InsertExpression: OptionalExpression>,
         for<'q> Join<<Base as OnInsert<Base::InputData>>::InsertExpression>: Expression<'q, S>,
-        Base: Collection,
-        Base: Collection<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
+        Base: CollectionMeta,
+        Base: CollectionMeta<InputData: Send, OutputData: Send, Id: Send + CollectionId<IdData: Send>>,
         Base: Send,
         Base: for<'r> FromRowAlias<'r, S::Row, RData = Base::OutputData>,
         Base::Id: ExpressionsForOperation<Identifier: OptionalExpression>,
@@ -293,7 +293,7 @@ mod impl_operation_for_insert_one {
                 let (pre_op_to_insert_value, pre_op_to_take, pre_op_to_post_op) =
                     link.pre_op_split(pre_op).expect("constraint violation");
 
-                let base_id = self.handler.id();
+                let base_id = self.meta.id();
 
                 // let (id_insert_id, id_insert_val) = base_id.on_insert_with_id(self.id);
 
@@ -302,23 +302,23 @@ mod impl_operation_for_insert_one {
                     .on_insert();
 
                 let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
-                    table_name: self.handler.table_name_pascal_case(),
+                    table_name: self.meta.table_name_pascal_case(),
                     identifiers: Join {
                         start: "",
                         separator: ", ",
-                        items: (Nest(self.handler.identifier()), Nest(insert_sets.0)),
+                        items: (Nest(self.meta.identifier()), Nest(insert_sets.0)),
                     },
                     values: One(Join {
                         start: "",
                         separator: ", ",
                         items: (
-                            Nest(self.handler.on_insert(self.data.attributes)),
+                            Nest(self.meta.on_insert(self.data.attributes)),
                             Nest(insert_sets.1),
                         ),
                     }),
                     returning: (
                         Nest(base_id.identifier()),
-                        Nest(self.handler.identifier()),
+                        Nest(self.meta.identifier()),
                         Nest(link.insert_returning().identifier_only()),
                     ),
                 })
@@ -345,7 +345,7 @@ mod impl_operation_for_insert_one {
                 .unwrap();
 
                 let id = base_id.no_alias(&row).unwrap();
-                let attributes = self.handler.no_alias(&row).unwrap();
+                let attributes = self.meta.no_alias(&row).unwrap();
 
                 let links = {
                     let ii = link.from_row().no_alias(&row).unwrap();
@@ -367,7 +367,7 @@ mod impl_operation_for_insert_one {
 
     impl<Base, I> OperationOutput for InsertOne<Base, IteratorSpec<I>, AbortOperation>
     where
-        Base: Collection,
+        Base: CollectionMeta,
         I: IntoIterator<Item = Base::InputData>,
     {
         type Output = Vec<CollectionOutput<<Base::Id as CollectionId>::IdData, Base::OutputData>>;
@@ -391,8 +391,8 @@ mod impl_operation_for_insert_one {
         Base::InputData: for<'q> Expression<'q, S>,
         Base: Sync,
         Base: OnInsert<IteratorSpec<I>>,
-        Base: Collection,
-        Base: Collection<
+        Base: CollectionMeta,
+        Base: CollectionMeta<
                 InputData: Send,
                 OutputData: Send,
                 Id: Send + CollectionId<IdData: Send> + Sync,
@@ -412,19 +412,19 @@ mod impl_operation_for_insert_one {
             Self: Sized,
         {
             async move {
-                let base_id = self.handler.id();
+                let base_id = self.meta.id();
 
                 let id_insert_id = base_id.identifier();
 
                 let (stmt, arg) = StatementBuilder::<'_, S>::new(InsertStatement {
-                    table_name: self.handler.table_name_pascal_case(),
+                    table_name: self.meta.table_name_pascal_case(),
                     identifiers: Join {
                         start: "",
                         separator: ", ",
-                        items: (Nest(self.handler.identifier()),),
+                        items: (Nest(self.meta.identifier()),),
                     },
                     values: self.data,
-                    returning: (Nest(id_insert_id), Nest(self.handler.identifier())),
+                    returning: (Nest(id_insert_id), Nest(self.meta.identifier())),
                 })
                 .unwrap();
 
@@ -436,7 +436,7 @@ mod impl_operation_for_insert_one {
                     },
                     |row| {
                         let id = base_id.no_alias(&row).unwrap();
-                        let attributes = self.handler.no_alias(&row).unwrap();
+                        let attributes = self.meta.no_alias(&row).unwrap();
                         CollectionOutput { id, attributes }
                     },
                 )
@@ -466,7 +466,7 @@ mod impl_operation_for_insert_one {
 mod test {
     use crate::{
         connect_in_memory::ConnectInMemory,
-        define_collection::collections_example::{Todo, TodoHandler},
+        define_collection::collections_example::{Todo, TodoMeta},
         operations::{
             CollectionOutput, LinkedOutput, Operation,
             insert::{AbortOperation, InsertEntity, InsertOne},
@@ -502,7 +502,7 @@ mod test {
                         attributes: Todo { title: String::from("todo"), done: false, description: None },
                         link: ()
                     },
-                    handler: TodoHandler,
+                    meta: TodoMeta,
                     infalibility: AbortOperation,
                 },
                 &mut conn,
@@ -556,7 +556,7 @@ mod test {
 
             let output = Operation::<Sqlite>::exec_operation(
                 InsertOne {
-                    handler: TodoHandler,
+                    meta: TodoMeta,
                     data: IteratorSpec([
                         Todo {
                             title: String::from("todo"),

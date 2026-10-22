@@ -209,9 +209,9 @@ mod impl_insert_one_system_for_unit {
     }
 }
 
-pub struct InsertMany<Handler, LinkHandler, Data, Infalibility> {
-    pub handler: Handler,
-    pub link_handler: LinkHandler,
+pub struct InsertMany<Meta, LinkMeta, Data, Infalibility> {
+    pub meta: Meta,
+    pub link_meta: LinkMeta,
     pub data: Data,
     pub infalibility: Infalibility,
 }
@@ -226,16 +226,16 @@ mod impl_operation_for_insert_many {
     use crate::operations::{Operation, OperationOutput};
     use crate::operations_v2::fallibility::PanicOnFailure;
     use crate::sqlx_query_builder::statements::insert_statement::InsertStatement;
-    use crate::{collections::Collection, operations::LinkedOutput};
+    use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
-    impl<Handler, Link, LinkSpec> OperationOutput
-        for InsertOne<Handler, InsertEntity<Handler::InputData, Link>, PanicOnFailure>
+    impl<Meta, Link, LinkSpec> OperationOutput
+        for InsertOne<Meta, InsertEntity<Meta::InputData, Link>, PanicOnFailure>
     where
         Link: InsertOneLink<LinkSpec = LinkSpec>,
         LinkSpec: InsertOneLinkSpec,
-        Handler: Collection,
+        Meta: CollectionMeta,
     {
-        type Output = LinkedOutput<Handler::OutputIdData, Handler::OutputData, LinkSpec::Output>;
+        type Output = LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkSpec::Output>;
     }
 
     impl<S, H, Link, LinkSpec> Operation<S>
@@ -243,7 +243,7 @@ mod impl_operation_for_insert_many {
     where
         Link: InsertOneLink<LinkSpec = LinkSpec>,
         LinkSpec: InsertOneLinkSpec,
-        H: Collection,
+        H: CollectionMeta,
         Self: Send,
         Self::Output: Send,
     {
@@ -262,8 +262,8 @@ mod tests {
     use sqlx::Sqlite;
 
     use crate::{
-        collections::{Collection, CollectionId},
-        define_collection::collections_example::{Todo, TodoHandler},
+        collections::{CollectionMeta, CollectionId},
+        define_collection::collections_example::{Todo, TodoMeta},
         execute::Executable,
         extend_sqlx::InMemoryConnection,
         fix_executor::ExecutorTrait,
@@ -282,14 +282,14 @@ mod tests {
     #[tokio::test]
     async fn insert_many_operation_body_types_infered() {
         let mut conn = Sqlite::in_memory_connection().await;
-        let handler = TodoHandler;
+        let meta = TodoMeta;
 
         let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
-            table_name: TableExpressions::pascal_case(&handler),
+            table_name: TableExpressions::pascal_case(&meta),
             identifiers: (
-                MembersExpressions::identifier(&handler),
+                MembersExpressions::identifier(&meta),
                 Nest((
-                    ManualIdOfHandler(&handler),
+                    ManualIdOfMeta(&meta),
                     MembersExpressions::identifier(&OneToMany {}),
                 )),
             ),
@@ -312,8 +312,8 @@ mod tests {
                 },
             ],
             returning: (
-                MembersExpressions::identifier(&handler),
-                MembersExpressions::identifier(&Collection::id(&handler)),
+                MembersExpressions::identifier(&meta),
+                MembersExpressions::identifier(&CollectionMeta::id(&meta)),
             ),
         });
 
@@ -338,10 +338,10 @@ mod tests {
     async fn insert_one_operation_body_types_infered() {
         let mut conn = Sqlite::in_memory_connection().await;
         let this = InsertMany {
-            handler: TodoHandler,
-            link_handler: (
+            meta: TodoMeta,
+            link_meta: (
                 InsertNew {
-                    collection: CategoryHandler,
+                    collection: CategoryMeta,
                     data: PhantomData::<Category>,
                 },
                 InsertId(PhantomData::<i64>),
@@ -370,15 +370,15 @@ mod tests {
         };
 
         let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
-            table_name: TableExpressions::pascal_case(&this.handler),
-            identifiers: MembersExpressions::identifier(&this.handler),
+            table_name: TableExpressions::pascal_case(&this.meta),
+            identifiers: MembersExpressions::identifier(&this.meta),
             values: InsertOneValue(InsertEntity {
                 attributes: this.data.attributes,
                 link: this.data.link,
             }),
             returning: (
-                MembersExpressions::identifier(&this.handler),
-                MembersExpressions::identifier(&Collection::id(&this.handler)),
+                MembersExpressions::identifier(&this.meta),
+                MembersExpressions::identifier(&CollectionMeta::id(&this.meta)),
             ),
         });
 
@@ -398,7 +398,7 @@ mod tests {
         let mut conn = Sqlite::in_memory_connection().await;
         let insert_one = Operation::<Sqlite>::exec_operation(
             InsertOneValue {
-                handler: TodoHandler,
+                meta: TodoMeta,
                 data: InsertEntity {
                     attributes: Todo {
                         title: "test".to_string(),

@@ -1,5 +1,5 @@
 use crate::{
-    collections::Collection,
+    collections::CollectionMeta,
     from_row::FromRowData,
     links::{LinkedToBase, LinkedViaIds},
 };
@@ -19,7 +19,7 @@ impl<const INVERSE: bool, VKey, From, To> LinkedToBase for ManyToMany<INVERSE, V
 
 pub struct InsertJunctionManyRows<const INVERSE: bool, Key, From, To, I>
 where
-    From: Collection,
+    From: CollectionMeta,
     From::Id: FromRowData,
 {
     pub relation: ManyToMany<INVERSE, Key, From, To>,
@@ -33,7 +33,7 @@ mod impl_insert_junction_many_rows {
     use sqlx::{Encode, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -53,9 +53,9 @@ mod impl_insert_junction_many_rows {
     impl<const INVERSE: bool, Key, From, To, I> crate::operations::OperationOutput
         for InsertJunctionManyRows<INVERSE, Key, From, To, I>
     where
-        From: Collection,
+        From: CollectionMeta,
         From::Id: FromRowData,
-        To: Collection,
+        To: CollectionMeta,
     {
         type Output = ();
     }
@@ -65,9 +65,9 @@ mod impl_insert_junction_many_rows {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId + FromRowData> + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId + FromRowData> + Clone + Send,
         <From::Id as FromRowData>::RData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-        To: Collection<Id: SingleColumnId> + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + Clone + Send,
         <To::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
         I: Send + IntoIterator<Item = <To::Id as CollectionId>::IdData>,
     {
@@ -114,7 +114,7 @@ mod impl_on_migrate {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, SingleColumnId},
+        collections::{CollectionMeta, SingleColumnId},
         links::{
             relation_many_to_many::ManyToMany,
             utils::{ConventionalJunctionTableName, conventional_junction_table_name},
@@ -139,8 +139,8 @@ mod impl_on_migrate {
         From: 'static + TableExpressions,
         From::Id: ExpressionsForOperation,
         VKey: AsRef<str> + Clone,
-        From: Collection<Id: SingleColumnId> + Clone + TableExpressions,
-        To: Collection<Id: SingleColumnId> + Clone + TableExpressions,
+        From: CollectionMeta<Id: SingleColumnId> + Clone + TableExpressions,
+        To: CollectionMeta<Id: SingleColumnId> + Clone + TableExpressions,
     {
         type Migrate = CreateTable<
             CreateTableInit,
@@ -223,7 +223,7 @@ mod impl_on_migrate {
             links::{DefaultRelationKey, relation_many_to_many::ManyToMany},
             operations::operations_expressions_crossover::MigrateExpression,
             sqlx_query_builder::StatementBuilder,
-            define_collection::collections_example::{TagHandler, TodoHandler},
+            define_collection::collections_example::{TagMeta, TodoMeta},
         };
 
         #[test]
@@ -231,8 +231,8 @@ mod impl_on_migrate {
             let sl = StatementBuilder::<sqlx::Sqlite>::new_no_data(
                 ManyToMany::<false, _, _, _> {
                     relation_key: DefaultRelationKey,
-                    from: TodoHandler,
-                    to: TagHandler,
+                    from: TodoMeta,
+                    to: TagMeta,
                 }
                 .migrate(),
             )
@@ -250,7 +250,7 @@ mod impl_link_fetch_many {
     use std::collections::{HashMap};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId}, from_row::FromRowData, links::{junction_table_op::FetchJunction, relation_many_to_many::ManyToMany}, operations::{
+        collections::{CollectionMeta, CollectionId, SingleColumnId}, from_row::FromRowData, links::{junction_table_op::FetchJunction, relation_many_to_many::ManyToMany}, operations::{
             CollectionOutput, ManyLinkOutput, OperationOutput,
             fetch_many::LinkFetch,
             map_operation::MapOperation,
@@ -265,9 +265,9 @@ mod impl_link_fetch_many {
     impl<const INVERSE: bool, Key, From, To> LinkFetch for ManyToMany<INVERSE, Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        From: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         <From as TableExpressions>::SnakeCase: AsRef<str>,
-        To: Collection<Id: SingleColumnId> + TableExpressions + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + TableExpressions + Clone,
         To: ExpressionsForOperation<Identifier: IdentifierColNames>,
         <To as TableExpressions>::SnakeCase: AsRef<str>,
         <To as TableExpressions>::PascalCase: AsRef<str>,
@@ -383,7 +383,7 @@ mod impl_link_fetch_many {
                 CollectionOutput, LinkedOutput, ManyLinkOutput, Operation,
                 fetch_many::{FetchMany, ManyOutput},
             },
-            define_collection::collections_example::{Tag, TagHandler, Todo, TodoHandler, todo_members},
+            define_collection::collections_example::{Tag, TagMeta, Todo, TodoMeta, todo_members},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -415,12 +415,12 @@ mod impl_link_fetch_many {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     FetchMany {
-                        base: TodoHandler,
+                        base: TodoMeta,
                         wheres: (),
                         links: ManyToMany::<false,_,_,_> {
                             relation_key: DefaultRelationKey,
-                            from: TodoHandler,
-                            to: TagHandler,
+                            from: TodoMeta,
+                            to: TagMeta,
                         },
                         cursor_order_by: todo_members::id,
                         cursor_first_item: (), 
@@ -516,7 +516,7 @@ mod impl_many_to_many_set_new {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId}, from_row::FromRowData, links::{
+        collections::{CollectionMeta, CollectionId, SingleColumnId}, from_row::FromRowData, links::{
             relation_many_to_many::{InsertJunctionManyRows, ManyToMany},
             update_links::SetNew,
         }, operations::{
@@ -532,8 +532,8 @@ mod impl_many_to_many_set_new {
         for SetNew<ManyToMany<INVERSE, Key, From, To>, IteratorSpec<I>>
     where
         I: IntoIterator<Item = To::InputData>,
-        From: Collection<Id: SingleColumnId + FromRowData> + Clone,
-        To: Collection<Id: SingleColumnId> + Clone,
+        From: CollectionMeta<Id: SingleColumnId + FromRowData> + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + Clone,
         <To::Id as CollectionId>::IdData: Clone,
         Key: Clone + AsRef<str>,
     {
@@ -567,8 +567,8 @@ mod impl_many_to_many_set_new {
         for SetNew<ManyToMany<INVERSE, Key, From, To>, PhantomData<IteratorSpec<I>>>
     where
         I: IntoIterator<Item = To::InputData>,
-        To: Collection<Id: SingleColumnId> + Clone,
-        From: Collection<Id: SingleColumnId + FromRowData> + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + Clone,
+        From: CollectionMeta<Id: SingleColumnId + FromRowData> + Clone,
         <To::Id as CollectionId>::IdData: Clone,
         Key: Clone + AsRef<str>,
         From: Clone,
@@ -581,7 +581,7 @@ mod impl_many_to_many_set_new {
 
         fn pre_operation_init(&self, data: Self::PreOpData) -> Self::PreOp {
             InsertOne {
-                handler: self.relation.to.clone(),
+                meta: self.relation.to.clone(),
                 data,
                 infalibility: AbortOperation,
             }
@@ -678,7 +678,7 @@ mod impl_many_to_many_set_new {
                 insert::{AbortOperation, InsertEntity, InsertOne},
             },
             sqlx_query_builder::statements::insert_statement::IteratorSpec,
-            define_collection::collections_example::{Tag, TagHandler, Todo, TodoHandler},
+            define_collection::collections_example::{Tag, TagMeta, Todo, TodoMeta},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -701,7 +701,7 @@ mod impl_many_to_many_set_new {
 
                 let output = Operation::<Sqlite>::exec_operation(
                     InsertOne {
-                        handler: TodoHandler,
+                        meta: TodoMeta,
                         data: InsertEntity {
                             attributes: Todo {
                                 title: "todo_a".to_string(),
@@ -711,8 +711,8 @@ mod impl_many_to_many_set_new {
                             link: SetNew {
                                 relation: ManyToMany::<false, _, _, _> {
                                     relation_key: DefaultRelationKey,
-                                    from: TodoHandler,
-                                    to: TagHandler,
+                                    from: TodoMeta,
+                                    to: TagMeta,
                                 },
                                 data: IteratorSpec(vec![
                                     Tag {
@@ -775,7 +775,7 @@ mod impl_many_to_many_set_new {
 
 pub mod junction_from_id_set {
     use crate::{
-        collections::Collection,
+        collections::CollectionMeta,
         operations::operations_expressions_crossover::{
             ExpressionsForOperation, SelfPrescribedInsert, TableExpressions,
         },
@@ -789,7 +789,7 @@ pub mod junction_from_id_set {
 
     impl<From, B> SelfPrescribedInsert for JunctionFromIdSet<From, B>
     where
-        From: TableExpressions + Collection<Id: ExpressionsForOperation>,
+        From: TableExpressions + CollectionMeta<Id: ExpressionsForOperation>,
         B: Copy,
     {
         type InsertValue = B;
@@ -812,7 +812,7 @@ mod impl_set_id_for_insert {
     use std::marker::PhantomData;
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         from_row::{FromRowData, named_col_from_row::NamedColFromRow},
         links::{
             fetch_linked_records::InsertJunctionAndFetch, relation_many_to_many::ManyToMany,
@@ -827,8 +827,8 @@ mod impl_set_id_for_insert {
     impl<Key, From, To> InsertLinkConsumeData
         for SetId<ManyToMany<false, Key, From, To>, <To::Id as CollectionId>::IdData>
     where
-        To: Collection<Id: SingleColumnId> + Clone,
-        From: Collection<Id: SingleColumnId> + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + Clone,
+        From: CollectionMeta<Id: SingleColumnId> + Clone,
         <From::Id as CollectionId>::IdData: Into<i64>,
         <To::Id as CollectionId>::IdData: Into<i64>,
         Key: Clone + AsRef<str>,
@@ -864,8 +864,8 @@ mod impl_set_id_for_insert {
     impl<Key, From, To> InsertOneLink
         for SetId<ManyToMany<false, Key, From, To>, PhantomData<<To::Id as CollectionId>::IdData>>
     where
-        To: Collection<Id: SingleColumnId> + Clone,
-        From: Collection<Id: SingleColumnId> + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + Clone,
+        From: CollectionMeta<Id: SingleColumnId> + Clone,
         <From::Id as CollectionId>::IdData: Into<i64>,
         <To::Id as CollectionId>::IdData: Into<i64>,
         Key: Clone + AsRef<str>,
@@ -936,7 +936,7 @@ mod impl_set_id_for_insert {
 
 mod impl_set_junzcction_id_for_update {
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         links::{
             fetch_linked_records::InsertJunctionRow,
             relation_many_to_many::{ManyToMany, junction_from_id_set::JunctionFromIdSet},
@@ -960,10 +960,10 @@ mod impl_set_junzcction_id_for_update {
 
     impl<Key, From, To> UpdateLinkSplit for SetJunctionId<Key, From, To>
     where
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation> + Clone,
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + Clone,
         To::OutputData: Clone,
         <To::Id as CollectionId>::IdData: ::std::convert::From<i64> + Clone,
-        From: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        From: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         Key: Clone + AsRef<str>,
         From: Clone,
         To: Clone,
@@ -996,8 +996,8 @@ mod impl_set_junzcction_id_for_update {
 
     impl<Key, From, To> UpdateLink for SetJunctionId<Key, From, To>
     where
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation> + Clone,
-        From: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + Clone,
+        From: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         ManyToMany<false, Key, From, To>: Clone,
         Key: Clone + AsRef<str>,
         From: Clone,
@@ -1104,7 +1104,7 @@ mod impl_set_junzcction_id_for_update {
                 update::Update,
             },
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            define_collection::collections_example::{Tag, TagHandler, TodoHandler, TodoPartial},
+            define_collection::collections_example::{Tag, TagMeta, TodoMeta, TodoPartial},
             track_sqlx_query::watch_sqlx_calls,
             update_mod::Update as PartialUpdate,
         };
@@ -1118,8 +1118,8 @@ mod impl_set_junzcction_id_for_update {
 
                 let link = ManyToMany {
                     relation_key: DefaultRelationKey,
-                    from: TodoHandler,
-                    to: TagHandler,
+                    from: TodoMeta,
+                    to: TagMeta,
                 };
                 migrate_todo_tag_fixtures(&mut conn, &link).await;
 
@@ -1136,7 +1136,7 @@ mod impl_set_junzcction_id_for_update {
 
                 let out = Operation::<Sqlite>::exec_operation(
                     Update {
-                        base: TodoHandler,
+                        base: TodoMeta,
                         partial: TodoPartial {
                             title: PartialUpdate::Set("linked".to_string()),
                             done: PartialUpdate::Keep,
@@ -1186,7 +1186,7 @@ mod impl_set_junzcction_id_for_update {
 
 mod impl_remove_junction_id_for_update {
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         links::{
             fetch_linked_records::DeleteJunctionRow,
             relation_many_to_many::{ManyToMany, junction_from_id_set::JunctionFromIdSet},
@@ -1210,10 +1210,10 @@ mod impl_remove_junction_id_for_update {
 
     impl<Key, From, To> UpdateLinkSplit for RemoveJunctionId<Key, From, To>
     where
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation> + Clone,
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + Clone,
         To::OutputData: Clone,
         <To::Id as CollectionId>::IdData: ::std::convert::From<i64> + Clone,
-        From: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        From: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         Key: Clone + AsRef<str>,
         From: Clone,
         To: Clone,
@@ -1246,8 +1246,8 @@ mod impl_remove_junction_id_for_update {
 
     impl<Key, From, To> UpdateLink for RemoveJunctionId<Key, From, To>
     where
-        To: Collection<Id: SingleColumnId + ExpressionsForOperation> + Clone,
-        From: Collection<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
+        To: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + Clone,
+        From: CollectionMeta<Id: SingleColumnId + ExpressionsForOperation> + TableExpressions + Clone,
         ManyToMany<false, Key, From, To>: Clone,
         Key: Clone + AsRef<str>,
         From: Clone,
@@ -1343,7 +1343,7 @@ mod impl_remove_junction_id_for_update {
 
 mod impl_for_delete {
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         from_row::FromRowData,
         links::{
             fetch_linked_records::{FetchManyToManyLinked, ManyToManyLinkedMap},
@@ -1367,8 +1367,8 @@ mod impl_for_delete {
     impl<Key, From, To> DeleteLinkSplit for DeleteManyToManyLinked<Key, From, To>
     where
         Self: Clone,
-        To: Collection,
-        From: Collection,
+        To: CollectionMeta,
+        From: CollectionMeta,
         Key: Clone + AsRef<str>,
         From: Clone,
         To: Clone,
@@ -1384,8 +1384,8 @@ mod impl_for_delete {
     impl<Wheres, Key, From, To> DeleteLinkPreOp<Wheres> for DeleteManyToManyLinked<Key, From, To>
     where
         Self: Clone,
-        From: Collection<Id: SingleColumnId> + Clone + TableExpressions,
-        To: Collection<Id: SingleColumnId> + Clone + TableExpressions,
+        From: CollectionMeta<Id: SingleColumnId> + Clone + TableExpressions,
+        To: CollectionMeta<Id: SingleColumnId> + Clone + TableExpressions,
         To: ExpressionsForOperation<Identifier: IdentifierColNames>,
         To::InputData: crate::tuple_trait::AsTuple,
         <From as TableExpressions>::SnakeCase: AsRef<str>,
@@ -1405,9 +1405,9 @@ mod impl_for_delete {
     impl<Key, From, To> DeleteLink for DeleteManyToManyLinked<Key, From, To>
     where
         Self: Clone,
-        To: Collection,
+        To: CollectionMeta,
         Key: Clone + AsRef<str>,
-        From: Collection + Clone,
+        From: CollectionMeta + Clone,
         To: Clone,
         <From::Id as CollectionId>::IdData: ::std::convert::From<i64> + Copy + Eq + std::hash::Hash,
     {
@@ -1468,7 +1468,7 @@ mod impl_for_delete {
                 CollectionOutput, LinkedOutput, ManyLinkOutput, Operation, delete::Delete,
             },
             sqlx_query_builder::basic_expressions::{Bind, ColumnEqual},
-            define_collection::collections_example::{Tag, TagHandler, Todo, TodoHandler},
+            define_collection::collections_example::{Tag, TagMeta, Todo, TodoMeta},
             track_sqlx_query::watch_sqlx_calls,
         };
 
@@ -1494,13 +1494,13 @@ mod impl_for_delete {
 
                 let link = ManyToMany {
                     relation_key: DefaultRelationKey,
-                    from: TodoHandler,
-                    to: TagHandler,
+                    from: TodoMeta,
+                    to: TagMeta,
                 };
 
                 let result = Operation::<Sqlite>::exec_operation(
                     Delete {
-                        base: TodoHandler,
+                        base: TodoMeta,
                         wheres: ColumnEqual { col: "id", eq: Bind(1) },
                         links: DeleteManyToManyLinked {
                             link,
@@ -1566,20 +1566,20 @@ pub(crate) mod test_support {
         links::{DefaultRelationKey, relation_many_to_many::ManyToMany},
         operations::operations_expressions_crossover::MigrateExpression,
         sqlx_query_builder::StatementBuilder,
-        define_collection::collections_example::{TagHandler, TodoHandler},
+        define_collection::collections_example::{TagMeta, TodoMeta},
     };
 
-    pub fn todo_to_tag_link() -> ManyToMany<false, DefaultRelationKey, TodoHandler, TagHandler> {
+    pub fn todo_to_tag_link() -> ManyToMany<false, DefaultRelationKey, TodoMeta, TagMeta> {
         ManyToMany::<false, _, _, _> {
             relation_key: DefaultRelationKey,
-            from: TodoHandler,
-            to: TagHandler,
+            from: TodoMeta,
+            to: TagMeta,
         }
     }
 
     pub async fn migrate_todo_tag_fixtures(
         conn: &mut sqlx::SqliteConnection,
-        link: &ManyToMany<false, DefaultRelationKey, TodoHandler, TagHandler>,
+        link: &ManyToMany<false, DefaultRelationKey, TodoMeta, TagMeta>,
     ) {
         sqlx::query(
             r#"

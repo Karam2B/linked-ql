@@ -26,9 +26,9 @@ macro_rules! define_collection {
         }
 
         #[derive(Clone, Copy, Default)]
-        pub struct [<$pascal_case Handler>];
+        pub struct [<$pascal_case Meta>];
 
-        impl AsRef<str> for [<$pascal_case Handler>] {
+        impl AsRef<str> for [<$pascal_case Meta>] {
             fn as_ref(&self) -> &str {
                 stringify!($pascal_case)
             }
@@ -37,9 +37,9 @@ macro_rules! define_collection {
         // impl Singleton for $name
         const _: () = {
             use $crate::singleton::Singleton;
-            impl Singleton for [<$pascal_case Handler>] {
+            impl Singleton for [<$pascal_case Meta>] {
                 fn singleton() -> &'static Self {
-                    &[<$pascal_case Handler>]
+                    &[<$pascal_case Meta>]
                 }
             }
         };
@@ -74,11 +74,11 @@ macro_rules! define_collection {
             }
         };
 
-        // impl Collection for $pascal_case
+        // impl CollectionMeta for $pascal_case
         const _: () = {
-            use $crate::collections::Collection;
+            use $crate::collections::CollectionMeta;
             use $crate::collections::SingleIncremintalInt;
-            impl Collection for [<$pascal_case Handler>] {
+            impl CollectionMeta for [<$pascal_case Meta>] {
                 fn table_name(&self) -> &str {
                     stringify!($pascal_case)
                 }
@@ -95,14 +95,14 @@ macro_rules! define_collection {
             }
         };
 
-        // impl HasHandler for $pascal_case
+        // impl HasMeta for $pascal_case
         const _: () = {
-            use $crate::collections::HasHandler;
-            impl HasHandler for $pascal_case {
-                type Handler = [<$pascal_case Handler>];
+            use $crate::collections::HasMeta;
+            impl HasMeta for $pascal_case {
+                type Meta = [<$pascal_case Meta>];
             }
-            impl HasHandler for [<$pascal_case Partial>] {
-                type Handler = [<$pascal_case Handler>];
+            impl HasMeta for [<$pascal_case Partial>] {
+                type Meta = [<$pascal_case Meta>];
             }
         };
 
@@ -111,11 +111,11 @@ macro_rules! define_collection {
             use sqlx::{ColumnIndex, Decode, Row, Type};
             use $crate::from_row::{FromRowAlias, FromRowData, FromRowError, RowStrAliased, RowNumAliased};
 
-            impl FromRowData for [<$pascal_case Handler>] {
+            impl FromRowData for [<$pascal_case Meta>] {
                 type RData = $pascal_case;
             }
 
-            impl<'r, R> FromRowAlias<'r, R> for [<$pascal_case Handler>]
+            impl<'r, R> FromRowAlias<'r, R> for [<$pascal_case Meta>]
             where
                 R: Row + 'r,
                 $(
@@ -161,7 +161,7 @@ macro_rules! define_collection {
             use $crate::gen_serde::{Deserialize, DeserializeMap, DeserializeSpec, Deserializer, KnownKey};
 
             impl DeserializeSpec for $pascal_case {
-                type Handler = ();
+                type Meta = ();
             }
             impl<'de, S> Deserialize<'de, S> for $pascal_case
             where
@@ -172,7 +172,7 @@ macro_rules! define_collection {
                 )*
                 S: KnownKey<&'static str>,
             {
-                fn deserialize(_: Self::Handler, serialized: &mut S) -> Result<Self, S::Err> {
+                fn deserialize(_: Self::Meta, serialized: &mut S) -> Result<Self, S::Err> {
                     let mut map = serialized.start_map()?;
                     let res = Self {
                         $(
@@ -217,7 +217,7 @@ macro_rules! define_collection {
                 sanitize_combinator::Sanitize,
             };
 
-            impl ExpressionsForOperation for [<$pascal_case Handler>] {
+            impl ExpressionsForOperation for [<$pascal_case Meta>] {
                 type Identifier = [&'static str; $size];
 
                 fn identifier(&self) -> Self::Identifier {
@@ -282,7 +282,7 @@ macro_rules! define_collection {
 
             use $crate::operations::operations_expressions_crossover::TableExpressions;
 
-            impl TableExpressions for [<$pascal_case Handler>] {
+            impl TableExpressions for [<$pascal_case Meta>] {
                 type SnakeCase = &'static str;
                 type PascalCase = &'static str;
                 fn table_name_snake_case(&self) -> Self::SnakeCase {
@@ -310,7 +310,7 @@ macro_rules! define_collection {
             use $crate::database_extention::DatabaseExt;
             use sqlx::{Encode, Type};
 
-            impl OnInsert<$pascal_case> for [<$pascal_case Handler>] {
+            impl OnInsert<$pascal_case> for [<$pascal_case Meta>] {
                 type InsertExpression = $pascal_case;
                 fn on_insert(&self, input: $pascal_case) -> Self::InsertExpression {
                     input
@@ -324,7 +324,7 @@ macro_rules! define_collection {
             impl OpExpression for $pascal_case {
             }
 
-            impl<T> OnInsert<IteratorSpec<T>> for [<$pascal_case Handler>]
+            impl<T> OnInsert<IteratorSpec<T>> for [<$pascal_case Meta>]
             where T: IntoIterator<Item = $pascal_case>,
             {
                 type InsertExpression = IteratorSpec<T>;
@@ -369,7 +369,7 @@ macro_rules! define_collection {
             use $crate::database_extention::DatabaseExt;
             use sqlx::{Encode, Type};
 
-            impl OnUpdate<[<$pascal_case Partial>]> for [<$pascal_case Handler>] {
+            impl OnUpdate<[<$pascal_case Partial>]> for [<$pascal_case Meta>] {
                 type UpdateExpression = [<$pascal_case Partial>];
                 fn on_update(&self, input: [<$pascal_case Partial>]) -> Self::UpdateExpression {
                     input
@@ -412,12 +412,12 @@ macro_rules! define_collection {
         /// refactor
         ///////////////////////////////////
 
-        // impl TableExpressions for <[ $pascal_case Handler ]>
+        // impl TableExpressions for <[ $pascal_case Meta ]>
         #[cfg(feature = "refactor")]
         const _: () = {
             use $crate::valid_syntax::TableExpressions;
 
-            impl<'a> TableExpressions<'a> for [<$pascal_case Handler>] {
+            impl<'a> TableExpressions<'a> for [<$pascal_case Meta>] {
                 type SnakeCase = &'static str;
                 type PascalCase = &'static str;
                 fn pascal_case(&'a self) -> Self::SnakeCase {
@@ -553,13 +553,13 @@ macro_rules! define_collection {
                     #[allow(dead_code)]
                     pub fn bind(value: $type) ->
                     $crate::operations::operations_expressions_crossover::NamedBind<
-                        super::[<$pascal_case Handler>],
+                        super::[<$pascal_case Meta>],
                         $member,
                         $type,
                     >
                     {
                         $crate::operations::operations_expressions_crossover::NamedBind {
-                            table: super::[<$pascal_case Handler>],
+                            table: super::[<$pascal_case Meta>],
                             name: $member,
                             value: value,
                         }
@@ -665,7 +665,7 @@ macro_rules! define_collection {
 
         paste::paste!(
         #[derive(Default, Debug, Clone)]
-        pub struct [<$pascal_case Handler>];);
+        pub struct [<$pascal_case Meta>];);
 
 
 
@@ -685,10 +685,10 @@ macro_rules! define_collection {
 
 
             paste::paste!(
-                impl FromRowData for [<$pascal_case Handler>] {
+                impl FromRowData for [<$pascal_case Meta>] {
                     type RData = $pascal_case;
                 }
-                impl<'r, R> FromRow<'r, R> for [<$pascal_case Handler>]
+                impl<'r, R> FromRow<'r, R> for [<$pascal_case Meta>]
                 where
                     R: Row + 'r,
                     $($type: Type<R::Database> + Decode<'r, R::Database>,)*
@@ -701,7 +701,7 @@ macro_rules! define_collection {
                     }
                 }
 
-                impl<'r, R> FromRowAlias<'r, R> for [<$pascal_case Handler>]
+                impl<'r, R> FromRowAlias<'r, R> for [<$pascal_case Meta>]
                 where
                     R: Row + 'r,
                     $($type: Type<R::Database> + Decode<'r, R::Database>,)*
@@ -751,7 +751,7 @@ pub mod collections_example {
     mod expr_impls {
         use super::*;
         use crate::{
-            collections::{Collection, standard_id::StandardId},
+            collections::{CollectionMeta, standard_id::StandardId},
             sqlx_query_builder::{
                 basic_expressions::{AliasedScopedColumn, Bind, ScopedColumn},
                 sanitize::Sanitize,
@@ -762,7 +762,7 @@ pub mod collections_example {
             },
         };
 
-        impl Collection for TodoHandler {
+        impl CollectionMeta for TodoMeta {
             fn table_name_pascal_case(&self) -> &str {
                 "Todo"
             }
@@ -783,21 +783,21 @@ pub mod collections_example {
 
             type UpdateIdData = Update<i64>;
 
-            type IdHandler = StandardId;
+            type IdMeta = StandardId;
 
-            fn id_handler(&self) -> Self::IdHandler {
+            fn id_meta(&self) -> Self::IdMeta {
                 StandardId
             }
         }
 
-        impl<'a> MembersExpressions<'a> for TodoHandler {
+        impl<'a> MembersExpressions<'a> for TodoMeta {
             type Identifiers = [&'static str; 3];
             fn identifiers(&'a self) -> Self::Identifiers {
                 ["title", "done", "description"]
             }
         }
 
-        impl<'a> MembersAliasedExpressions<'a> for TodoHandler {
+        impl<'a> MembersAliasedExpressions<'a> for TodoMeta {
             type Scoped = [ScopedColumn<&'static str, &'static str>; 3];
 
             fn scoped(&'a self) -> Self::Scoped {
@@ -886,7 +886,7 @@ pub mod collections_example {
             }
         }
 
-        impl<'a> TableExpressions<'a> for TodoHandler {
+        impl<'a> TableExpressions<'a> for TodoMeta {
             type PascalCase = &'static str;
 
             type SnakeCase = &'static str;
@@ -900,7 +900,7 @@ pub mod collections_example {
             }
         }
 
-        impl<'a> OnInsert<'a> for TodoHandler {
+        impl<'a> OnInsert<'a> for TodoMeta {
             type InputData = Todo;
 
             type InsertValues = (Bind<String>, Bind<bool>, Bind<Option<String>>);
@@ -917,36 +917,36 @@ pub mod collections_example {
     }
 
     #[cfg(not(feature = "refactor"))]
-    impl crate::links::Link<TodoHandler> for CategoryHandler {
+    impl crate::links::Link<TodoMeta> for CategoryMeta {
         type Spec = crate::links::relation_one_to_many::OneToMany<
             crate::links::DefaultRelationKey,
-            TodoHandler,
-            CategoryHandler,
+            TodoMeta,
+            CategoryMeta,
         >;
 
         fn spec(self) -> Self::Spec {
             crate::links::relation_one_to_many::OneToMany {
                 fk_unique_id: crate::links::DefaultRelationKey,
-                from: TodoHandler,
-                to: CategoryHandler,
+                from: TodoMeta,
+                to: CategoryMeta,
             }
         }
     }
 
     #[cfg(not(feature = "refactor"))]
-    impl crate::links::Link<TodoHandler> for TagHandler {
+    impl crate::links::Link<TodoMeta> for TagMeta {
         type Spec = crate::links::relation_many_to_many::ManyToMany<
             false,
             crate::links::DefaultRelationKey,
-            TodoHandler,
-            TagHandler,
+            TodoMeta,
+            TagMeta,
         >;
 
         fn spec(self) -> Self::Spec {
             crate::links::relation_many_to_many::ManyToMany {
                 relation_key: crate::links::DefaultRelationKey,
-                from: TodoHandler,
-                to: TagHandler,
+                from: TodoMeta,
+                to: TagMeta,
             }
         }
     }

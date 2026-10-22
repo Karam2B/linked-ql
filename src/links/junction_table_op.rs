@@ -19,7 +19,7 @@ mod not_returning_from_id {
         statements::select_statement::SelectStatement,
     };
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -31,8 +31,8 @@ mod not_returning_from_id {
     impl<const INVERSE: bool, Key, From, To, Wheres> OperationOutput
         for FetchJunction<false, INVERSE, Key, From, To, Wheres>
     where
-        To: Collection<Id: SingleColumnId>,
-        From: Collection<Id: SingleColumnId>,
+        To: CollectionMeta<Id: SingleColumnId>,
+        From: CollectionMeta<Id: SingleColumnId>,
     {
         type Output = Vec<(<To::Id as CollectionId>::IdData, To::OutputData)>;
     }
@@ -46,7 +46,7 @@ mod not_returning_from_id {
             + AsRef<str>
             + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
             + 'static,
-        From: Send + Clone + 'static + Collection<Id: SingleColumnId + Send>,
+        From: Send + Clone + 'static + CollectionMeta<Id: SingleColumnId + Send>,
         From: TableExpressions<
                 PascalCase: Send
                                 + Clone
@@ -57,7 +57,7 @@ mod not_returning_from_id {
         To: Send
             + Clone
             + 'static
-            + Collection<Id: SingleColumnId + Send, OutputData: Send>
+            + CollectionMeta<Id: SingleColumnId + Send, OutputData: Send>
             + for<'r> FromRowAlias<'r, S::Row, RData = To::OutputData>,
         To: TableExpressions<
                 ScopedAliased: Send + OptionalExpression,
@@ -186,7 +186,7 @@ mod not_returning_from_id {
     mod test {
         use crate::connect_in_memory::ConnectInMemory;
         use crate::define_collection::collections_example::Tag;
-        use crate::define_collection::collections_example::{TagHandler, TodoHandler};
+        use crate::define_collection::collections_example::{TagMeta, TodoMeta};
         use crate::links::DefaultRelationKey;
         use crate::operations::Operation;
         use crate::sqlx_query_builder::{
@@ -203,10 +203,10 @@ mod not_returning_from_id {
             seed_todo_tag_junction(&mut conn).await;
 
             let result = Operation::<Sqlite>::exec_operation(
-                FetchJunction::<false, true, DefaultRelationKey, TodoHandler, TagHandler, _> {
+                FetchJunction::<false, true, DefaultRelationKey, TodoMeta, TagMeta, _> {
                     key: DefaultRelationKey,
-                    from: TodoHandler,
-                    to: TagHandler,
+                    from: TodoMeta,
+                    to: TagMeta,
                     wheres: ColumnEqual {
                         col: Sanitize(("todo_id",)),
                         eq: Bind(4i64),
@@ -229,7 +229,7 @@ mod not_returning_from_id {
 }
 mod returning_from_id {
     use super::FetchJunction;
-    use crate::collections::{Collection, CollectionId, SingleColumnId};
+    use crate::collections::{CollectionMeta, CollectionId, SingleColumnId};
     use crate::database_extention::DatabaseExt;
     use crate::execute::Executable;
     use crate::fix_executor::ExecutorTrait;
@@ -250,8 +250,8 @@ mod returning_from_id {
     impl<const INVERSE: bool, Key, From, To, Wheres> OperationOutput
         for FetchJunction<true, INVERSE, Key, From, To, Wheres>
     where
-        To: Collection<Id: SingleColumnId>,
-        From: Collection<Id: SingleColumnId>,
+        To: CollectionMeta<Id: SingleColumnId>,
+        From: CollectionMeta<Id: SingleColumnId>,
     {
         type Output = Vec<(
             <From::Id as CollectionId>::IdData,
@@ -269,7 +269,7 @@ mod returning_from_id {
             + AsRef<str>
             + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
             + 'static,
-        From: Send + Clone + 'static + Collection<Id: SingleColumnId + Send>,
+        From: Send + Clone + 'static + CollectionMeta<Id: SingleColumnId + Send>,
         From: TableExpressions<
                 PascalCase: Send
                                 + Clone
@@ -280,7 +280,7 @@ mod returning_from_id {
         To: Send
             + Clone
             + 'static
-            + Collection<Id: SingleColumnId + Send, OutputData: Send>
+            + CollectionMeta<Id: SingleColumnId + Send, OutputData: Send>
             + for<'r> FromRowAlias<'r, S::Row, RData = To::OutputData>,
         To: TableExpressions<
                 ScopedAliased: Send + OptionalExpression,
@@ -429,7 +429,7 @@ mod returning_from_id {
     }
     #[cfg(test)]
     mod test {
-        use crate::define_collection::collections_example::{Tag, TagHandler, TodoHandler};
+        use crate::define_collection::collections_example::{Tag, TagMeta, TodoMeta};
         use crate::links::junction_table_op::seed_todo_tag_junction;
         use crate::sqlx_query_builder::{Bind, basic_expressions::ColumnIn};
         use crate::{
@@ -444,10 +444,10 @@ mod returning_from_id {
             seed_todo_tag_junction(&mut conn).await;
 
             let result = Operation::<Sqlite>::exec_operation(
-                FetchJunction::<true, true, DefaultRelationKey, TodoHandler, TagHandler, _> {
+                FetchJunction::<true, true, DefaultRelationKey, TodoMeta, TagMeta, _> {
                     key: DefaultRelationKey,
-                    from: TodoHandler,
-                    to: TagHandler,
+                    from: TodoMeta,
+                    to: TagMeta,
                     wheres: ColumnIn {
                         col: "todo_id",
                         values: vec![Bind(5i64), Bind(7i64)],
@@ -522,7 +522,7 @@ mod impl_one_insert {
     use sqlx::{ColumnIndex, Decode, Row, Type};
 
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -541,8 +541,8 @@ mod impl_one_insert {
     impl<const INVERSE: bool, Key, From, To, Data> OperationOutput
         for InsertJunction<INVERSE, Key, From, To, One<Data>>
     where
-        From: Collection<Id: SingleColumnId>,
-        To: Collection<Id: SingleColumnId>,
+        From: CollectionMeta<Id: SingleColumnId>,
+        To: CollectionMeta<Id: SingleColumnId>,
     {
         type Output = (
             <From::Id as CollectionId>::IdData,
@@ -560,13 +560,13 @@ mod impl_one_insert {
             + AsRef<str>
             + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
             + 'static,
-        From: Send + Collection<Id: Send + SingleColumnId>,
+        From: Send + CollectionMeta<Id: Send + SingleColumnId>,
         From: TableExpressions<
                 PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
                 SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
             >,
         From::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
-        To: Send + Collection<Id: Send + SingleColumnId>,
+        To: Send + CollectionMeta<Id: Send + SingleColumnId>,
         To: TableExpressions<
                 PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
                 SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
@@ -661,7 +661,7 @@ pub struct DeleteJunction<const INVERSE: bool, Key, From, To, Where> {
 mod impl_on_delete {
     use super::DeleteJunction;
     use crate::{
-        collections::{Collection, CollectionId, SingleColumnId},
+        collections::{CollectionMeta, CollectionId, SingleColumnId},
         database_extention::DatabaseExt,
         execute::Executable,
         fix_executor::ExecutorTrait,
@@ -678,8 +678,8 @@ mod impl_on_delete {
     impl<const INVERSE: bool, Key, From, To, Where> OperationOutput
         for DeleteJunction<INVERSE, Key, From, To, Where>
     where
-        From: Collection<Id: SingleColumnId>,
-        To: Collection<Id: SingleColumnId>,
+        From: CollectionMeta<Id: SingleColumnId>,
+        To: CollectionMeta<Id: SingleColumnId>,
     {
         type Output = Vec<(
             <From::Id as CollectionId>::IdData,
@@ -697,13 +697,13 @@ mod impl_on_delete {
             + AsRef<str>
             + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite
             + 'static,
-        From: Send + Collection<Id: Send + SingleColumnId>,
+        From: Send + CollectionMeta<Id: Send + SingleColumnId>,
         From: TableExpressions<
                 PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
                 SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
             >,
         From::Id: Send + CollectionId<IdData: Send + Type<S> + for<'q> Decode<'q, S>>,
-        To: Send + Collection<Id: Send + SingleColumnId>,
+        To: Send + CollectionMeta<Id: Send + SingleColumnId>,
         To: TableExpressions<
                 PascalCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,
                 SnakeCase: 'static + crate::sqlx_query_builder::sanitize_combinator::SanitizeWrite,

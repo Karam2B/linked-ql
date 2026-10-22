@@ -227,13 +227,13 @@ mod many_links {
 
             let output = Operation::<Sqlite>::exec_operation(
                 FetchOne {
-                    base: TodoHandler,
+                    base: TodoMeta,
                     links: TwoLinks(
                         Timestamp {
-                            collection: TodoHandler,
+                            collection: TodoMeta,
                         },
                         Timestamp {
-                            collection: TodoHandler,
+                            collection: TodoMeta,
                         },
                     ),
                     wheres: (),

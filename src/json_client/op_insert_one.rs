@@ -44,7 +44,7 @@ where
     for<'a> &'a str: sqlx::ColumnIndex<<S as sqlx::Database>::Row>,
     S: sqlx::Database + DatabaseExt + ExecutorTrait + Send + Sync + 'static,
     DynCollection<S>: for<'r> FromRowAlias<'r, S::Row, RData = CollectionToSerialize>,
-    DynamicInsertInput<S>: for<'d> Deserialize<'d, JsonAsArcCursor, Handler = DynCollection<S>>,
+    DynamicInsertInput<S>: for<'d> Deserialize<'d, JsonAsArcCursor, Meta = DynCollection<S>>,
     SetId<DynOneToMany<S>, i64>: InsertLinkConsumeData<
         Link: JsonInsertOneLink<S>
                   + InsertOneLink<InsertValuesData: Send, PreOpData: Send, PostOpData: Send>,
@@ -128,7 +128,7 @@ where
 
     let out = Operation::<S>::exec_operation(
         InsertOne {
-            handler: base,
+            meta: base,
             data: InsertEntity {
                 attributes: data,
                 link: links,
@@ -159,7 +159,7 @@ where
     for<'a> &'a str: sqlx::ColumnIndex<<S as sqlx::Database>::Row>,
     S: sqlx::Database + DatabaseExt + ExecutorTrait + Send + Sync + 'static,
     DynCollection<S>: for<'r> FromRowAlias<'r, S::Row, RData = CollectionToSerialize>,
-    DynamicInsertInput<S>: for<'d> Deserialize<'d, JsonAsArcCursor, Handler = DynCollection<S>>,
+    DynamicInsertInput<S>: for<'d> Deserialize<'d, JsonAsArcCursor, Meta = DynCollection<S>>,
     SetId<DynOneToMany<S>, i64>: InsertLinkConsumeData<
         Link: JsonInsertOneLink<S>
                   + InsertOneLink<InsertValuesData: Send, PreOpData: Send, PostOpData: Send>,

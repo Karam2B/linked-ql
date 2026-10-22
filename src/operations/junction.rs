@@ -1,7 +1,7 @@
 use sqlx::{Decode, Encode, Row, Type};
 
 use crate::{
-    collections::{Collection, CollectionId, SingleColumnId},
+    collections::{CollectionMeta, CollectionId, SingleColumnId},
     database_extention::DatabaseExt,
     execute::Executable,
     expressions::table,
@@ -40,8 +40,8 @@ mod impl_many_to_many_junction_names_for_many_to_many {
     impl<Key, From, To> ManyToManyJunctionNames for ManyToMany<false, Key, From, To>
     where
         Key: Clone + AsRef<str>,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone,
-        To: Collection<Id: SingleColumnId> + TableNameExpression + Clone,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone,
+        To: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone,
     {
         fn junction_table_as_str(&self) -> String {
             format!(
@@ -88,8 +88,8 @@ mod impl_operation_for_insert_junction_row {
 
     impl<Key, From, To> OperationOutput for InsertJunctionRow<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = ();
     }
@@ -98,10 +98,10 @@ mod impl_operation_for_insert_junction_row {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <From as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-        To: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <To as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <To::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
         i64: for<'q> Encode<'q, S> + Type<S> + Send,
@@ -165,8 +165,8 @@ mod impl_operation_for_delete_junction_row {
 
     impl<Key, From, To> OperationOutput for DeleteJunctionRow<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = ();
     }
@@ -175,10 +175,10 @@ mod impl_operation_for_delete_junction_row {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <From as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-        To: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <To as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <To::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
         i64: for<'q> Encode<'q, S> + Type<S> + Send,
@@ -247,8 +247,8 @@ mod impl_operation_for_insert_junction_and_fetch {
 
     impl<Key, From, To> OperationOutput for InsertJunctionAndFetch<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = LinkedOutput<<To::Id as CollectionId>::IdData, To::OutputData, ()>;
     }
@@ -257,10 +257,10 @@ mod impl_operation_for_insert_junction_and_fetch {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <From as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <From::Id as CollectionId>::IdData: Send + for<'q> Encode<'q, S> + Type<S> + Copy,
-        To: Collection<Id: SingleColumnId>
+        To: CollectionMeta<Id: SingleColumnId>
             + TableNameExpression
             + TableExpressions<
                 ScopedAliased: for<'q> Expression<'q, S>,
@@ -327,8 +327,8 @@ mod impl_operation_for_select_junction_to_ids {
 
     impl<Key, From, To> OperationOutput for SelectJunctionToIds<Key, From, To>
     where
-        From: Collection,
-        To: Collection,
+        From: CollectionMeta,
+        To: CollectionMeta,
     {
         type Output = Vec<i64>;
     }
@@ -337,10 +337,10 @@ mod impl_operation_for_select_junction_to_ids {
     where
         S: DatabaseExt + ExecutorTrait,
         Key: Clone + AsRef<str> + Send,
-        From: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        From: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <From as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <From::Id as CollectionId>::IdData: for<'q> Encode<'q, S> + Type<S> + Send + Copy,
-        To: Collection<Id: SingleColumnId> + TableNameExpression + Clone + Send,
+        To: CollectionMeta<Id: SingleColumnId> + TableNameExpression + Clone + Send,
         <To as TableNameExpression>::LowerCaseTableNameExpression: AsRef<str>,
         <To::Id as CollectionId>::IdData:
             for<'r> Decode<'r, S> + for<'q> Encode<'q, S> + Type<S> + Send + Copy,

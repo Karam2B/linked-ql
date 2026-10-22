@@ -17,15 +17,15 @@ pub fn main(input: TokenStream) -> TokenStream {
 
     // ret.extend(item_fn.to_token_stream());
 
-    let handler = item_fn
+    let meta = item_fn
         .sig
         .ident
         .to_string()
         .to_case(convert_case::Case::Snake);
 
     {
-        let handler = Ident::new(&format!("{}_handler", handler), item_fn.sig.ident.span());
-        ret.extend(quote!(pub struct #handler;));
+        let meta = Ident::new(&format!("{}_meta", meta), item_fn.sig.ident.span());
+        ret.extend(quote!(pub struct #meta;));
     }
 
     {
@@ -93,7 +93,7 @@ fn test_1() {
             let title = client.todo;
         }
 
-        pub struct dynamic_fn_handler;
+        pub struct dynamic_fn_meta;
 
         pub struct PLH {
             todo: String,
@@ -108,7 +108,7 @@ fn test_1() {
         }
         fn dynamic_fn(client: PLH) {
             let title = client.todo;
-            ref_fn_handler::call(client)
+            ref_fn_meta::call(client)
         }
     );
 
@@ -119,9 +119,9 @@ fn test_1() {
             let done = client.access("done");
         }
 
-        pub struct ref_fn_handler;
+        pub struct ref_fn_meta;
 
-        impl ref_fn_handler {
+        impl ref_fn_meta {
             const MEMEBERS = ["done"];
         }
 
@@ -129,9 +129,9 @@ fn test_1() {
             let title = client.access("title");
         }
 
-        pub struct dynamic_fn_handler;
+        pub struct dynamic_fn_meta;
 
-        impl dynamic_fn_handler {
+        impl dynamic_fn_meta {
             const MEMBERS = ["title"]
         }
     );
