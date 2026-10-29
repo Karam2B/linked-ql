@@ -100,7 +100,9 @@ pub mod fallibility {
     //! 2. missing required link
     //!
 
+    #[derive(Debug, Clone)]
     pub struct PanicOnFailure;
+    #[derive(Debug, Clone)]
     pub struct ResultOnFailure;
 }
 
@@ -108,6 +110,12 @@ pub mod fallibility {
 /// - I have some reimports, replace them by original code from crate::operations::*
 /// - replacing the original item's documentation by the documentation of the reimport
 /// - if the orignial item impl serde trait, remove that implementation
+///
+
+pub trait FallibleOperationOutput {
+    type Output;
+    type Error;
+}
 
 /// See the [module level documentation](crate::operations_v2) for more details.
 pub use crate::operations::OperationOutput;
@@ -118,6 +126,18 @@ pub use crate::operations::Operation;
 /// See the (module level documentation)[] for more details.
 pub trait StreamedOperation<S>: OperationOutput<Output: Send> + Send {
     fn stream_operation(self, conn: &mut S::Connection) -> impl Stream<Item = Self::Output> + Send
+    where
+        Self: Sized,
+        S: Database;
+}
+
+pub trait StreamedFallibleOperation<S>:
+    FallibleOperationOutput<Output: Send, Error: Send> + Send
+{
+    fn stream_operation(
+        self,
+        conn: &mut S::Connection,
+    ) -> impl Stream<Item = Result<Self::Output, Self::Error>> + Send
     where
         Self: Sized,
         S: Database;

@@ -1,4 +1,3 @@
-#![allow(non_camel_case_types)]
 //! Operation for inserting one record
 //!
 //! # Insert Operation Flow
@@ -42,7 +41,10 @@
 // ====================================
 // === Insert One Link Trait System ===
 // ====================================
-use crate::{from_row::FromRowData, operations::OperationOutput, valid_syntax::OnInsert};
+use crate::{
+    collections::CollectionMeta, from_row::FromRowData, operations::OperationOutput,
+    valid_syntax::OnInsert,
+};
 
 /// User facing types used in insert one operations.
 /// Types implementing this trait are used directly by the user
@@ -51,7 +53,7 @@ pub trait InsertOneLink<Base> {
     type LinkMeta: InsertOneLinkMeta
         + for<'a> OnInsert<
             'a,
-            InputData = InsertOneLinkOnInsertParts<
+            InputData = OnInsertParts<
                 <Self::LinkMeta as InsertOneLinkMeta>::Init_OnInsert,
                 <Self::LinkMeta as InsertOneLinkMeta>::PreOperation_OnInsert,
             >,
@@ -69,34 +71,41 @@ pub trait InsertOneLink<Base> {
     >;
 }
 
-pub struct InsertOneLinkOnInsertParts<FromInit, FromPreOperation> {
+pub struct OnInsertParts<FromInit, FromPreOperation> {
     pub from_init: FromInit,
     pub from_pre_operation: FromPreOperation,
 }
 
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
 pub struct InsertParts<Meta, PreOperation, Init_OnInsert, Init_SqlStatement> {
     pub link_meta: Meta,
     pub pre_operation: PreOperation,
-    pub init_on_insert: Init_OnInsert,
-    pub init_sql_statement: Init_SqlStatement,
+    pub init_on__insert: Init_OnInsert,
+    pub init_sql__statement: Init_SqlStatement,
 }
 
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
 pub struct PreOperationParts<PreOperation_OnInsert, PreOperation_SqlStatement, PreOperation_Output>
 {
-    pub pre_operation_on_insert: PreOperation_OnInsert,
-    pub pre_operation_sql_statement: PreOperation_SqlStatement,
-    pub pre_operation_output: PreOperation_Output,
+    pub pre_operation__on_insert: PreOperation_OnInsert,
+    pub pre_operation__sql_statement: PreOperation_SqlStatement,
+    pub pre_operation__output: PreOperation_Output,
 }
 
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
 pub struct SqlStatmentParts<PostOperation, SqlStatment_Output> {
     pub post_operation: PostOperation,
-    pub sql_statement_output: SqlStatment_Output,
+    pub sql_statement__output: SqlStatment_Output,
 }
 
 /// link implementation used internally in InsertOne
 ///
 /// Data extracted by `Operation` or `FromRowAlias` is assumed
 /// to be expensive and cloning is discouraged.
+#[allow(non_camel_case_types)]
 pub trait InsertOneLinkMeta {
     /// passed from `init` to `sql_statement` method
     type Init_SqlStatement;
@@ -123,6 +132,11 @@ pub trait InsertOneLinkMeta {
     type PreOperation_Output;
     /// passed from `pre_operation_parts` to `sql_statement` method
     type PreOperation_SqlStatement;
+
+    /// to retrieve members specified in INSERT INTO clause of the insert sql
+    fn indentifiers(&self) -> Self::Identifiers;
+    /// to retrieve members specified in INSERT INTO clause of the insert sql, to implement Join<Identifiers>: Expression<S, 'q>
+    type Identifiers;
 
     /// to retrieve members specified in RETURNING clause of the insert sql
     fn from_row(&self) -> Self::FromRow;
@@ -158,23 +172,29 @@ pub trait InsertOneLinkMeta {
 // ======================================
 // === / Insert One Link Trait System ===
 // ======================================
-
-pub struct InsertOne<Meta, Attributes, Link, Infalibility> {
+pub struct InsertOne<Meta: CollectionMeta, Link, Infalibility> {
     pub meta: Meta,
-    pub attributes: Attributes,
+    pub attributes: <Meta as CollectionMeta>::InputData,
     pub link: Link,
     pub infalibility: Infalibility,
 }
 
 mod impl_operation_for_insert_one {
     use super::*;
+    use crate::execute::Executable;
+    use crate::extend_sqlx::DatabaseStatementBuilder;
+    use crate::fix_executor::ExecutorTrait;
     use crate::operations::{Operation, OperationOutput};
     use crate::operations_v2::fallibility::PanicOnFailure;
-    use crate::sqlx_query_builder::statements::insert_statement::InsertStatement;
+    use crate::sqlx_query_builder::Expression;
+    use crate::sqlx_query_builder::combinators::Nest;
+    use crate::sqlx_query_builder::statements::insert_statement::{
+        InsertOneValue, InsertStatement,
+    };
+    use crate::valid_syntax::{MembersExpressions, TableExpressions};
     use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
-    impl<Meta, Link, LinkSpec> OperationOutput
-        for InsertOne<Meta, Meta::InputData, Link, PanicOnFailure>
+    impl<Meta, Link, LinkSpec> OperationOutput for InsertOne<Meta, Link, PanicOnFailure>
     where
         Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
         LinkSpec: InsertOneLinkMeta,
@@ -183,28 +203,86 @@ mod impl_operation_for_insert_one {
         type Output = LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkSpec::Output>;
     }
 
-    impl<S, Meta, Link, LinkSpec> Operation<S>
-        for InsertOne<Meta, Meta::InputData, Link, PanicOnFailure>
+    impl<S, Meta, Link, LinkMeta> Operation<S> for InsertOne<Meta, Link, PanicOnFailure>
     where
-        Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
-        LinkSpec: InsertOneLinkMeta,
-        Meta: CollectionMeta,
-        Self: Send,
-        Self::Output: Send,
+        S: DatabaseStatementBuilder + ExecutorTrait,
+        Link: InsertOneLink<Meta, LinkMeta = LinkMeta> + Send,
+        // prepare for sql statement
+        LinkMeta: InsertOneLinkMeta
+            + for<'a> OnInsert<
+                'a,
+                InputData = OnInsertParts<
+                    <LinkMeta as InsertOneLinkMeta>::Init_OnInsert,
+                    <LinkMeta as InsertOneLinkMeta>::PreOperation_OnInsert,
+                >,
+            >,
+        LinkMeta::Output: Send,
+        Meta: CollectionMeta<IdMeta: for<'a> MembersExpressions<'a>>
+            + for<'a> TableExpressions<'a>
+            + for<'a> MembersExpressions<'a>
+            + for<'a> OnInsert<'a, InputData = <Meta as CollectionMeta>::InputData>
+            + Clone // Clone: a version of the meta is sent to the link
+            + Send,
+        Meta::OutputData: Send,
+        Meta::OutputIdData: Send,
+        <Meta as CollectionMeta>::InputData: Send,
+        for<'a, 'q> InsertStatement<
+            <Meta as TableExpressions<'a>>::PascalCase,
+            (
+                Nest<<Meta as OnInsert<'a>>::InsertIdentifiers>,
+                Nest<<LinkMeta as OnInsert<'a>>::InsertIdentifiers>,
+            ),
+            InsertOneValue<(
+                Nest<<Meta as OnInsert<'a>>::InsertValues>,
+                Nest<<LinkMeta as OnInsert<'a>>::InsertValues>,
+            )>,
+            (
+                Nest<<Meta::IdMeta as MembersExpressions<'a>>::Identifiers>,
+                Nest<<Meta as MembersExpressions<'a>>::Identifiers>,
+                Nest<<LinkMeta as InsertOneLinkMeta>::Identifiers>,
+            ),
+        >: Expression<'q, S>,
     {
-        fn exec_operation(self, _: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+        fn exec_operation(
+            self,
+            conn: &mut S::Connection,
+        ) -> impl Future<Output = Self::Output> + Send
         where
             S: sqlx::Database,
             Self: Sized,
         {
             async move {
-                let _ = InsertStatement {
-                    table_name: (),
-                    identifiers: (),
-                    values: (),
-                    returning: (),
-                };
-                todo!()
+                let link = self.link.init(self.meta.clone());
+
+                let (sql_string, arguments) = Expression::<'_, S>::sql_statement(InsertStatement {
+                    table_name: self.meta.pascal_case(),
+                    identifiers: (
+                        Nest(self.meta.on_insert_identifiers()),
+                        Nest(link.link_meta.on_insert_identifiers()),
+                    ),
+                    values: InsertOneValue((
+                        Nest(self.meta.on_insert_values(self.attributes)),
+                        Nest(link.link_meta.on_insert_values(OnInsertParts {
+                            from_init: todo!(),
+                            from_pre_operation: todo!(),
+                        })),
+                    )),
+                    returning: (
+                        Nest(self.meta.id_meta().identifiers()),
+                        Nest(self.meta.identifiers()),
+                        Nest(link.link_meta.indentifiers()),
+                    ),
+                });
+                let row = <S as ExecutorTrait>::fetch_optional(
+                    conn,
+                    Executable {
+                        string: sql_string.as_str(),
+                        arguments: arguments,
+                    },
+                )
+                .await
+                .expect("bug is assumed .. but it might be constraint violation")
+                .expect("bug: returning is specified");
             }
         }
     }
@@ -215,9 +293,7 @@ pub mod insert_id_link {
 
     use crate::{
         collections::CollectionMeta,
-        operations_v2::insert_one::{
-            InsertOneLink, InsertOneLinkMeta, InsertOneLinkOnInsertParts,
-        },
+        operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
         valid_syntax::OnInsert,
     };
 
@@ -237,6 +313,7 @@ pub mod insert_id_link {
     /// assert_eq!(result.link, 3);
     ///
     /// ```
+    #[derive(Debug, Clone)]
     pub struct InsertId<InputIdData>(pub InputIdData);
 
     pub struct InsertIdMeta<IdMeta>(IdMeta);
@@ -260,8 +337,8 @@ pub mod insert_id_link {
             super::InsertParts {
                 link_meta: InsertIdMeta(base.id_meta()),
                 pre_operation: (),
-                init_on_insert: self.0,
-                init_sql_statement: (),
+                init_on__insert: self.0,
+                init_sql__statement: (),
             }
         }
     }
@@ -270,7 +347,7 @@ pub mod insert_id_link {
     where
         IdMeta: OnInsert<'a>,
     {
-        type InputData = InsertOneLinkOnInsertParts<IdMeta::InputData, ()>;
+        type InputData = OnInsertParts<IdMeta::InputData, ()>;
 
         type InsertValues = IdMeta::InsertValues;
 
@@ -304,11 +381,14 @@ pub mod insert_id_link {
             Self::PreOperation_Output,
         > {
             super::PreOperationParts {
-                pre_operation_on_insert: (),
-                pre_operation_output: (),
-                pre_operation_sql_statement: (),
+                pre_operation__on_insert: (),
+                pre_operation__output: (),
+                pre_operation__sql_statement: (),
             }
         }
+
+        type Identifiers = ();
+        fn indentifiers(&self) -> Self::Identifiers {}
 
         type PreOperation_OnInsert = ();
 
@@ -328,7 +408,7 @@ pub mod insert_id_link {
         ) -> super::SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output> {
             super::SqlStatmentParts {
                 post_operation: (),
-                sql_statement_output: (),
+                sql_statement__output: (),
             }
         }
 
@@ -350,9 +430,7 @@ pub mod insert_id_link {
 
 mod impl_insert_one_system_for_many_links {
     use crate::{
-        operations_v2::insert_one::{
-            InsertOneLink, InsertOneLinkMeta, InsertOneLinkOnInsertParts,
-        },
+        operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
         sqlx_query_builder::combinators::Nest,
         valid_syntax::OnInsert,
     };
@@ -569,8 +647,8 @@ mod impl_insert_one_system_for_many_links {
             super::InsertParts {
                 link_meta: TupleMeta(()),
                 pre_operation: (),
-                init_on_insert: (),
-                init_sql_statement: (),
+                init_on__insert: (),
+                init_sql__statement: (),
             }
         }
     }
@@ -579,6 +657,8 @@ mod impl_insert_one_system_for_many_links {
         type Init_OnInsert = ();
         type Init_SqlStatement = ();
         type PreOperation = ();
+        type Identifiers = ();
+        fn indentifiers(&self) -> Self::Identifiers {}
         fn pre_operation_parts(
             &self,
             _: <Self::PreOperation as crate::operations::OperationOutput>::Output,
@@ -589,9 +669,9 @@ mod impl_insert_one_system_for_many_links {
         > {
             let tuple = ();
             super::PreOperationParts {
-                pre_operation_on_insert: (),
-                pre_operation_output: (),
-                pre_operation_sql_statement: (),
+                pre_operation__on_insert: (),
+                pre_operation__output: (),
+                pre_operation__sql_statement: (),
             }
         }
         type PreOperation_OnInsert = ();
@@ -609,7 +689,7 @@ mod impl_insert_one_system_for_many_links {
         ) -> super::SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output> {
             super::SqlStatmentParts {
                 post_operation: (),
-                sql_statement_output: (),
+                sql_statement__output: (),
             }
         }
         type PostOperation = ();
@@ -626,7 +706,7 @@ mod impl_insert_one_system_for_many_links {
     }
 
     impl<'a> OnInsert<'a> for TupleMeta<()> {
-        type InputData = InsertOneLinkOnInsertParts<(), ()>;
+        type InputData = OnInsertParts<(), ()>;
 
         type InsertValues = ();
 
@@ -668,13 +748,13 @@ mod impl_insert_one_system_for_many_links {
                         paste::paste!(init_tuple.0.pre_operation),
                         paste::paste!(init_tuple.1.pre_operation),
                     ),
-                    init_on_insert: (
-                        paste::paste!(init_tuple.0.init_on_insert),
-                        paste::paste!(init_tuple.1.init_on_insert),
+                    init_on__insert: (
+                        paste::paste!(init_tuple.0.init_on__insert),
+                        paste::paste!(init_tuple.1.init_on__insert),
                     ),
-                    init_sql_statement: (
-                        paste::paste!(init_tuple.0.init_sql_statement),
-                        paste::paste!(init_tuple.1.init_sql_statement),
+                    init_sql__statement: (
+                        paste::paste!(init_tuple.0.init_sql__statement),
+                        paste::paste!(init_tuple.1.init_sql__statement),
                     ),
                 }
             }
@@ -685,21 +765,15 @@ mod impl_insert_one_system_for_many_links {
             T0: InsertOneLinkMeta
                 + OnInsert<
                     'a,
-                    InputData = InsertOneLinkOnInsertParts<
-                        T0::Init_OnInsert,
-                        T0::PreOperation_OnInsert,
-                    >,
+                    InputData = OnInsertParts<T0::Init_OnInsert, T0::PreOperation_OnInsert>,
                 >,
             T1: InsertOneLinkMeta
                 + OnInsert<
                     'a,
-                    InputData = InsertOneLinkOnInsertParts<
-                        T1::Init_OnInsert,
-                        T1::PreOperation_OnInsert,
-                    >,
+                    InputData = OnInsertParts<T1::Init_OnInsert, T1::PreOperation_OnInsert>,
                 >,
         {
-            type InputData = InsertOneLinkOnInsertParts<
+            type InputData = OnInsertParts<
                 (T0::Init_OnInsert, T1::Init_OnInsert),
                 (T0::PreOperation_OnInsert, T1::PreOperation_OnInsert),
             >;
@@ -710,11 +784,11 @@ mod impl_insert_one_system_for_many_links {
 
             fn on_insert_values(&'a self, input: Self::InputData) -> Self::InsertValues {
                 (
-                    Nest(self.0.0.on_insert_values(InsertOneLinkOnInsertParts {
+                    Nest(self.0.0.on_insert_values(OnInsertParts {
                         from_init: input.from_init.0,
                         from_pre_operation: input.from_pre_operation.0,
                     })),
-                    Nest(self.0.1.on_insert_values(InsertOneLinkOnInsertParts {
+                    Nest(self.0.1.on_insert_values(OnInsertParts {
                         from_init: input.from_init.1,
                         from_pre_operation: input.from_pre_operation.1,
                     })),
@@ -751,17 +825,17 @@ mod impl_insert_one_system_for_many_links {
                     paste::paste!(self.0.1.pre_operation_parts(pre_operation_output.1,)),
                 );
                 super::PreOperationParts {
-                    pre_operation_on_insert: (
-                        paste::paste!(tuple.0.pre_operation_on_insert),
-                        paste::paste!(tuple.1.pre_operation_on_insert),
+                    pre_operation__on_insert: (
+                        paste::paste!(tuple.0.pre_operation__on_insert),
+                        paste::paste!(tuple.1.pre_operation__on_insert),
                     ),
-                    pre_operation_output: (
-                        paste::paste!(tuple.0.pre_operation_output),
-                        paste::paste!(tuple.1.pre_operation_output),
+                    pre_operation__output: (
+                        paste::paste!(tuple.0.pre_operation__output),
+                        paste::paste!(tuple.1.pre_operation__output),
                     ),
-                    pre_operation_sql_statement: (
-                        paste::paste!(tuple.0.pre_operation_sql_statement),
-                        paste::paste!(tuple.1.pre_operation_sql_statement),
+                    pre_operation__sql_statement: (
+                        paste::paste!(tuple.0.pre_operation__sql_statement),
+                        paste::paste!(tuple.1.pre_operation__sql_statement),
                     ),
                 }
             }
@@ -774,6 +848,10 @@ mod impl_insert_one_system_for_many_links {
                     paste::paste!(self.0.0.from_row()),
                     paste::paste!(self.0.1.from_row()),
                 )
+            }
+            type Identifiers = (Nest<T0::Identifiers>, Nest<T1::Identifiers>);
+            fn indentifiers(&self) -> Self::Identifiers {
+                (Nest(self.0.0.indentifiers()), Nest(self.0.1.indentifiers()))
             }
             type FromRow = (T0::FromRow, T1::FromRow);
             fn sql_statement_parts(
@@ -800,9 +878,9 @@ mod impl_insert_one_system_for_many_links {
                         paste::paste!(tuple.0.post_operation),
                         paste::paste!(tuple.1.post_operation),
                     ),
-                    sql_statement_output: (
-                        paste::paste!(tuple.0.sql_statement_output),
-                        paste::paste!(tuple.1.sql_statement_output),
+                    sql_statement__output: (
+                        paste::paste!(tuple.0.sql_statement__output),
+                        paste::paste!(tuple.1.sql_statement__output),
                     ),
                 }
             }
@@ -834,13 +912,12 @@ mod impl_insert_one_system_for_many_links {
 
 #[cfg(test)]
 mod tests {
-    use sqlx::Sqlite;
+    use sqlx::{Sqlite, SqliteConnection};
 
     use crate::collections::CollectionMeta;
-    use crate::define_collection::collections_example::{
-        Category, CategoryMeta, Todo, TodoMeta,
-    };
+    use crate::define_collection::collections_example::{Category, CategoryMeta, Todo, TodoMeta};
     use crate::links::SetNew;
+    use crate::operations::Operation;
     use crate::operations_v2::insert_one::insert_id_link::InsertId;
     use crate::valid_syntax::MembersExpressions;
     use crate::{
@@ -858,16 +935,35 @@ mod tests {
 
     use super::*;
 
+    type InsertOneOperation = InsertOne<TodoMeta, InsertId<i64>, PanicOnFailure>;
+    type InsertOneOperationResult = ();
+
     #[tokio::test]
     /// structure of the test
-    /// - arguments typically passed to Operation::execute_operation
-    /// - body of execute_operation coppied almost verbatim
+    /// - migrate, create input
+    /// - pass input to `operation_body` -- is where the body of `execute_operation`` coppied almost verbatim
+    /// - pass input to `operation_interface` -- is where `execute_operation` is called
     ///
-    /// The purpose of this test is to escape the generic types errors
-    /// and better visualize what is going on if all types are infered
-    async fn insert_one_operation_body_types_infered() {
+    /// The purpose of this test is to better visualize what is going on if all types are infered
+    /// which will help in debugging and understanding the code
+    async fn insert_one() {
         let mut conn = Sqlite::in_memory_connection().await;
-        let this = InsertOne {
+
+        sqlx::query(
+            "
+            CREATE TABLE IF NOT EXISTS todo (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                done BOOLEAN NOT NULL,
+                description TEXT
+            );
+        ",
+        )
+        .execute(&mut conn)
+        .await
+        .unwrap();
+
+        let mut this = InsertOne {
             meta: TodoMeta,
             attributes: Todo {
                 title: "test".to_string(),
@@ -878,6 +974,17 @@ mod tests {
             infalibility: PanicOnFailure,
         };
 
+        // operation_body(this.clone(), &mut conn).await;
+
+        // this.link = InsertId(5);
+
+        operation_interface(this, &mut conn).await;
+    }
+
+    async fn operation_body(
+        this: InsertOne<TodoMeta, InsertId<i64>, PanicOnFailure>,
+        conn: &mut SqliteConnection,
+    ) -> InsertOneOperationResult {
         let id_meta = this.meta.id_meta();
         let link = this.link.init(this.meta.clone());
 
@@ -893,13 +1000,10 @@ mod tests {
                 // attributes
                 Nest(this.meta.on_insert_values(this.attributes)),
                 // links
-                Nest(
-                    link.link_meta
-                        .on_insert_values(InsertOneLinkOnInsertParts {
-                            from_init: link.init_on_insert,
-                            from_pre_operation: (),
-                        }),
-                ),
+                Nest(link.link_meta.on_insert_values(OnInsertParts {
+                    from_init: link.init_on__insert,
+                    from_pre_operation: (),
+                })),
             )),
             returning: (
                 Nest(id_meta.identifiers()),
@@ -909,7 +1013,7 @@ mod tests {
         });
 
         let res = <Sqlite as ExecutorTrait>::fetch_optional(
-            &mut conn,
+            conn,
             Executable {
                 string: &sql,
                 arguments: arg,
@@ -919,24 +1023,31 @@ mod tests {
         .unwrap();
     }
 
-    #[linked_ql_macros::skip]
-    async fn test_insert_one() {
-        let mut conn = Sqlite::in_memory_connection().await;
-        let insert_one = Operation::<Sqlite>::exec_operation(
-            InsertOneValue {
-                meta: TodoMeta,
-                data: InsertEntity {
-                    attributes: Todo {
-                        title: "test".to_string(),
-                        done: false,
-                        description: Some("test".to_string()),
-                    },
-                    link: (),
-                },
-                infalibility: PanicOnFailure,
-            },
-            &mut conn,
-        )
-        .await;
+    async fn operation_interface(
+        this: InsertOne<TodoMeta, InsertId<i64>, PanicOnFailure>,
+        conn: &mut SqliteConnection,
+    ) -> InsertOneOperationResult {
+        Operation::<Sqlite>::exec_operation(this, conn).await;
+    }
+}
+
+mod std_trait_impls {
+    use super::*;
+
+    impl<Meta, Link, Infalibility> Clone for InsertOne<Meta, Link, Infalibility>
+    where
+        Meta: CollectionMeta + Clone,
+        Meta::InputData: Clone,
+        Link: Clone,
+        Infalibility: Clone,
+    {
+        fn clone(&self) -> Self {
+            Self {
+                meta: self.meta.clone(),
+                attributes: self.attributes.clone(),
+                link: self.link.clone(),
+                infalibility: self.infalibility.clone(),
+            }
+        }
     }
 }
