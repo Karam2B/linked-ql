@@ -69,44 +69,6 @@ pub use paste as paste_crate;
 
 pub mod define_collection;
 
-pub mod sqlx_error_handling {
-    use sqlx::{Database, Error};
-    pub trait HandleSqlxResult {
-        type Ok;
-        #[track_caller]
-        fn unwrap_sqlx_error<S: Database>(self) -> Self::Ok;
-    }
-
-    impl<T> HandleSqlxResult for Result<T, Error> {
-        type Ok = T;
-        #[track_caller]
-        fn unwrap_sqlx_error<S: Database>(self) -> T {
-            match self {
-                Ok(ok) => return ok,
-                Err(Error::Database(e)) => {
-                    match (S::NAME, e.code().map(|e| e.to_string())) {
-                        ("SQLite", Some(code)) if code == "1" => {
-                            panic!("{e:?}, hint: run migration")
-                        }
-                        (_, _) => panic!("{e:?}"),
-                    };
-                }
-                Err(e) => match &e {
-                    Error::RowNotFound => {
-                        panic!(
-                            "internal bug: linked_ql should have cleared all sqlx error at this point: {:?}",
-                            e
-                        );
-                    }
-                    _ => {
-                        panic!("database error: {:?}", e);
-                    }
-                },
-            }
-        }
-    }
-}
-
 pub mod debug_row {
     use core::fmt;
     use sqlx::{Column, Row};

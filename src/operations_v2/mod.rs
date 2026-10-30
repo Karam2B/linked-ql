@@ -20,91 +20,32 @@
 //! if you have [Pool](sqlx::Pool) you can obtain it from `sqlx::Pool::begin`
 //!
 //! # Fallibility
-//! Check the [fallibility](crate::operations_v2::fallibility) module for more details.
+//! Insert and update operations might fail due to the state of the database, like unique key violation
+//! or foreign key violation, etc. use [PropagateStateErrors](crate::extend_sqlx::database_error::PropagateStateErrors) to propagate these errors.
+//!
+//! ```rust
+//! let result = Operation::<Sqlite>::exec_operation(
+//!     InsertOne {
+//!         meta: TodoMeta,
+//!         attributes: Todo {
+//!             .. some code ..
+//!         },
+//!         link: InsertId(3),
+//!         infalibility: PropagateStateErrors,
+//!     }, &mut connection).await.unwrap_err();
+//!
+//! // if there is entity with id = 3
+//! assert_eq!(result, StateError::UniqueViolation);
+//! ```
+//!
+//!
+//!
 //!
 
 use futures::Stream;
 use sqlx::Database;
 
 pub mod insert_one;
-pub mod fallibility {
-    //! # Infalibility
-    //! All operations are supposed to be infalible, if they can fail,
-    //! failure should be handled declaratively:
-    //!
-    //! ```ignore
-    //! pub struct InsertOne<Infalibility> {
-    //!     ... some code ...
-    //! }
-    //!
-    //! impl OperationOutput for InsertOne<PanicOnFailure> {
-    //!     type Output = OutputType;
-    //! }
-    //!
-    //! impl OperationOutput for InsertOne<ResultOnFailure> {
-    //!     type Output = Result<OutputType, ()>;
-    //! }
-    //!
-    //! ```
-    //!
-    //! There are two categories of failures:
-    //!     - what this crate expects to clear
-    //!         - syntax errors
-    //!         - not null constraint violation
-    //!         - check constraint violation
-    //!     - errors depends on the state of the database, like
-    //!         - foreign key violation
-    //!         - unique constraint violation
-    //!         - check constraint violation that depends on values of columns
-
-    //!
-    //! Any error of the first category is considered to be a bug in linked_ql.
-    //! Otherwise, the user has to be given a chance to handle the error, using any of
-    //! [Fallibility](crate::operations_v2::fallibility::Fallibility)
-    //!
-    //! Some constraints can be better handled by creating new type,
-    //! consider an integer that has to be more than 10, you can have
-    //! ```ignore
-    //!
-    //! pub struct ShoppingEntity {
-    //!     pub name: String,
-    //!     pub price: MoreThanTen,
-    //! }
-    //!
-    //! sqlx_new_type! {
-    //!     pub struct MoreThanTen(i32);
-    //! }
-    //!
-    //! impl MoreThanTen {
-    //!     pub fn new(value: i32) -> Option<Self> {
-    //!         if value > 10 {
-    //!             Some(Self(value))
-    //!         } else {
-    //!             None
-    //!         }
-    //!     }
-    //! }
-    //! ```
-    //!
-    //! In this fation it's the user's responsibility to clear the error before constructing
-    //! an entity.
-    //!
-    //! ------
-    //! In addition to the two categories above, there are errors that pose design challenges.
-    //!
-    //! On theory all links are optional, and id is auto generated. but consider these cases:
-    //!
-    //! 1. missing non-auto-generated id
-    //!
-    //!
-    //! 2. missing required link
-    //!
-
-    #[derive(Debug, Clone)]
-    pub struct PanicOnFailure;
-    #[derive(Debug, Clone)]
-    pub struct ResultOnFailure;
-}
 
 /// refactor todo:
 /// - I have some reimports, replace them by original code from crate::operations::*
@@ -126,6 +67,16 @@ pub use crate::operations::Operation;
 /// See the (module level documentation)[] for more details.
 pub trait StreamedOperation<S>: OperationOutput<Output: Send> + Send {
     fn stream_operation(self, conn: &mut S::Connection) -> impl Stream<Item = Self::Output> + Send
+    where
+        Self: Sized,
+        S: Database;
+}
+
+pub trait FallibleOperation<S>: FallibleOperationOutput<Output: Send, Error: Send> + Send {
+    fn exec_operation(
+        self,
+        conn: &mut S::Connection,
+    ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
     where
         Self: Sized,
         S: Database;
@@ -154,10 +105,13 @@ pub mod streamed_ops {
 
     use futures::StreamExt;
 
-    use crate::operations_v2::{
-        Operation, OperationOutput, StreamedOperation,
-        fallibility::{PanicOnFailure, ResultOnFailure},
+    use crate::{
+        extend_sqlx::database_error::DeclaritiveInfallible,
+        operations_v2::{Operation, OperationOutput, StreamedOperation},
     };
+
+    /// Operation is expected to run on one record, but got multiple.
+    pub struct ExpectOneRecord;
 
     /// Streamed operation collected as a vector
     pub struct OperationVec<T>(pub T);
@@ -237,14 +191,14 @@ pub mod streamed_ops {
         pub infalibility: Infalibility,
     }
 
-    impl<T> OperationOutput for OneRecordOperation<T, PanicOnFailure>
+    impl<T> OperationOutput for OneRecordOperation<T, DeclaritiveInfallible>
     where
         T: OperationOutput,
     {
         type Output = Option<T::Output>;
     }
 
-    impl<S, T> Operation<S> for OneRecordOperation<T, PanicOnFailure>
+    impl<S, T> Operation<S> for OneRecordOperation<T, DeclaritiveInfallible>
     where
         T: OperationOutput,
         T: StreamedOperation<S>,
@@ -268,14 +222,14 @@ pub mod streamed_ops {
         }
     }
 
-    impl<T> OperationOutput for OneRecordOperation<T, ResultOnFailure>
+    impl<T> OperationOutput for OneRecordOperation<T, ExpectOneRecord>
     where
         T: OperationOutput,
     {
         type Output = Result<Option<T::Output>, ()>;
     }
 
-    impl<S, T> Operation<S> for OneRecordOperation<T, ResultOnFailure>
+    impl<S, T> Operation<S> for OneRecordOperation<T, ExpectOneRecord>
     where
         T: OperationOutput,
         T: StreamedOperation<S>,

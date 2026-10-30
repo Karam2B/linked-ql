@@ -84,3 +84,109 @@ mod connect_in_memory_for_sqlite {
         }
     }
 }
+
+#[cfg(feature = "refactor")]
+mod state_error_info_for_sqlite {
+    use sqlx::Sqlite;
+
+    use crate::extend_sqlx::database_error::{ErrorHandler, PropagateStateErrors, StateError};
+
+    impl ErrorHandler<Sqlite> for PropagateStateErrors {
+        #[track_caller]
+        fn handle_sqlx_error(&self, err: sqlx::Error) -> Self::Error {
+            match err {
+                sqlx::Error::Database(e) => {
+                    if e.is_foreign_key_violation() {
+                        StateError::ForeignKeyViolation
+                    } else if e.is_unique_violation() {
+                        StateError::UniqueViolation
+                    } else if let Some(e) = e.code() {
+                        // notes:
+                        // - look at https://www.sqlite.org/rescode.html
+                        // - "1299" SQLITE_CONSTRAINT_NOTNULL is a schema error.
+                        match e.as_ref() {
+                            "2067" => StateError::UniqueViolation, // SQLITE_CONSTRAINT_UNIQUE
+                            "1555" => StateError::UniqueViolation, // SQLITE_PRIMARYKEY
+                            "2579" => StateError::UniqueViolation, // SQLITE_ROWID
+                            "787" => StateError::ForeignKeyViolation, // SQLITE_CONSTRAINT_FOREIGNKEY
+                            "1811" => StateError::Other,              // SQLITE_CONSTRAINT_TRIGGER
+                            "275" => StateError::Other,               // SQLITE_CONSTRAINT_CHECK
+                            _ => panic!("bug: {:?}", err),
+                        }
+                    } else {
+                        panic!("bug: {:?}", err);
+                    }
+                }
+                // schema
+                sqlx::Error::Decode(_)
+                | sqlx::Error::Encode(_)
+                | sqlx::Error::RowNotFound
+                | sqlx::Error::TypeNotFound
+                | sqlx::Error::ColumnIndexOutOfBounds
+                | sqlx::Error::ColumnNotFound(_)
+                | sqlx::Error::ColumnDecode(_)
+                | sqlx::Error::ColumnNotFound(_) => {
+                    panic!("bug: {:?}", err);
+                }
+                // operational
+                sqlx::Error::Io(_)
+                | sqlx::Error::Tls(_)
+                | sqlx::Error::PoolTimedOut
+                | sqlx::Error::PoolClosed
+                | sqlx::Error::WorkerCrashed => {
+                    panic!("{:?}", err);
+                }
+                // unsure, mostly operational
+                _ => {
+                    panic!("{:?}", err);
+                }
+            }
+        }
+    }
+}
+
+/*
+SQLite error	Numeric code
+SQLITE_CONSTRAINT_UNIQUE	2067
+SQLITE_CONSTRAINT_PRIMARYKEY	1555
+SQLITE_CONSTRAINT_ROWID	2579
+SQLITE_CONSTRAINT_FOREIGNKEY	787
+SQLITE_CONSTRAINT_TRIGGER	1811
+SQLITE_CONSTRAINT_CHECK	275
+SQLITE_CONSTRAINT_NOTNULL	1299
+
+
+        let (boxed, ty) = match err {
+            sqlx::Error::Database(e) => {
+                if e.is_foreign_key_violation() {
+                    (e, StateErrorType::ForeignKeyViolation)
+                } else if e.is_unique_violation() {
+                    (e, StateErrorType::UniqueViolation)
+                } else {
+                    if let Some(e) = Info::state_error_info(e) {
+                        // ambiguous error. probably operational error.
+                        panic!("{:?}", err)
+                    } else {
+                        // schema error
+                        panic!("bug: {:?}", err)
+                    }
+                }
+            }
+
+            // schema
+            sqlx::Error::Decode(_) | sqlx::Error::Encode(_) => {
+                panic!("bug: {:?}", err);
+            }
+
+            // operational
+            sqlx::Error::Io(_) | sqlx::Error::Tls(_) => {
+                panic!("{:?}", err);
+            }
+
+            // unsure, mostly operational
+            _ => {
+                panic!("{:?}", err);
+            }
+        };
+
+ */

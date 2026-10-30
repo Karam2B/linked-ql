@@ -1,6 +1,13 @@
 //! # DatabaseError
 //! This module defines how sqlx::Error-s are propagated/paniced on.
 //!
+//! # Declaritive Infalliblility
+//! Operation in this crate are expected to declare how they handle errors during
+//! constructing their type, usually they clear out all errors an ORM is supposed to handle
+//! and return errors that are the user's fault (called state errors).
+//!
+//! Look for (more information)[crate::operations_v2]
+//!
 //! # Dicecting sqlx::Error
 //!
 //! ## Schema Errors
@@ -16,13 +23,20 @@
 //! - sqlx::Error::Decode
 //! - sqlx::Error::Database(e) && e.kind() is ErrorKind::NotNullViolation
 //! - sqlx::Error::Database(e) && e.kind() is ErrorKind::CheckViolation
+//!     will be assumed to be a state error, unless more information is available.
 //!
 //! ## State Errors
 //! A category of errors that are caused by state of the database,
-//! like unique key violation, foreign key violation, check violation, etc.
+//! like unique key violation, foreign key violation, etc.
 //!
 //! - sqlx::Error::Database(e) && e.kind() is ErrorKind::ForeignKeyViolation
 //! - sqlx::Error::Database(e) && e.kind() is ErrorKind::UniqueViolation
+//! - sqlx::Error::Database(e) && e.kind() is ErrorKind::CheckViolation
+//!     this is tricky, if there is a check constraint that depends on two columns, and you update only one
+//!     that would be a case of state error, but if you update both columns, you should be able to anticipate
+//!     the error, and this would be a case of schema error.
+//! - sqlx::Error::Database(e) && e.kind() is ErrorKind::Other
+//!     this is might be the way the db reports trigger violation (like sqlite error code 1811).
 //!
 //! This it the trickies type of errors, at some level, there
 //! is no way to anticipate this error, but ultimately, this is
@@ -43,7 +57,7 @@
 //! - sqlx::Error::AnyDriverError
 //! - sqlx::Error::Protocol
 //!     The documentation said the this might be caused by programming error in sqlx deriver code,
-//!     in that case, sqlx should have paniced on this error.
+//!     in that case, sqlx should have paniced on this error and never propagate it to us.
 //!     Other possibility is to be caused by problem in the connection,
 //!     which make this error operational error.
 //! - sqlx::Error::PoolTimedOut
@@ -52,13 +66,14 @@
 //! - sqlx::Error::Migrate
 //! - sqlx::Error::InvalidSavePointStatement
 //! - sqlx::Error::BeginFailed
+//! - non_execlusive
 //!
 //! These seems to be operational errors, but they are either poorly
 //! documented, irrelavent to this crate, or not well tested yet.
 //!
 //! ## Level of Abstraction
 //! If you are building an application where you are in control
-//! of all its aspects, `Result` should always be anticipated, or
+//! of all its aspects, `Result` should always be anticipated or
 //! panic on, and never propagated. This should be done in a way
 //! user is informed of any possible error before it happens.
 //!
@@ -75,13 +90,14 @@
 //!
 //! That being said, it is challenging to create such an application.
 //!
-//! As far as ORMs are concerned, schema and operational errors should
+//! As far as ORM level of abstraction is concerned, schema and operational errors should
 //! be paniced on, while state errors should be propagated to the user.
 //!
-//! Although at "closed system" application level, state errors can
+//! Although at "closed system", state errors can
 //! be anticipated. If you are aware that there is only one editor that
 //! modify the database only through your applications, you can check
-//! if a foreign key violation -- for example -- would occur or not.
+//! -- for example -- if a foreign key violation would occur or not.
+//!
 //! Consider this psudocode:
 //!
 //! ```
@@ -98,10 +114,55 @@
 //! # Testing
 //! For now I have tested the behavior of sqlite, other databases behavior is
 //! not guaranteed.
-//!
+
+/*
+    refactor todos:
+    - this module replaces `operations::insert::AbortOperation`
+    - this module repalces `operations::insert::DismissFailure`
+    - this module replaces `operations::insert::ConstraintViolation`
+
+*/
+
+pub trait ErrorType {
+    type Error;
+}
+pub trait ErrorHandler<S>: ErrorType {
+    fn handle_sqlx_error(&self, err: sqlx::Error) -> Self::Error;
+}
+
+pub struct PropagateStateErrors;
+
+/// minimal representation of how state errors are represented in the database.
+/// obtained by specifying `PropagateStateErrors` in place where infalibility is expected.
+pub enum StateError {
+    /// Foreign key violation.
+    ForeignKeyViolation,
+    /// Unique key violation.
+    UniqueViolation,
+    /// A violation due to the value of other column in the same or other table.
+    /// Example: check constraint that depends on two columns, trigger raised an error, etc.
+    Other,
+}
+
+impl ErrorType for PropagateStateErrors {
+    type Error = StateError;
+}
+
+pub struct DeclaritiveInfallible;
+
+impl ErrorType for DeclaritiveInfallible {
+    type Error = std::convert::Infallible;
+}
+
+impl<S> ErrorHandler<S> for DeclaritiveInfallible {
+    #[track_caller]
+    fn handle_sqlx_error(&self, err: sqlx::Error) -> Self::Error {
+        panic!("{:?}", err);
+    }
+}
 
 #[cfg(test)]
-mod understanding_of_sqlx_error_is_correct {
+mod test_schema_errors_in_sqlite {
     use sqlx::{Row, Sqlite};
 
     use crate::extend_sqlx::InMemoryConnection;
@@ -111,7 +172,7 @@ mod understanding_of_sqlx_error_is_correct {
         let mut conn = Sqlite::in_memory_connection().await;
 
         let res = sqlx::query("SELECT $1")
-            .bind("foo")
+            .bind("foo") // bind value is of type &str
             .fetch_one(&mut conn)
             .await
             .unwrap();

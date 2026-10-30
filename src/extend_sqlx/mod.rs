@@ -1,6 +1,7 @@
 use sqlx::{Database, Pool};
 use sqlx::{Encode, Type};
 mod database_any_impls;
+#[cfg(feature = "refactor")]
 pub mod database_error;
 mod database_sqlite_impls;
 

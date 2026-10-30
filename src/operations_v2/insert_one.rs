@@ -183,9 +183,10 @@ mod impl_operation_for_insert_one {
     use super::*;
     use crate::execute::Executable;
     use crate::extend_sqlx::DatabaseStatementBuilder;
+    use crate::extend_sqlx::database_error::{ErrorHandler, ErrorType};
     use crate::fix_executor::ExecutorTrait;
     use crate::operations::{Operation, OperationOutput};
-    use crate::operations_v2::fallibility::PanicOnFailure;
+    use crate::operations_v2::{FallibleOperation, FallibleOperationOutput};
     use crate::sqlx_query_builder::Expression;
     use crate::sqlx_query_builder::combinators::Nest;
     use crate::sqlx_query_builder::statements::insert_statement::{
@@ -194,17 +195,22 @@ mod impl_operation_for_insert_one {
     use crate::valid_syntax::{MembersExpressions, TableExpressions};
     use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
-    impl<Meta, Link, LinkSpec> OperationOutput for InsertOne<Meta, Link, PanicOnFailure>
+    impl<Meta, Link, LinkSpec, Fallibility> FallibleOperationOutput
+        for InsertOne<Meta, Link, Fallibility>
     where
+        Fallibility: ErrorType,
         Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
         LinkSpec: InsertOneLinkMeta,
         Meta: CollectionMeta,
     {
         type Output = LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkSpec::Output>;
+        type Error = Fallibility::Error;
     }
 
-    impl<S, Meta, Link, LinkMeta> Operation<S> for InsertOne<Meta, Link, PanicOnFailure>
+    impl<S, Meta, Link, LinkMeta, Fallibility> FallibleOperation<S>
+        for InsertOne<Meta, Link, Fallibility>
     where
+        Fallibility: Send + ErrorHandler<S, Error: Send>,
         S: DatabaseStatementBuilder + ExecutorTrait,
         Link: InsertOneLink<Meta, LinkMeta = LinkMeta> + Send,
         // prepare for sql statement
@@ -246,7 +252,7 @@ mod impl_operation_for_insert_one {
         fn exec_operation(
             self,
             conn: &mut S::Connection,
-        ) -> impl Future<Output = Self::Output> + Send
+        ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
         where
             S: sqlx::Database,
             Self: Sized,
@@ -283,6 +289,8 @@ mod impl_operation_for_insert_one {
                 .await
                 .expect("bug is assumed .. but it might be constraint violation")
                 .expect("bug: returning is specified");
+
+                todo!()
             }
         }
     }
@@ -916,6 +924,7 @@ mod tests {
 
     use crate::collections::CollectionMeta;
     use crate::define_collection::collections_example::{Category, CategoryMeta, Todo, TodoMeta};
+    use crate::extend_sqlx::database_error::PropagateStateErrors;
     use crate::links::SetNew;
     use crate::operations::Operation;
     use crate::operations_v2::insert_one::insert_id_link::InsertId;
@@ -924,7 +933,6 @@ mod tests {
         execute::Executable,
         extend_sqlx::InMemoryConnection,
         fix_executor::ExecutorTrait,
-        operations_v2::fallibility::PanicOnFailure,
         sqlx_query_builder::{
             Expression,
             combinators::Nest,
@@ -935,7 +943,7 @@ mod tests {
 
     use super::*;
 
-    type InsertOneOperation = InsertOne<TodoMeta, InsertId<i64>, PanicOnFailure>;
+    type InsertOneOperation = InsertOne<TodoMeta, InsertId<i64>, PropagateStateErrors>;
     type InsertOneOperationResult = ();
 
     #[tokio::test]
@@ -971,7 +979,7 @@ mod tests {
                 description: Some("test".to_string()),
             },
             link: InsertId(4),
-            infalibility: PanicOnFailure,
+            infalibility: PropagateStateErrors,
         };
 
         // operation_body(this.clone(), &mut conn).await;
@@ -982,7 +990,7 @@ mod tests {
     }
 
     async fn operation_body(
-        this: InsertOne<TodoMeta, InsertId<i64>, PanicOnFailure>,
+        this: InsertOne<TodoMeta, InsertId<i64>, PropagateStateErrors>,
         conn: &mut SqliteConnection,
     ) -> InsertOneOperationResult {
         let id_meta = this.meta.id_meta();
@@ -1024,7 +1032,7 @@ mod tests {
     }
 
     async fn operation_interface(
-        this: InsertOne<TodoMeta, InsertId<i64>, PanicOnFailure>,
+        this: InsertOne<TodoMeta, InsertId<i64>, PropagateStateErrors>,
         conn: &mut SqliteConnection,
     ) -> InsertOneOperationResult {
         Operation::<Sqlite>::exec_operation(this, conn).await;
