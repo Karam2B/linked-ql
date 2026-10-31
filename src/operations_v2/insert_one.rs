@@ -43,14 +43,15 @@
 // ====================================
 use crate::{
     collections::CollectionMeta, from_row::FromRowData, operations::OperationOutput,
-    valid_syntax::OnInsert,
+    operations_v2::FallibleOperationOutput, valid_syntax::OnInsert,
 };
 
 /// User facing types used in insert one operations.
 /// Types implementing this trait are used directly by the user
 /// to use a link in an insert one operation.
 pub trait InsertOneLink<Base> {
-    type LinkMeta: InsertOneLinkMeta
+    type LinkMeta: Send
+        + InsertOneLinkMeta
         + for<'a> OnInsert<
             'a,
             InputData = OnInsertParts<
@@ -108,18 +109,18 @@ pub struct SqlStatmentParts<PostOperation, SqlStatment_Output> {
 #[allow(non_camel_case_types)]
 pub trait InsertOneLinkMeta {
     /// passed from `init` to `sql_statement` method
-    type Init_SqlStatement;
+    type Init_SqlStatement: Send;
 
     /// passed from `init` to `OnInsert::on_insert`
-    type Init_OnInsert;
+    type Init_OnInsert: Send;
 
     /// operation executed before the main sql statement, to implement Operation<S>
-    type PreOperation: OperationOutput;
+    type PreOperation: Send + FallibleOperationOutput;
 
     /// split PreOperation expensive data into parts
     fn pre_operation_parts(
         &self,
-        pre_operation_output: <Self::PreOperation as OperationOutput>::Output,
+        pre_operation_output: <Self::PreOperation as FallibleOperationOutput>::Output,
     ) -> PreOperationParts<
         Self::PreOperation_OnInsert,
         Self::PreOperation_SqlStatement,
@@ -127,16 +128,16 @@ pub trait InsertOneLinkMeta {
     >;
 
     /// passed from `pre_operation_parts` to `OnInsert::on_insert` method
-    type PreOperation_OnInsert;
+    type PreOperation_OnInsert: Send;
     /// passed from `pre_operation_parts` to `output` method
-    type PreOperation_Output;
+    type PreOperation_Output: Send;
     /// passed from `pre_operation_parts` to `sql_statement` method
-    type PreOperation_SqlStatement;
+    type PreOperation_SqlStatement: Send;
 
     /// to retrieve members specified in INSERT INTO clause of the insert sql
     fn indentifiers(&self) -> Self::Identifiers;
     /// to retrieve members specified in INSERT INTO clause of the insert sql, to implement Join<Identifiers>: Expression<S, 'q>
-    type Identifiers;
+    type Identifiers: Send;
 
     /// to retrieve members specified in RETURNING clause of the insert sql
     fn from_row(&self) -> Self::FromRow;
@@ -152,10 +153,10 @@ pub trait InsertOneLinkMeta {
     ) -> SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output>;
 
     /// operation executed sql statement, to implement Operation<S>
-    type PostOperation: OperationOutput;
+    type PostOperation: Send + OperationOutput;
 
     /// passed from `sql_statement` to `output`
-    type SqlStatement_Output;
+    type SqlStatement_Output: Send;
 
     /// to return link's output
     fn output(
@@ -166,7 +167,7 @@ pub trait InsertOneLinkMeta {
     ) -> Self::Output;
 
     /// main data extracted by the link
-    type Output;
+    type Output: Send;
 }
 
 // ======================================
@@ -192,16 +193,17 @@ mod impl_operation_for_insert_one {
     use crate::sqlx_query_builder::statements::insert_statement::{
         InsertOneValue, InsertStatement,
     };
+    use crate::from_row::FromRow;
     use crate::valid_syntax::{MembersExpressions, TableExpressions};
     use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
     impl<Meta, Link, LinkSpec, Fallibility> FallibleOperationOutput
         for InsertOne<Meta, Link, Fallibility>
     where
-        Fallibility: ErrorType,
+        Fallibility: ErrorType<Error: Send>,
         Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
-        LinkSpec: InsertOneLinkMeta,
-        Meta: CollectionMeta,
+        LinkSpec: InsertOneLinkMeta<Output: Send>,
+        Meta: CollectionMeta<OutputData: Send, OutputIdData: Send>,
     {
         type Output = LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkSpec::Output>;
         type Error = Fallibility::Error;
@@ -214,7 +216,8 @@ mod impl_operation_for_insert_one {
         S: DatabaseStatementBuilder + ExecutorTrait,
         Link: InsertOneLink<Meta, LinkMeta = LinkMeta> + Send,
         // prepare for sql statement
-        LinkMeta: InsertOneLinkMeta
+        LinkMeta: Send
+            + InsertOneLinkMeta
             + for<'a> OnInsert<
                 'a,
                 InputData = OnInsertParts<
@@ -248,6 +251,12 @@ mod impl_operation_for_insert_one {
                 Nest<<LinkMeta as InsertOneLinkMeta>::Identifiers>,
             ),
         >: Expression<'q, S>,
+        // pre operation cannot fail with an error outside this operation's error
+        LinkMeta::PreOperation: FallibleOperation<S, Error: Into<Self::Error>>,
+        LinkMeta::PostOperation: Operation<S>,
+        Meta: for<'r> FromRow<'r, S::Row, RData = Meta::OutputData>,
+        Meta::IdMeta: Send + for<'r> FromRow<'r, S::Row, RData = Meta::OutputIdData>,
+        for<'r> LinkMeta::FromRow: FromRow<'r, S::Row>,
     {
         fn exec_operation(
             self,
@@ -258,39 +267,79 @@ mod impl_operation_for_insert_one {
             Self: Sized,
         {
             async move {
-                let link = self.link.init(self.meta.clone());
+                let id_meta = self.meta.id_meta();
+                let InsertParts {
+                    link_meta,
+                    pre_operation,
+                    init_on__insert,
+                    init_sql__statement,
+                } = self.link.init(self.meta.clone());
+
+                let pre_operation_output = pre_operation
+                    .exec_operation(conn)
+                    .await
+                    .map_err(Into::into)?;
+                let pre_operation_parts = link_meta.pre_operation_parts(pre_operation_output);
 
                 let (sql_string, arguments) = Expression::<'_, S>::sql_statement(InsertStatement {
                     table_name: self.meta.pascal_case(),
                     identifiers: (
                         Nest(self.meta.on_insert_identifiers()),
-                        Nest(link.link_meta.on_insert_identifiers()),
+                        Nest(link_meta.on_insert_identifiers()),
                     ),
                     values: InsertOneValue((
                         Nest(self.meta.on_insert_values(self.attributes)),
-                        Nest(link.link_meta.on_insert_values(OnInsertParts {
-                            from_init: todo!(),
-                            from_pre_operation: todo!(),
+                        Nest(link_meta.on_insert_values(OnInsertParts {
+                            from_init: init_on__insert,
+                            from_pre_operation: pre_operation_parts.pre_operation__on_insert,
                         })),
                     )),
                     returning: (
-                        Nest(self.meta.id_meta().identifiers()),
+                        Nest(id_meta.identifiers()),
                         Nest(self.meta.identifiers()),
-                        Nest(link.link_meta.indentifiers()),
+                        Nest(link_meta.indentifiers()),
                     ),
                 });
                 let row = <S as ExecutorTrait>::fetch_optional(
                     conn,
                     Executable {
                         string: sql_string.as_str(),
-                        arguments: arguments,
+                        arguments,
                     },
                 )
                 .await
-                .expect("bug is assumed .. but it might be constraint violation")
+                .map_err(|err| self.infalibility.handle_sqlx_error(err))?
                 .expect("bug: returning is specified");
 
-                todo!()
+                let id = id_meta
+                    .from_row_no_alias(&row)
+                    .expect("bug: id returning decode");
+                let attributes = self
+                    .meta
+                    .from_row_no_alias(&row)
+                    .expect("bug: attribute returning decode");
+                let from_row_data = link_meta
+                    .from_row()
+                    .from_row_no_alias(&row)
+                    .expect("bug: link returning decode");
+                let sql_parts = link_meta.sql_statement_parts(
+                    init_sql__statement,
+                    pre_operation_parts.pre_operation__sql_statement,
+                    from_row_data,
+                );
+                let post_operation_output =
+                    sql_parts.post_operation.exec_operation(conn).await;
+                let links = link_meta.output(
+                    pre_operation_parts.pre_operation__output,
+                    sql_parts.sql_statement__output,
+                    post_operation_output,
+                );
+
+                Ok(LinkedOutput {
+                    id,
+                    attributes,
+                    links,
+                })
             }
         }
     }
@@ -302,6 +351,7 @@ pub mod insert_id_link {
     use crate::{
         collections::CollectionMeta,
         operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
+        operations_v2::FallibleOperationOutput,
         valid_syntax::OnInsert,
     };
 
@@ -329,7 +379,8 @@ pub mod insert_id_link {
     impl<Base> InsertOneLink<Base> for InsertId<Base::InputIdData>
     where
         Base: CollectionMeta,
-        Base::IdMeta: for<'a> OnInsert<'a, InputData = Base::InputIdData>,
+        Base::IdMeta: Send + for<'a> OnInsert<'a, InputData = Base::InputIdData>,
+        Base::InputIdData: Send,
     {
         type LinkMeta = InsertIdMeta<Base::IdMeta>;
 
@@ -370,7 +421,7 @@ pub mod insert_id_link {
         }
     }
 
-    impl<IdMeta, OnInsertInputData> InsertOneLinkMeta for InsertIdMeta<IdMeta>
+    impl<IdMeta: Send, OnInsertInputData: Send> InsertOneLinkMeta for InsertIdMeta<IdMeta>
     where
         IdMeta: for<'a> OnInsert<'a, InputData = OnInsertInputData>,
     {
@@ -382,7 +433,7 @@ pub mod insert_id_link {
 
         fn pre_operation_parts(
             &self,
-            _: <Self::PreOperation as crate::operations::OperationOutput>::Output,
+            _: <Self::PreOperation as FallibleOperationOutput>::Output,
         ) -> super::PreOperationParts<
             Self::PreOperation_OnInsert,
             Self::PreOperation_SqlStatement,
@@ -438,7 +489,10 @@ pub mod insert_id_link {
 
 mod impl_insert_one_system_for_many_links {
     use crate::{
-        operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
+        operations_v2::{
+            FallibleOperationOutput,
+            insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
+        },
         sqlx_query_builder::combinators::Nest,
         valid_syntax::OnInsert,
     };
@@ -669,7 +723,7 @@ mod impl_insert_one_system_for_many_links {
         fn indentifiers(&self) -> Self::Identifiers {}
         fn pre_operation_parts(
             &self,
-            _: <Self::PreOperation as crate::operations::OperationOutput>::Output,
+            _: <Self::PreOperation as FallibleOperationOutput>::Output,
         ) -> super::PreOperationParts<
             Self::PreOperation_OnInsert,
             Self::PreOperation_SqlStatement,
@@ -730,7 +784,14 @@ mod impl_insert_one_system_for_many_links {
         impl<T0, T1, Base> InsertOneLink<Base> for (T0, T1)
         where
             T0: InsertOneLink<Base>,
-            T1: InsertOneLink<Base>,
+            T1: InsertOneLink<
+                Base,
+                LinkMeta: InsertOneLinkMeta<
+                    PreOperation: FallibleOperationOutput<
+                        Error = <<T0::LinkMeta as InsertOneLinkMeta>::PreOperation as FallibleOperationOutput>::Error,
+                    >,
+                >,
+            >,
             Base: Clone,
         {
             type LinkMeta = TupleMeta<(T0::LinkMeta, T1::LinkMeta)>;
@@ -815,14 +876,18 @@ mod impl_insert_one_system_for_many_links {
         impl<T0, T1> InsertOneLinkMeta for TupleMeta<(T0, T1)>
         where
             T0: InsertOneLinkMeta,
-            T1: InsertOneLinkMeta,
+            T1: InsertOneLinkMeta<
+                PreOperation: FallibleOperationOutput<
+                    Error = <T0::PreOperation as FallibleOperationOutput>::Error,
+                >,
+            >,
         {
             type Init_OnInsert = (T0::Init_OnInsert, T1::Init_OnInsert);
             type Init_SqlStatement = (T0::Init_SqlStatement, T1::Init_SqlStatement);
             type PreOperation = (T0::PreOperation, T1::PreOperation);
             fn pre_operation_parts(
                 &self,
-                pre_operation_output: <Self::PreOperation as crate::operations::OperationOutput>::Output,
+                pre_operation_output: <Self::PreOperation as FallibleOperationOutput>::Output,
             ) -> super::PreOperationParts<
                 Self::PreOperation_OnInsert,
                 Self::PreOperation_SqlStatement,
@@ -924,9 +989,12 @@ mod tests {
 
     use crate::collections::CollectionMeta;
     use crate::define_collection::collections_example::{Category, CategoryMeta, Todo, TodoMeta};
-    use crate::extend_sqlx::database_error::PropagateStateErrors;
+    use crate::extend_sqlx::database_error::{ErrorHandler, PropagateStateErrors, StateError};
+    use crate::from_row::FromRow;
     use crate::links::SetNew;
+    use crate::operations::LinkedOutput;
     use crate::operations::Operation;
+    use crate::operations_v2::FallibleOperation;
     use crate::operations_v2::insert_one::insert_id_link::InsertId;
     use crate::valid_syntax::MembersExpressions;
     use crate::{
@@ -944,7 +1012,7 @@ mod tests {
     use super::*;
 
     type InsertOneOperation = InsertOne<TodoMeta, InsertId<i64>, PropagateStateErrors>;
-    type InsertOneOperationResult = ();
+    type InsertOneOperationResult = Result<LinkedOutput<i64, Todo, ()>, StateError>;
 
     #[tokio::test]
     /// structure of the test
@@ -982,11 +1050,16 @@ mod tests {
             infalibility: PropagateStateErrors,
         };
 
-        // operation_body(this.clone(), &mut conn).await;
+        let from_body = operation_body(this.clone(), &mut conn).await.unwrap();
 
-        // this.link = InsertId(5);
+        this.link = InsertId(5);
 
-        operation_interface(this, &mut conn).await;
+        let from_interface = operation_interface(this, &mut conn).await.unwrap();
+        assert_eq!(from_body.id, 4);
+        assert_eq!(from_interface.id, 5);
+        assert_eq!(from_body.attributes, from_interface.attributes);
+        assert_eq!(from_body.links, ());
+        assert_eq!(from_interface.links, ());
     }
 
     async fn operation_body(
@@ -994,7 +1067,16 @@ mod tests {
         conn: &mut SqliteConnection,
     ) -> InsertOneOperationResult {
         let id_meta = this.meta.id_meta();
-        let link = this.link.init(this.meta.clone());
+        let InsertParts {
+            link_meta,
+            pre_operation,
+            init_on__insert,
+            init_sql__statement,
+        } = this.link.init(this.meta.clone());
+
+        let pre_operation_output =
+            FallibleOperation::<Sqlite>::exec_operation(pre_operation, conn).await?;
+        let pre_operation_parts = link_meta.pre_operation_parts(pre_operation_output);
 
         let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
             table_name: TableExpressions::pascal_case(&this.meta),
@@ -1002,25 +1084,25 @@ mod tests {
                 // attributes
                 Nest(this.meta.on_insert_identifiers()),
                 // links
-                Nest(link.link_meta.on_insert_identifiers()),
+                Nest(link_meta.on_insert_identifiers()),
             ),
             values: InsertOneValue((
                 // attributes
                 Nest(this.meta.on_insert_values(this.attributes)),
                 // links
-                Nest(link.link_meta.on_insert_values(OnInsertParts {
-                    from_init: link.init_on__insert,
-                    from_pre_operation: (),
+                Nest(link_meta.on_insert_values(OnInsertParts {
+                    from_init: init_on__insert,
+                    from_pre_operation: pre_operation_parts.pre_operation__on_insert,
                 })),
             )),
             returning: (
                 Nest(id_meta.identifiers()),
                 Nest(this.meta.identifiers()),
-                Nest(link.link_meta.on_insert_identifiers()),
+                Nest(link_meta.indentifiers()),
             ),
         });
 
-        let res = <Sqlite as ExecutorTrait>::fetch_optional(
+        let row = <Sqlite as ExecutorTrait>::fetch_optional(
             conn,
             Executable {
                 string: &sql,
@@ -1028,14 +1110,43 @@ mod tests {
             },
         ) // Pin<Box<Future<Output = ...>>>
         .await // Result<Option<SqliteRow>, sqlx::Error>
+        .map_err(|err| this.infalibility.handle_sqlx_error(err))?
         .unwrap();
+
+        let id = id_meta.from_row_no_alias(&row).expect("bug: id returning decode");
+        let attributes = this
+            .meta
+            .from_row_no_alias(&row)
+            .expect("bug: attribute returning decode");
+        let from_row_data = link_meta
+            .from_row()
+            .from_row_no_alias(&row)
+            .expect("bug: link returning decode");
+        let sql_parts = link_meta.sql_statement_parts(
+            init_sql__statement,
+            pre_operation_parts.pre_operation__sql_statement,
+            from_row_data,
+        );
+        let post_operation_output =
+            Operation::<Sqlite>::exec_operation(sql_parts.post_operation, conn).await;
+        let links = link_meta.output(
+            pre_operation_parts.pre_operation__output,
+            sql_parts.sql_statement__output,
+            post_operation_output,
+        );
+
+        Ok(LinkedOutput {
+            id,
+            attributes,
+            links,
+        })
     }
 
     async fn operation_interface(
         this: InsertOne<TodoMeta, InsertId<i64>, PropagateStateErrors>,
         conn: &mut SqliteConnection,
     ) -> InsertOneOperationResult {
-        Operation::<Sqlite>::exec_operation(this, conn).await;
+        FallibleOperation::<Sqlite>::exec_operation(this, conn).await
     }
 }
 

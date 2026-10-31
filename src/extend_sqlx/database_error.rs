@@ -130,10 +130,12 @@ pub trait ErrorHandler<S>: ErrorType {
     fn handle_sqlx_error(&self, err: sqlx::Error) -> Self::Error;
 }
 
+#[derive(Debug, Clone)]
 pub struct PropagateStateErrors;
 
 /// minimal representation of how state errors are represented in the database.
 /// obtained by specifying `PropagateStateErrors` in place where infalibility is expected.
+#[derive(Debug)]
 pub enum StateError {
     /// Foreign key violation.
     ForeignKeyViolation,
@@ -146,6 +148,12 @@ pub enum StateError {
 
 impl ErrorType for PropagateStateErrors {
     type Error = StateError;
+}
+
+impl From<std::convert::Infallible> for StateError {
+    fn from(err: std::convert::Infallible) -> Self {
+        match err {}
+    }
 }
 
 pub struct DeclaritiveInfallible;

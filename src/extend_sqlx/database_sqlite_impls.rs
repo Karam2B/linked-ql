@@ -95,7 +95,7 @@ mod state_error_info_for_sqlite {
         #[track_caller]
         fn handle_sqlx_error(&self, err: sqlx::Error) -> Self::Error {
             match err {
-                sqlx::Error::Database(e) => {
+                sqlx::Error::Database(ref e) => {
                     if e.is_foreign_key_violation() {
                         StateError::ForeignKeyViolation
                     } else if e.is_unique_violation() {
@@ -121,11 +121,10 @@ mod state_error_info_for_sqlite {
                 sqlx::Error::Decode(_)
                 | sqlx::Error::Encode(_)
                 | sqlx::Error::RowNotFound
-                | sqlx::Error::TypeNotFound
-                | sqlx::Error::ColumnIndexOutOfBounds
+                | sqlx::Error::TypeNotFound { .. }
+                | sqlx::Error::ColumnIndexOutOfBounds { .. }
                 | sqlx::Error::ColumnNotFound(_)
-                | sqlx::Error::ColumnDecode(_)
-                | sqlx::Error::ColumnNotFound(_) => {
+                | sqlx::Error::ColumnDecode { .. } => {
                     panic!("bug: {:?}", err);
                 }
                 // operational
@@ -144,49 +143,3 @@ mod state_error_info_for_sqlite {
         }
     }
 }
-
-/*
-SQLite error	Numeric code
-SQLITE_CONSTRAINT_UNIQUE	2067
-SQLITE_CONSTRAINT_PRIMARYKEY	1555
-SQLITE_CONSTRAINT_ROWID	2579
-SQLITE_CONSTRAINT_FOREIGNKEY	787
-SQLITE_CONSTRAINT_TRIGGER	1811
-SQLITE_CONSTRAINT_CHECK	275
-SQLITE_CONSTRAINT_NOTNULL	1299
-
-
-        let (boxed, ty) = match err {
-            sqlx::Error::Database(e) => {
-                if e.is_foreign_key_violation() {
-                    (e, StateErrorType::ForeignKeyViolation)
-                } else if e.is_unique_violation() {
-                    (e, StateErrorType::UniqueViolation)
-                } else {
-                    if let Some(e) = Info::state_error_info(e) {
-                        // ambiguous error. probably operational error.
-                        panic!("{:?}", err)
-                    } else {
-                        // schema error
-                        panic!("bug: {:?}", err)
-                    }
-                }
-            }
-
-            // schema
-            sqlx::Error::Decode(_) | sqlx::Error::Encode(_) => {
-                panic!("bug: {:?}", err);
-            }
-
-            // operational
-            sqlx::Error::Io(_) | sqlx::Error::Tls(_) => {
-                panic!("{:?}", err);
-            }
-
-            // unsure, mostly operational
-            _ => {
-                panic!("{:?}", err);
-            }
-        };
-
- */

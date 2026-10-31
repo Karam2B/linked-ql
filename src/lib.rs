@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![warn(unused_must_use)]
 #![cfg_attr(
     feature = "nightly_rust_specialization",
     allow(incomplete_features, unstable_syntax_pre_expansion)

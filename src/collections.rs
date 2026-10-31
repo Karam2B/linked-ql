@@ -126,6 +126,24 @@ pub mod collection_refactor {
                 "id"
             }
         }
+
+        impl crate::from_row::FromRowData for StandardId {
+            type RData = i64;
+        }
+
+        impl<'r, R> crate::from_row::FromRow<'r, R> for StandardId
+        where
+            R: sqlx::Row + 'r,
+            i64: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
+            for<'q> &'q str: sqlx::ColumnIndex<R>,
+        {
+            fn from_row_no_alias(
+                &self,
+                row: &'r R,
+            ) -> Result<Self::RData, crate::from_row::FromRowError> {
+                Ok(row.try_get("id")?)
+            }
+        }
     }
 }
 

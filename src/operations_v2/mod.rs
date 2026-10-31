@@ -54,8 +54,8 @@ pub mod insert_one;
 ///
 
 pub trait FallibleOperationOutput {
-    type Output;
-    type Error;
+    type Output: Send;
+    type Error: Send;
 }
 
 /// See the [module level documentation](crate::operations_v2) for more details.
@@ -250,6 +250,50 @@ pub mod streamed_ops {
 
                 Ok(output)
             }
+        }
+    }
+}
+
+mod many_ops_impl {
+    use super::*;
+
+    macro_rules! many_ops_impl {
+        ($($felem:ident,)? $($elem:ident, $idx:literal,)*) => {
+            impl<$($felem,)? $($elem,)*> FallibleOperationOutput for ($($felem,)? $($elem,)*)
+            where
+                $($felem: FallibleOperationOutput,)?
+                $($elem: FallibleOperationOutput<Error = <$felem as FallibleOperationOutput>::Error>,)*
+            {
+                type Output = ($($elem::Output,)*);
+                type Error = <$felem as FallibleOperationOutput>::Error;
+            }
+        };
+    }
+
+    impl FallibleOperationOutput for () {
+        type Output = ();
+        type Error = std::convert::Infallible;
+    }
+
+    impl<T0, T1> FallibleOperationOutput for (T0, T1)
+    where
+        T0: FallibleOperationOutput,
+        T1: FallibleOperationOutput<Error = <T0 as FallibleOperationOutput>::Error>,
+    {
+        type Output = (T0::Output, T1::Output);
+        type Error = <T0 as FallibleOperationOutput>::Error;
+    }
+
+    impl<S> FallibleOperation<S> for () {
+        fn exec_operation(
+            self,
+            conn: &mut S::Connection,
+        ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
+        where
+            Self: Sized,
+            S: Database,
+        {
+            async { Ok(()) }
         }
     }
 }
