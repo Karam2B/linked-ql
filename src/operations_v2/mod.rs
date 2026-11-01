@@ -45,6 +45,7 @@
 use futures::Stream;
 use sqlx::Database;
 
+pub mod insert_many;
 pub mod insert_one;
 
 /// refactor todo:
@@ -258,44 +259,74 @@ mod many_ops_impl {
     use super::*;
 
     macro_rules! many_ops_impl {
-        ($($felem:ident,)? $($elem:ident, $idx:literal,)*) => {
-            impl<$($felem,)? $($elem,)*> FallibleOperationOutput for ($($felem,)? $($elem,)*)
+        (()) => {
+            many_ops_impl!(@impl);
+        };
+        (($($T:ident),+ $(,)?)) => {
+            many_ops_impl!(@index [] [$($T),+] [0 1 2 3 4 5 6 7]);
+        };
+        (@index [$($done:tt)*] [] [$($_rest_idx:tt)*]) => {
+            many_ops_impl!(@impl $($done)*);
+        };
+        (@index [$($done:tt)*] [$T:ident $(, $Trest:ident)*] [$idx:tt $($idx_rest:tt)*]) => {
+            many_ops_impl!(@index [$($done)* $idx $T,] [$($Trest),*] [$($idx_rest)*]);
+        };
+        (@impl) => {
+            impl FallibleOperationOutput for () {
+                type Output = ();
+                type Error = std::convert::Infallible;
+            }
+
+            impl<S> FallibleOperation<S> for () {
+                fn exec_operation(
+                    self,
+                    _conn: &mut S::Connection,
+                ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
+                where
+                    Self: Sized,
+                    S: Database,
+                {
+                    async { Ok(()) }
+                }
+            }
+        };
+        (@impl $idx0:tt $T0:ident, $($idx:tt $T:ident,)*) => {
+            impl<$T0, $($T),*> FallibleOperationOutput for ($T0, $($T,)*)
             where
-                $($felem: FallibleOperationOutput,)?
-                $($elem: FallibleOperationOutput<Error = <$felem as FallibleOperationOutput>::Error>,)*
+                $T0: FallibleOperationOutput,
+                $($T: FallibleOperationOutput<Error = <$T0 as FallibleOperationOutput>::Error>,)*
             {
-                type Output = ($($elem::Output,)*);
-                type Error = <$felem as FallibleOperationOutput>::Error;
+                type Output = ($T0::Output, $($T::Output,)*);
+                type Error = <$T0 as FallibleOperationOutput>::Error;
+            }
+
+            impl<S, $T0, $($T),*> FallibleOperation<S> for ($T0, $($T,)*)
+            where
+                $T0: FallibleOperation<S>,
+                $($T: FallibleOperation<S, Error = <$T0 as FallibleOperationOutput>::Error>,)*
+            {
+                fn exec_operation(
+                    self,
+                    conn: &mut S::Connection,
+                ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
+                where
+                    Self: Sized,
+                    S: Database,
+                {
+                    async move {
+                        Ok((
+                            self.$idx0.exec_operation(conn).await?,
+                            $(self.$idx.exec_operation(conn).await?,)*
+                        ))
+                    }
+                }
             }
         };
     }
 
-    impl FallibleOperationOutput for () {
-        type Output = ();
-        type Error = std::convert::Infallible;
-    }
-
-    impl<T0, T1> FallibleOperationOutput for (T0, T1)
-    where
-        T0: FallibleOperationOutput,
-        T1: FallibleOperationOutput<Error = <T0 as FallibleOperationOutput>::Error>,
-    {
-        type Output = (T0::Output, T1::Output);
-        type Error = <T0 as FallibleOperationOutput>::Error;
-    }
-
-    impl<S> FallibleOperation<S> for () {
-        fn exec_operation(
-            self,
-            conn: &mut S::Connection,
-        ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
-        where
-            Self: Sized,
-            S: Database,
-        {
-            async { Ok(()) }
-        }
-    }
+    many_ops_impl!(());
+    many_ops_impl!((T0,));
+    many_ops_impl!((T0, T1));
 }
 
 pub use crate::operations::boxed_operation;

@@ -152,8 +152,8 @@ pub trait InsertOneLinkMeta {
         from_row_data: <Self::FromRow as FromRowData>::RData,
     ) -> SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output>;
 
-    /// operation executed sql statement, to implement Operation<S>
-    type PostOperation: Send + OperationOutput;
+    /// operation executed after the main sql statement, to implement FallibleOperation<S>
+    type PostOperation: Send + FallibleOperationOutput;
 
     /// passed from `sql_statement` to `output`
     type SqlStatement_Output: Send;
@@ -163,7 +163,7 @@ pub trait InsertOneLinkMeta {
         self,
         pre_operation_output: Self::PreOperation_Output,
         sql_statement_output: Self::SqlStatement_Output,
-        post_operation_output: <Self::PostOperation as OperationOutput>::Output,
+        post_operation_output: <Self::PostOperation as FallibleOperationOutput>::Output,
     ) -> Self::Output;
 
     /// main data extracted by the link
@@ -186,14 +186,13 @@ mod impl_operation_for_insert_one {
     use crate::extend_sqlx::DatabaseStatementBuilder;
     use crate::extend_sqlx::database_error::{ErrorHandler, ErrorType};
     use crate::fix_executor::ExecutorTrait;
-    use crate::operations::{Operation, OperationOutput};
+    use crate::from_row::FromRow;
     use crate::operations_v2::{FallibleOperation, FallibleOperationOutput};
     use crate::sqlx_query_builder::Expression;
     use crate::sqlx_query_builder::combinators::Nest;
     use crate::sqlx_query_builder::statements::insert_statement::{
         InsertOneValue, InsertStatement,
     };
-    use crate::from_row::FromRow;
     use crate::valid_syntax::{MembersExpressions, TableExpressions};
     use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
@@ -251,9 +250,8 @@ mod impl_operation_for_insert_one {
                 Nest<<LinkMeta as InsertOneLinkMeta>::Identifiers>,
             ),
         >: Expression<'q, S>,
-        // pre operation cannot fail with an error outside this operation's error
         LinkMeta::PreOperation: FallibleOperation<S, Error: Into<Self::Error>>,
-        LinkMeta::PostOperation: Operation<S>,
+        LinkMeta::PostOperation: FallibleOperation<S, Error: Into<Self::Error>>,
         Meta: for<'r> FromRow<'r, S::Row, RData = Meta::OutputData>,
         Meta::IdMeta: Send + for<'r> FromRow<'r, S::Row, RData = Meta::OutputIdData>,
         for<'r> LinkMeta::FromRow: FromRow<'r, S::Row>,
@@ -327,8 +325,11 @@ mod impl_operation_for_insert_one {
                     pre_operation_parts.pre_operation__sql_statement,
                     from_row_data,
                 );
-                let post_operation_output =
-                    sql_parts.post_operation.exec_operation(conn).await;
+                let post_operation_output = sql_parts
+                    .post_operation
+                    .exec_operation(conn)
+                    .await
+                    .map_err(Into::into)?;
                 let links = link_meta.output(
                     pre_operation_parts.pre_operation__output,
                     sql_parts.sql_statement__output,
@@ -350,8 +351,8 @@ pub mod insert_id_link {
 
     use crate::{
         collections::CollectionMeta,
-        operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
         operations_v2::FallibleOperationOutput,
+        operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
         valid_syntax::OnInsert,
     };
 
@@ -479,7 +480,7 @@ pub mod insert_id_link {
             self,
             _: Self::PreOperation_Output,
             _: Self::SqlStatement_Output,
-            _: <Self::PostOperation as crate::operations::OperationOutput>::Output,
+            _: <Self::PostOperation as FallibleOperationOutput>::Output,
         ) -> Self::Output {
         }
 
@@ -499,488 +500,315 @@ mod impl_insert_one_system_for_many_links {
 
     pub struct TupleMeta<T>(T);
 
-    macro_rules! impl_tuple {
-        ($([$idx:literal $element:ident])*) => {
-
-            #[allow(unused)]
-            impl<$($element,)* Base> InsertOneLink<Base> for ($($element,)*)
-            where $(
-                $element: InsertOneLink<Base>,
-            )* Base: Clone,
+    macro_rules! impl_insert_one_for_many_links {
+        (()) => {
+            impl_insert_one_for_many_links!(@impl);
+        };
+        (($($T:ident),+ $(,)?)) => {
+            impl_insert_one_for_many_links!(@index [] [$($T),+] [0 1 2 3 4 5 6 7]);
+        };
+        (@index [$($done:tt)*] [] [$($_rest_idx:tt)*]) => {
+            impl_insert_one_for_many_links!(@impl $($done)*);
+        };
+        (@index [$($done:tt)*] [$T:ident $(, $Trest:ident)*] [$idx:tt $($idx_rest:tt)*]) => {
+            impl_insert_one_for_many_links!(@index [$($done)* $idx $T,] [$($Trest),*] [$($idx_rest)*]);
+        };
+        (@impl) => {
+            impl<Base> InsertOneLink<Base> for ()
+            where
+                Base: Clone,
             {
-                type LinkSpec = ($(
-                    $element::LinkSpec,
-                )*);
-
+                type LinkMeta = TupleMeta<()>;
                 fn init(
                     self,
-                    base: Base,
+                    _base: Base,
                 ) -> super::InsertParts<
-                    Self::LinkSpec,
-                    <Self::LinkSpec as super::InsertOneLinkSpec>::PreOperation,
-                    <Self::LinkSpec as super::InsertOneLinkSpec>::Init_InsertValues,
-                    <Self::LinkSpec as super::InsertOneLinkSpec>::Init_SqlStatement,
+                    Self::LinkMeta,
+                    <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
+                    <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
+                    <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
                 > {
-                    let init_tuple = ($(
-                        paste::paste!(self.$idx.init(base.clone())),
-                    )*);
                     super::InsertParts {
-                        link_spec: ($(
-                            paste::paste!(init_tuple.$idx.link_spec),
-                        )*),
-                        pre_operation: ($(
-                            paste::paste!(init_tuple.$idx.pre_operation),
-                        )*),
-                        init_insert_values: ($(
-                            paste::paste!(init_tuple.$idx.init_insert_values),
-                        )*),
-                        init_sql_statement: ($(
-                            paste::paste!(init_tuple.$idx.init_sql_statement),
-                        )*),
+                        link_meta: TupleMeta(()),
+                        pre_operation: (),
+                        init_on__insert: (),
+                        init_sql__statement: (),
                     }
                 }
             }
 
-
-
-
-            #[allow(unused)]
-            impl<$($element,)*> InsertOneLinkSpec for ($($element,)*)
-            where $(
-                $element: InsertOneLinkSpec,
-            )*
-            {
-                type Init_InsertValues = ($(
-                    $element::Init_InsertValues,
-                )*);
-
-                type Init_SqlStatement = ($(
-                    $element::Init_SqlStatement,
-                )*);
-
-                type PreOperation = ($(
-                    $element::PreOperation,
-                )*);
-
+            impl InsertOneLinkMeta for TupleMeta<()> {
+                type Init_OnInsert = ();
+                type Init_SqlStatement = ();
+                type PreOperation = ();
+                type Identifiers = ();
+                fn indentifiers(&self) -> Self::Identifiers {}
                 fn pre_operation_parts(
                     &self,
-                    pre_operation_output: <Self::PreOperation as crate::operations::OperationOutput>::Output,
+                    _: <Self::PreOperation as FallibleOperationOutput>::Output,
                 ) -> super::PreOperationParts<
-                    Self::PreOperation_InsertValues,
+                    Self::PreOperation_OnInsert,
                     Self::PreOperation_SqlStatement,
                     Self::PreOperation_Output,
                 > {
-                    let tuple = ($(
-                        paste::paste!(self.$idx.pre_operation_parts(
-                            pre_operation_output.$idx,
-                        )),
-                    )*);
                     super::PreOperationParts {
-                        pre_operation_insert_values: ($(
-                            paste::paste!(tuple.$idx.pre_operation_insert_values),
-                        )*),
-                        pre_operation_output: ($(
-                            paste::paste!(tuple.$idx.pre_operation_output),
-                        )*),
-                        pre_operation_sql_statement: ($(
-                            paste::paste!(tuple.$idx.pre_operation_sql_statement),
-                        )*),
+                        pre_operation__on_insert: (),
+                        pre_operation__output: (),
+                        pre_operation__sql_statement: (),
                     }
                 }
-
-                type PreOperation_InsertValues = ($(
-                    $element::PreOperation_InsertValues,
-                )*);
-
-                type PreOperation_Output = ($(
-                    $element::PreOperation_Output,
-                )*);
-
-                type PreOperation_SqlStatement = ($(
-                    $element::PreOperation_SqlStatement,
-                )*);
-
-                fn insert_identifiers(&self) -> Self::InsertIdentifiers {
-                    ($(
-                        Nest(paste::paste!(self.$idx.insert_identifiers())),
-                    )*)
-                }
-
-                type InsertIdentifiers = ($(
-                    Nest<$element::InsertIdentifiers>,
-                )*);
-
-                fn insert_values(
+                type PreOperation_OnInsert = ();
+                type PreOperation_Output = ();
+                type PreOperation_SqlStatement = ();
+                fn from_row(&self) -> Self::FromRow {}
+                type FromRow = ();
+                fn sql_statement_parts(
                     &self,
-                    init_insert_values: Self::Init_InsertValues,
-                    pre_operation_insert_values: Self::PreOperation_InsertValues,
-                ) -> Self::InsertValues {
-                    ($(
-                        Nest(paste::paste!(self.$idx.insert_values(
-                            init_insert_values.$idx,
-                            pre_operation_insert_values.$idx,
-                        ))),
-                    )*)
+                    _: Self::Init_SqlStatement,
+                    _: Self::PreOperation_SqlStatement,
+                    _: <Self::FromRow as crate::from_row::FromRowData>::RData,
+                ) -> super::SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output> {
+                    super::SqlStatmentParts {
+                        post_operation: (),
+                        sql_statement__output: (),
+                    }
                 }
+                type PostOperation = ();
+                type SqlStatement_Output = ();
+                fn output(
+                    self,
+                    _: Self::PreOperation_Output,
+                    _: Self::SqlStatement_Output,
+                    _: <Self::PostOperation as FallibleOperationOutput>::Output,
+                ) -> Self::Output {
+                }
+                type Output = ();
+            }
 
-                type InsertValues = ($(
-                    Nest<$element::InsertValues>,
-                )*);
+            impl<'a> OnInsert<'a> for TupleMeta<()> {
+                type InputData = OnInsertParts<(), ()>;
+                type InsertValues = ();
+                type InsertIdentifiers = ();
+                fn on_insert_values(&'a self, _: Self::InputData) -> Self::InsertValues {}
+                fn on_insert_identifiers(&'a self) -> Self::InsertIdentifiers {}
+            }
+        };
+        (@impl $idx0:tt $T0:ident, $($idx:tt $T:ident,)*) => {
+            impl<$T0, $($T,)* Base> InsertOneLink<Base> for ($T0, $($T,)*)
+            where
+                $T0: InsertOneLink<Base>,
+                $($T: InsertOneLink<
+                    Base,
+                    LinkMeta: InsertOneLinkMeta<
+                        PreOperation: FallibleOperationOutput<
+                            Error = <<$T0::LinkMeta as InsertOneLinkMeta>::PreOperation as FallibleOperationOutput>::Error,
+                        >,
+                        PostOperation: FallibleOperationOutput<
+                            Error = <<$T0::LinkMeta as InsertOneLinkMeta>::PostOperation as FallibleOperationOutput>::Error,
+                        >,
+                    >,
+                >,)*
+                Base: Clone,
+            {
+                type LinkMeta = TupleMeta<($T0::LinkMeta, $($T::LinkMeta,)*)>;
+                fn init(
+                    self,
+                    base: Base,
+                ) -> super::InsertParts<
+                    Self::LinkMeta,
+                    <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
+                    <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
+                    <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
+                > {
+                    let init_tuple = (
+                        self.$idx0.init(base.clone()),
+                        $(self.$idx.init(base.clone()),)*
+                    );
+                    super::InsertParts {
+                        link_meta: TupleMeta((
+                            init_tuple.$idx0.link_meta,
+                            $(init_tuple.$idx.link_meta,)*
+                        )),
+                        pre_operation: (
+                            init_tuple.$idx0.pre_operation,
+                            $(init_tuple.$idx.pre_operation,)*
+                        ),
+                        init_on__insert: (
+                            init_tuple.$idx0.init_on__insert,
+                            $(init_tuple.$idx.init_on__insert,)*
+                        ),
+                        init_sql__statement: (
+                            init_tuple.$idx0.init_sql__statement,
+                            $(init_tuple.$idx.init_sql__statement,)*
+                        ),
+                    }
+                }
+            }
 
-                fn from_row(&self) -> Self::FromRow {
+            impl<'a, $T0, $($T),*> OnInsert<'a> for TupleMeta<($T0, $($T,)*)>
+            where
+                $T0: InsertOneLinkMeta
+                    + OnInsert<
+                        'a,
+                        InputData = OnInsertParts<$T0::Init_OnInsert, $T0::PreOperation_OnInsert>,
+                    >,
+                $($T: InsertOneLinkMeta
+                    + OnInsert<
+                        'a,
+                        InputData = OnInsertParts<$T::Init_OnInsert, $T::PreOperation_OnInsert>,
+                    >,)*
+            {
+                type InputData = OnInsertParts<
+                    ($T0::Init_OnInsert, $($T::Init_OnInsert,)*),
+                    ($T0::PreOperation_OnInsert, $($T::PreOperation_OnInsert,)*),
+                >;
+                type InsertValues = (Nest<$T0::InsertValues>, $(Nest<$T::InsertValues>,)*);
+                type InsertIdentifiers = (Nest<$T0::InsertIdentifiers>, $(Nest<$T::InsertIdentifiers>,)*);
+
+                fn on_insert_values(&'a self, input: Self::InputData) -> Self::InsertValues {
                     (
+                        Nest(self.0.$idx0.on_insert_values(OnInsertParts {
+                            from_init: input.from_init.$idx0,
+                            from_pre_operation: input.from_pre_operation.$idx0,
+                        })),
                         $(
-                            paste::paste!(self.$idx.from_row()),
+                            Nest(self.0.$idx.on_insert_values(OnInsertParts {
+                                from_init: input.from_init.$idx,
+                                from_pre_operation: input.from_pre_operation.$idx,
+                            })),
                         )*
                     )
                 }
 
-                type FromRow = ($(
-                    $element::FromRow,
-                )*);
+                fn on_insert_identifiers(&'a self) -> Self::InsertIdentifiers {
+                    (
+                        Nest(self.0.$idx0.on_insert_identifiers()),
+                        $(Nest(self.0.$idx.on_insert_identifiers()),)*
+                    )
+                }
+            }
 
+            impl<$T0, $($T),*> InsertOneLinkMeta for TupleMeta<($T0, $($T,)*)>
+            where
+                $T0: InsertOneLinkMeta,
+                $($T: InsertOneLinkMeta<
+                    PreOperation: FallibleOperationOutput<
+                        Error = <$T0::PreOperation as FallibleOperationOutput>::Error,
+                    >,
+                    PostOperation: FallibleOperationOutput<
+                        Error = <$T0::PostOperation as FallibleOperationOutput>::Error,
+                    >,
+                >,)*
+            {
+                type Init_OnInsert = ($T0::Init_OnInsert, $($T::Init_OnInsert,)*);
+                type Init_SqlStatement = ($T0::Init_SqlStatement, $($T::Init_SqlStatement,)*);
+                type PreOperation = ($T0::PreOperation, $($T::PreOperation,)*);
+                fn pre_operation_parts(
+                    &self,
+                    pre_operation_output: <Self::PreOperation as FallibleOperationOutput>::Output,
+                ) -> super::PreOperationParts<
+                    Self::PreOperation_OnInsert,
+                    Self::PreOperation_SqlStatement,
+                    Self::PreOperation_Output,
+                > {
+                    let tuple = (
+                        self.0.$idx0.pre_operation_parts(pre_operation_output.$idx0),
+                        $(self.0.$idx.pre_operation_parts(pre_operation_output.$idx),)*
+                    );
+                    super::PreOperationParts {
+                        pre_operation__on_insert: (
+                            tuple.$idx0.pre_operation__on_insert,
+                            $(tuple.$idx.pre_operation__on_insert,)*
+                        ),
+                        pre_operation__output: (
+                            tuple.$idx0.pre_operation__output,
+                            $(tuple.$idx.pre_operation__output,)*
+                        ),
+                        pre_operation__sql_statement: (
+                            tuple.$idx0.pre_operation__sql_statement,
+                            $(tuple.$idx.pre_operation__sql_statement,)*
+                        ),
+                    }
+                }
+                type PreOperation_OnInsert = ($T0::PreOperation_OnInsert, $($T::PreOperation_OnInsert,)*);
+                type PreOperation_Output = ($T0::PreOperation_Output, $($T::PreOperation_Output,)*);
+                type PreOperation_SqlStatement = ($T0::PreOperation_SqlStatement, $($T::PreOperation_SqlStatement,)*);
+                type Identifiers = (Nest<$T0::Identifiers>, $(Nest<$T::Identifiers>,)*);
+                fn indentifiers(&self) -> Self::Identifiers {
+                    (
+                        Nest(self.0.$idx0.indentifiers()),
+                        $(Nest(self.0.$idx.indentifiers()),)*
+                    )
+                }
+                fn from_row(&self) -> Self::FromRow {
+                    (
+                        self.0.$idx0.from_row(),
+                        $(self.0.$idx.from_row(),)*
+                    )
+                }
+                type FromRow = ($T0::FromRow, $($T::FromRow,)*);
                 fn sql_statement_parts(
                     &self,
                     init_sql_statement: Self::Init_SqlStatement,
                     pre_operation_sql_statement: Self::PreOperation_SqlStatement,
                     from_row_data: <Self::FromRow as crate::from_row::FromRowData>::RData,
                 ) -> super::SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output> {
-                    let tuple = ($(
-                        paste::paste!(self.$idx.sql_statement_parts(
-                            init_sql_statement.$idx,
-                            pre_operation_sql_statement.$idx,
-                            from_row_data.$idx,
-                        )),
-                    )*);
+                    let tuple = (
+                        self.0.$idx0.sql_statement_parts(
+                            init_sql_statement.$idx0,
+                            pre_operation_sql_statement.$idx0,
+                            from_row_data.$idx0,
+                        ),
+                        $(
+                            self.0.$idx.sql_statement_parts(
+                                init_sql_statement.$idx,
+                                pre_operation_sql_statement.$idx,
+                                from_row_data.$idx,
+                            ),
+                        )*
+                    );
                     super::SqlStatmentParts {
-                        post_operation: ($(
-                            paste::paste!(tuple.$idx.post_operation),
-                        )*),
-                        sql_statement_output: ($(
-                            paste::paste!(tuple.$idx.sql_statement_output),
-                        )*),
+                        post_operation: (
+                            tuple.$idx0.post_operation,
+                            $(tuple.$idx.post_operation,)*
+                        ),
+                        sql_statement__output: (
+                            tuple.$idx0.sql_statement__output,
+                            $(tuple.$idx.sql_statement__output,)*
+                        ),
                     }
                 }
-
-                type PostOperation = ($(
-                    $element::PostOperation,
-                )*);
-
-                type SqlStatement_Output = ($(
-                    $element::SqlStatement_Output,
-                )*);
-
+                type PostOperation = ($T0::PostOperation, $($T::PostOperation,)*);
+                type SqlStatement_Output = ($T0::SqlStatement_Output, $($T::SqlStatement_Output,)*);
                 fn output(
                     self,
                     pre_operation_output: Self::PreOperation_Output,
                     sql_statement_output: Self::SqlStatement_Output,
-                    post_operation_output: <Self::PostOperation as crate::operations::OperationOutput>::Output,
+                    post_operation_output: <Self::PostOperation as FallibleOperationOutput>::Output,
                 ) -> Self::Output {
-                    ($(
-                        paste::paste!(self.$idx.output(
-                            pre_operation_output.$idx,
-                            sql_statement_output.$idx,
-                            post_operation_output.$idx,
-                        )),
-                    )*)
+                    (
+                        self.0.$idx0.output(
+                            pre_operation_output.$idx0,
+                            sql_statement_output.$idx0,
+                            post_operation_output.$idx0,
+                        ),
+                        $(
+                            self.0.$idx.output(
+                                pre_operation_output.$idx,
+                                sql_statement_output.$idx,
+                                post_operation_output.$idx,
+                            ),
+                        )*
+                    )
                 }
-
-                type Output = ($(
-                    $element::Output,
-                )*);
+                type Output = ($T0::Output, $($T::Output,)*);
             }
         };
     }
 
-    impl<Base> InsertOneLink<Base> for ()
-    where
-        Base: Clone,
-    {
-        type LinkMeta = TupleMeta<()>;
-        fn init(
-            self,
-            base: Base,
-        ) -> super::InsertParts<
-            Self::LinkMeta,
-            <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
-            <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
-            <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
-        > {
-            super::InsertParts {
-                link_meta: TupleMeta(()),
-                pre_operation: (),
-                init_on__insert: (),
-                init_sql__statement: (),
-            }
-        }
-    }
-
-    impl InsertOneLinkMeta for TupleMeta<()> {
-        type Init_OnInsert = ();
-        type Init_SqlStatement = ();
-        type PreOperation = ();
-        type Identifiers = ();
-        fn indentifiers(&self) -> Self::Identifiers {}
-        fn pre_operation_parts(
-            &self,
-            _: <Self::PreOperation as FallibleOperationOutput>::Output,
-        ) -> super::PreOperationParts<
-            Self::PreOperation_OnInsert,
-            Self::PreOperation_SqlStatement,
-            Self::PreOperation_Output,
-        > {
-            let tuple = ();
-            super::PreOperationParts {
-                pre_operation__on_insert: (),
-                pre_operation__output: (),
-                pre_operation__sql_statement: (),
-            }
-        }
-        type PreOperation_OnInsert = ();
-        type PreOperation_Output = ();
-        type PreOperation_SqlStatement = ();
-        fn from_row(&self) -> Self::FromRow {
-            ()
-        }
-        type FromRow = ();
-        fn sql_statement_parts(
-            &self,
-            _: Self::Init_SqlStatement,
-            _: Self::PreOperation_SqlStatement,
-            _: <Self::FromRow as crate::from_row::FromRowData>::RData,
-        ) -> super::SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output> {
-            super::SqlStatmentParts {
-                post_operation: (),
-                sql_statement__output: (),
-            }
-        }
-        type PostOperation = ();
-        type SqlStatement_Output = ();
-        fn output(
-            self,
-            _: Self::PreOperation_Output,
-            _: Self::SqlStatement_Output,
-            _: <Self::PostOperation as crate::operations::OperationOutput>::Output,
-        ) -> Self::Output {
-            ()
-        }
-        type Output = ();
-    }
-
-    impl<'a> OnInsert<'a> for TupleMeta<()> {
-        type InputData = OnInsertParts<(), ()>;
-
-        type InsertValues = ();
-
-        type InsertIdentifiers = ();
-
-        fn on_insert_values(&'a self, _: Self::InputData) -> Self::InsertValues {}
-
-        fn on_insert_identifiers(&'a self) -> Self::InsertIdentifiers {}
-    }
-
-    const _: () = {
-        #[allow(unused)]
-        impl<T0, T1, Base> InsertOneLink<Base> for (T0, T1)
-        where
-            T0: InsertOneLink<Base>,
-            T1: InsertOneLink<
-                Base,
-                LinkMeta: InsertOneLinkMeta<
-                    PreOperation: FallibleOperationOutput<
-                        Error = <<T0::LinkMeta as InsertOneLinkMeta>::PreOperation as FallibleOperationOutput>::Error,
-                    >,
-                >,
-            >,
-            Base: Clone,
-        {
-            type LinkMeta = TupleMeta<(T0::LinkMeta, T1::LinkMeta)>;
-            fn init(
-                self,
-                base: Base,
-            ) -> super::InsertParts<
-                Self::LinkMeta,
-                <Self::LinkMeta as super::InsertOneLinkMeta>::PreOperation,
-                <Self::LinkMeta as super::InsertOneLinkMeta>::Init_OnInsert,
-                <Self::LinkMeta as super::InsertOneLinkMeta>::Init_SqlStatement,
-            > {
-                let init_tuple = (
-                    paste::paste!(self.0.init(base.clone())),
-                    paste::paste!(self.1.init(base.clone())),
-                );
-                super::InsertParts {
-                    link_meta: TupleMeta((
-                        paste::paste!(init_tuple.0.link_meta),
-                        paste::paste!(init_tuple.1.link_meta),
-                    )),
-                    pre_operation: (
-                        paste::paste!(init_tuple.0.pre_operation),
-                        paste::paste!(init_tuple.1.pre_operation),
-                    ),
-                    init_on__insert: (
-                        paste::paste!(init_tuple.0.init_on__insert),
-                        paste::paste!(init_tuple.1.init_on__insert),
-                    ),
-                    init_sql__statement: (
-                        paste::paste!(init_tuple.0.init_sql__statement),
-                        paste::paste!(init_tuple.1.init_sql__statement),
-                    ),
-                }
-            }
-        }
-
-        impl<'a, T0, T1> OnInsert<'a> for TupleMeta<(T0, T1)>
-        where
-            T0: InsertOneLinkMeta
-                + OnInsert<
-                    'a,
-                    InputData = OnInsertParts<T0::Init_OnInsert, T0::PreOperation_OnInsert>,
-                >,
-            T1: InsertOneLinkMeta
-                + OnInsert<
-                    'a,
-                    InputData = OnInsertParts<T1::Init_OnInsert, T1::PreOperation_OnInsert>,
-                >,
-        {
-            type InputData = OnInsertParts<
-                (T0::Init_OnInsert, T1::Init_OnInsert),
-                (T0::PreOperation_OnInsert, T1::PreOperation_OnInsert),
-            >;
-
-            type InsertValues = (Nest<T0::InsertValues>, Nest<T1::InsertValues>);
-
-            type InsertIdentifiers = (Nest<T0::InsertIdentifiers>, Nest<T1::InsertIdentifiers>);
-
-            fn on_insert_values(&'a self, input: Self::InputData) -> Self::InsertValues {
-                (
-                    Nest(self.0.0.on_insert_values(OnInsertParts {
-                        from_init: input.from_init.0,
-                        from_pre_operation: input.from_pre_operation.0,
-                    })),
-                    Nest(self.0.1.on_insert_values(OnInsertParts {
-                        from_init: input.from_init.1,
-                        from_pre_operation: input.from_pre_operation.1,
-                    })),
-                )
-            }
-
-            fn on_insert_identifiers(&'a self) -> Self::InsertIdentifiers {
-                (
-                    Nest(self.0.0.on_insert_identifiers()),
-                    Nest(self.0.1.on_insert_identifiers()),
-                )
-            }
-        }
-
-        #[allow(unused)]
-        impl<T0, T1> InsertOneLinkMeta for TupleMeta<(T0, T1)>
-        where
-            T0: InsertOneLinkMeta,
-            T1: InsertOneLinkMeta<
-                PreOperation: FallibleOperationOutput<
-                    Error = <T0::PreOperation as FallibleOperationOutput>::Error,
-                >,
-            >,
-        {
-            type Init_OnInsert = (T0::Init_OnInsert, T1::Init_OnInsert);
-            type Init_SqlStatement = (T0::Init_SqlStatement, T1::Init_SqlStatement);
-            type PreOperation = (T0::PreOperation, T1::PreOperation);
-            fn pre_operation_parts(
-                &self,
-                pre_operation_output: <Self::PreOperation as FallibleOperationOutput>::Output,
-            ) -> super::PreOperationParts<
-                Self::PreOperation_OnInsert,
-                Self::PreOperation_SqlStatement,
-                Self::PreOperation_Output,
-            > {
-                let tuple = (
-                    paste::paste!(self.0.0.pre_operation_parts(pre_operation_output.0,)),
-                    paste::paste!(self.0.1.pre_operation_parts(pre_operation_output.1,)),
-                );
-                super::PreOperationParts {
-                    pre_operation__on_insert: (
-                        paste::paste!(tuple.0.pre_operation__on_insert),
-                        paste::paste!(tuple.1.pre_operation__on_insert),
-                    ),
-                    pre_operation__output: (
-                        paste::paste!(tuple.0.pre_operation__output),
-                        paste::paste!(tuple.1.pre_operation__output),
-                    ),
-                    pre_operation__sql_statement: (
-                        paste::paste!(tuple.0.pre_operation__sql_statement),
-                        paste::paste!(tuple.1.pre_operation__sql_statement),
-                    ),
-                }
-            }
-            type PreOperation_OnInsert = (T0::PreOperation_OnInsert, T1::PreOperation_OnInsert);
-            type PreOperation_Output = (T0::PreOperation_Output, T1::PreOperation_Output);
-            type PreOperation_SqlStatement =
-                (T0::PreOperation_SqlStatement, T1::PreOperation_SqlStatement);
-            fn from_row(&self) -> Self::FromRow {
-                (
-                    paste::paste!(self.0.0.from_row()),
-                    paste::paste!(self.0.1.from_row()),
-                )
-            }
-            type Identifiers = (Nest<T0::Identifiers>, Nest<T1::Identifiers>);
-            fn indentifiers(&self) -> Self::Identifiers {
-                (Nest(self.0.0.indentifiers()), Nest(self.0.1.indentifiers()))
-            }
-            type FromRow = (T0::FromRow, T1::FromRow);
-            fn sql_statement_parts(
-                &self,
-                init_sql_statement: Self::Init_SqlStatement,
-                pre_operation_sql_statement: Self::PreOperation_SqlStatement,
-                from_row_data: <Self::FromRow as crate::from_row::FromRowData>::RData,
-            ) -> super::SqlStatmentParts<Self::PostOperation, Self::SqlStatement_Output>
-            {
-                let tuple = (
-                    paste::paste!(self.0.0.sql_statement_parts(
-                        init_sql_statement.0,
-                        pre_operation_sql_statement.0,
-                        from_row_data.0,
-                    )),
-                    paste::paste!(self.0.1.sql_statement_parts(
-                        init_sql_statement.1,
-                        pre_operation_sql_statement.1,
-                        from_row_data.1,
-                    )),
-                );
-                super::SqlStatmentParts {
-                    post_operation: (
-                        paste::paste!(tuple.0.post_operation),
-                        paste::paste!(tuple.1.post_operation),
-                    ),
-                    sql_statement__output: (
-                        paste::paste!(tuple.0.sql_statement__output),
-                        paste::paste!(tuple.1.sql_statement__output),
-                    ),
-                }
-            }
-            type PostOperation = (T0::PostOperation, T1::PostOperation);
-            type SqlStatement_Output = (T0::SqlStatement_Output, T1::SqlStatement_Output);
-            fn output(
-                self,
-                pre_operation_output: Self::PreOperation_Output,
-                sql_statement_output: Self::SqlStatement_Output,
-                post_operation_output: <Self::PostOperation as crate::operations::OperationOutput>::Output,
-            ) -> Self::Output {
-                (
-                    paste::paste!(self.0.0.output(
-                        pre_operation_output.0,
-                        sql_statement_output.0,
-                        post_operation_output.0,
-                    )),
-                    paste::paste!(self.0.1.output(
-                        pre_operation_output.1,
-                        sql_statement_output.1,
-                        post_operation_output.1,
-                    )),
-                )
-            }
-            type Output = (T0::Output, T1::Output);
-        }
-    };
+    impl_insert_one_for_many_links!(());
+    impl_insert_one_for_many_links!((T0,));
+    impl_insert_one_for_many_links!((T0, T1));
 }
 
 #[cfg(test)]
@@ -993,7 +821,6 @@ mod tests {
     use crate::from_row::FromRow;
     use crate::links::SetNew;
     use crate::operations::LinkedOutput;
-    use crate::operations::Operation;
     use crate::operations_v2::FallibleOperation;
     use crate::operations_v2::insert_one::insert_id_link::InsertId;
     use crate::valid_syntax::MembersExpressions;
@@ -1055,11 +882,27 @@ mod tests {
         this.link = InsertId(5);
 
         let from_interface = operation_interface(this, &mut conn).await.unwrap();
-        assert_eq!(from_body.id, 4);
-        assert_eq!(from_interface.id, 5);
-        assert_eq!(from_body.attributes, from_interface.attributes);
-        assert_eq!(from_body.links, ());
-        assert_eq!(from_interface.links, ());
+        let attributes = Todo {
+            title: "test".to_string(),
+            done: false,
+            description: Some("test".to_string()),
+        };
+        assert_eq!(
+            from_body,
+            LinkedOutput {
+                id: 4,
+                attributes: attributes.clone(),
+                links: (),
+            },
+        );
+        assert_eq!(
+            from_interface,
+            LinkedOutput {
+                id: 5,
+                attributes,
+                links: (),
+            },
+        );
     }
 
     async fn operation_body(
@@ -1113,7 +956,9 @@ mod tests {
         .map_err(|err| this.infalibility.handle_sqlx_error(err))?
         .unwrap();
 
-        let id = id_meta.from_row_no_alias(&row).expect("bug: id returning decode");
+        let id = id_meta
+            .from_row_no_alias(&row)
+            .expect("bug: id returning decode");
         let attributes = this
             .meta
             .from_row_no_alias(&row)
@@ -1128,7 +973,7 @@ mod tests {
             from_row_data,
         );
         let post_operation_output =
-            Operation::<Sqlite>::exec_operation(sql_parts.post_operation, conn).await;
+            FallibleOperation::<Sqlite>::exec_operation(sql_parts.post_operation, conn).await?;
         let links = link_meta.output(
             pre_operation_parts.pre_operation__output,
             sql_parts.sql_statement__output,

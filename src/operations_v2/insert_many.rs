@@ -1,218 +1,16 @@
-//! Trait system for specifying the behavior of a link in an insert operation.
+//! Operation for inserting many records in one statement.
 //!
-//! # Insert Operation Flow
-//! This flow is used internally by the `InsertOne` operation.
-//!
-//! ╭─────────────────────────────────────────╮
-//! │       link as provided to operation     │
-//! │                   │                     │
-//! │    operation before insert statement    │
-//! │                   │                     │
-//! │      constructing insert statement      │
-//! │                   │                     │
-//! │    operation after insert statement     │
-//! │                   │                     │
-//! │              link output                │
-//! ╰─────────────────────────────────────────╯
-//!
-//! # Data Ownership
-//! In order to avoid unnecessary data cloning, there is only
-//! one part `InsertLinkParts::LinkSpec` that is passed by reference.
-//! everything else is passed by value.
+//! Each row carries its own link value. The link follows the same flow as
+//! [`InsertOne`](crate::operations_v2::insert_one::InsertOne): `init`, a
+//! fallible pre-operation, `OnInsert` values, the insert, returning decode,
+//! a fallible post-operation, then `output`. Column lists come from the first
+//! row's link meta. Every row uses that same link type.
 
-#[allow(non_camel_case_types)]
-pub mod insert_link_trait_system {
-    use crate::{from_row::FromRowData, operations::OperationOutput};
+use crate::{collections::CollectionMeta, operations_v2::insert_one::InsertOneLink};
 
-    /// User facing types used in insert one operations.
-    pub trait InsertOneLink {
-        type LinkSpec: InsertOneLinkSpec;
-        fn init(
-            self,
-        ) -> InsertParts<
-            Self::LinkSpec,
-            <Self::LinkSpec as InsertOneLinkSpec>::PreOperation,
-            <Self::LinkSpec as InsertOneLinkSpec>::Init_InsertValues,
-            <Self::LinkSpec as InsertOneLinkSpec>::Init_AfterStatement,
-        >;
-    }
-
-    pub struct InsertParts<Spec, PreOperation, Init_InsertValues, Init_AfterStatement> {
-        pub link_spec: Spec,
-        pub pre_operation: PreOperation,
-        pub init_insert_values: Init_InsertValues,
-        pub init_after_statement: Init_AfterStatement,
-    }
-
-    pub struct PreOperationParts<
-        PreOperation_InsertValues,
-        PreOperation_Output,
-        PreOperation_AfterStatement,
-    > {
-        pub pre_operation_insert_values: PreOperation_InsertValues,
-        pub pre_operation_output: PreOperation_Output,
-        pub pre_operation_after_statement: PreOperation_AfterStatement,
-    }
-
-    pub struct AfterStatmentParts<PostOperation, AfterStatment_Output> {
-        pub post_operation: PostOperation,
-        pub after_statement_output: AfterStatment_Output,
-    }
-
-    pub trait InsertOneLinkSpec {
-        type Init_InsertValues;
-        type Init_AfterStatement;
-        type PreOperation: OperationOutput;
-
-        fn pre_operation_parts(
-            &self,
-            pre_operation_output: <Self::PreOperation as OperationOutput>::Output,
-        ) -> PreOperationParts<
-            Self::PreOperation_InsertValues,
-            Self::PreOperation_Output,
-            Self::PreOperation_AfterStatement,
-        >;
-
-        type PreOperation_InsertValues;
-        type PreOperation_Output;
-        type PreOperation_AfterStatement;
-
-        fn insert_returning(&self) -> Self::InsertReturning;
-        type InsertReturning;
-
-        fn insert_values(
-            &self,
-            init_insert_values: Self::Init_InsertValues,
-            pre_operation_insert_values: Self::PreOperation_InsertValues,
-        ) -> Self::InsertValues;
-        type InsertValues;
-
-        fn from_row(&self) -> Self::FromRow;
-        type FromRow: FromRowData;
-
-        fn after_statement_parts(
-            &self,
-            from_row_data: <Self::FromRow as FromRowData>::RData,
-            init_after_statement: Self::Init_AfterStatement,
-            pre_operation_after_statement: Self::PreOperation_AfterStatement,
-        ) -> AfterStatmentParts<Self::PostOperation, Self::AfterStatement_Output>;
-        type PostOperation: OperationOutput;
-        type AfterStatement_Output;
-
-        fn output(
-            self,
-            post_operation_output: <Self::PostOperation as OperationOutput>::Output,
-            after_statement_output: Self::AfterStatement_Output,
-            pre_operation_output: Self::PreOperation_Output,
-        ) -> Self::Output;
-        type Output;
-    }
-}
-
-pub use insert_link_trait_system::*;
-
-mod impl_insert_one_system_for_unit {
-    use crate::{from_row::FromRowData, operations::OperationOutput};
-
-    use super::*;
-
-    impl InsertOneLink for () {
-        type LinkSpec = ();
-
-        fn init(
-            self,
-        ) -> InsertParts<
-            Self::LinkSpec,
-            <Self::LinkSpec as InsertOneLinkSpec>::PreOperation,
-            <Self::LinkSpec as InsertOneLinkSpec>::Init_InsertValues,
-            <Self::LinkSpec as InsertOneLinkSpec>::Init_AfterStatement,
-        > {
-            InsertParts {
-                link_spec: (),
-                pre_operation: (),
-                init_insert_values: (),
-                init_after_statement: (),
-            }
-        }
-    }
-
-    impl InsertOneLinkSpec for () {
-        type Init_InsertValues = ();
-
-        type Init_AfterStatement = ();
-
-        type PreOperation = ();
-
-        fn pre_operation_parts(
-            &self,
-            _: <Self::PreOperation as OperationOutput>::Output,
-        ) -> PreOperationParts<
-            Self::PreOperation_InsertValues,
-            Self::PreOperation_Output,
-            Self::PreOperation_AfterStatement,
-        > {
-            PreOperationParts {
-                pre_operation_insert_values: (),
-                pre_operation_output: (),
-                pre_operation_after_statement: (),
-            }
-        }
-
-        type PreOperation_InsertValues = ();
-
-        type PreOperation_Output = ();
-
-        type PreOperation_AfterStatement = ();
-
-        fn insert_returning(&self) -> Self::InsertReturning {}
-
-        type InsertReturning = ();
-
-        fn insert_values(
-            &self,
-            _: Self::Init_InsertValues,
-            _: Self::PreOperation_InsertValues,
-        ) -> Self::InsertValues {
-        }
-
-        type InsertValues = ();
-
-        fn from_row(&self) -> Self::FromRow {}
-
-        type FromRow = ();
-
-        fn after_statement_parts(
-            &self,
-            _: <Self::FromRow as FromRowData>::RData,
-            _: Self::Init_AfterStatement,
-            _: Self::PreOperation_AfterStatement,
-        ) -> AfterStatmentParts<Self::PostOperation, Self::AfterStatement_Output> {
-            AfterStatmentParts {
-                post_operation: (),
-                after_statement_output: (),
-            }
-        }
-
-        type PostOperation = ();
-
-        type AfterStatement_Output = ();
-
-        fn output(
-            self,
-            _: <Self::PostOperation as OperationOutput>::Output,
-            _: Self::AfterStatement_Output,
-            _: Self::PreOperation_Output,
-        ) -> Self::Output {
-        }
-
-        type Output = ();
-    }
-}
-
-pub struct InsertMany<Meta, LinkMeta, Data, Infalibility> {
+pub struct InsertMany<Meta: CollectionMeta, Link, Infalibility> {
     pub meta: Meta,
-    pub link_meta: LinkMeta,
-    pub data: Data,
+    pub rows: Vec<InsertEntity<<Meta as CollectionMeta>::InputData, Link>>,
     pub infalibility: Infalibility,
 }
 
@@ -223,194 +21,475 @@ pub struct InsertEntity<Attributes, Link> {
 
 mod impl_operation_for_insert_many {
     use super::*;
-    use crate::operations::{Operation, OperationOutput};
-    use crate::operations_v2::fallibility::PanicOnFailure;
-    use crate::sqlx_query_builder::statements::insert_statement::InsertStatement;
-    use crate::{collections::CollectionMeta, operations::LinkedOutput};
+    use crate::execute::Executable;
+    use crate::extend_sqlx::DatabaseStatementBuilder;
+    use crate::extend_sqlx::database_error::{ErrorHandler, ErrorType};
+    use crate::fix_executor::ExecutorTrait;
+    use crate::from_row::FromRow;
+    use crate::operations::LinkedOutput;
+    use crate::operations_v2::insert_one::{InsertOneLinkMeta, InsertParts, OnInsertParts};
+    use crate::operations_v2::{FallibleOperation, FallibleOperationOutput};
+    use crate::sqlx_query_builder::Expression;
+    use crate::sqlx_query_builder::combinators::Nest;
+    use crate::sqlx_query_builder::statements::insert_statement::{
+        InsertManyValues, InsertStatement,
+    };
+    use crate::valid_syntax::{MembersExpressions, OnInsert, TableExpressions};
 
-    impl<Meta, Link, LinkSpec> OperationOutput
-        for InsertOne<Meta, InsertEntity<Meta::InputData, Link>, PanicOnFailure>
+    impl<Meta, Link, LinkMeta, Fallibility> FallibleOperationOutput
+        for InsertMany<Meta, Link, Fallibility>
     where
-        Link: InsertOneLink<LinkSpec = LinkSpec>,
-        LinkSpec: InsertOneLinkSpec,
-        Meta: CollectionMeta,
+        Fallibility: ErrorType<Error: Send>,
+        Link: InsertOneLink<Meta, LinkMeta = LinkMeta>,
+        LinkMeta: InsertOneLinkMeta<Output: Send>,
+        Meta: CollectionMeta<OutputData: Send, OutputIdData: Send>,
     {
-        type Output = LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkSpec::Output>;
+        type Output = Vec<LinkedOutput<Meta::OutputIdData, Meta::OutputData, LinkMeta::Output>>;
+        type Error = Fallibility::Error;
     }
 
-    impl<S, H, Link, LinkSpec> Operation<S>
-        for InsertOne<H, InsertEntity<H::InputData, Link>, PanicOnFailure>
+    impl<S, Meta, Link, LinkMeta, Fallibility> FallibleOperation<S>
+        for InsertMany<Meta, Link, Fallibility>
     where
-        Link: InsertOneLink<LinkSpec = LinkSpec>,
-        LinkSpec: InsertOneLinkSpec,
-        H: CollectionMeta,
-        Self: Send,
-        Self::Output: Send,
+        Fallibility: Send + ErrorHandler<S, Error: Send>,
+        S: DatabaseStatementBuilder + ExecutorTrait,
+        Link: InsertOneLink<Meta, LinkMeta = LinkMeta> + Send,
+        LinkMeta: Send
+            + InsertOneLinkMeta
+            + for<'a> OnInsert<
+                'a,
+                InputData = OnInsertParts<
+                    <LinkMeta as InsertOneLinkMeta>::Init_OnInsert,
+                    <LinkMeta as InsertOneLinkMeta>::PreOperation_OnInsert,
+                >,
+            >,
+        LinkMeta::Output: Send,
+        Meta: CollectionMeta<IdMeta: for<'a> MembersExpressions<'a>>
+            + for<'a> TableExpressions<'a>
+            + for<'a> MembersExpressions<'a>
+            + for<'a> OnInsert<'a, InputData = <Meta as CollectionMeta>::InputData>
+            + Clone
+            + Send,
+        Meta::OutputData: Send,
+        Meta::OutputIdData: Send,
+        <Meta as CollectionMeta>::InputData: Send,
+        for<'a, 'q> InsertStatement<
+            <Meta as TableExpressions<'a>>::PascalCase,
+            (
+                Nest<<Meta as OnInsert<'a>>::InsertIdentifiers>,
+                Nest<<LinkMeta as OnInsert<'a>>::InsertIdentifiers>,
+            ),
+            InsertManyValues<
+                Vec<(
+                    Nest<<Meta as OnInsert<'a>>::InsertValues>,
+                    Nest<<LinkMeta as OnInsert<'a>>::InsertValues>,
+                )>,
+            >,
+            (
+                Nest<<Meta::IdMeta as MembersExpressions<'a>>::Identifiers>,
+                Nest<<Meta as MembersExpressions<'a>>::Identifiers>,
+                Nest<<LinkMeta as InsertOneLinkMeta>::Identifiers>,
+            ),
+        >: Expression<'q, S>,
+        LinkMeta::PreOperation: FallibleOperation<S, Error: Into<Self::Error>>,
+        LinkMeta::PostOperation: FallibleOperation<S, Error: Into<Self::Error>>,
+        Meta: for<'r> FromRow<'r, S::Row, RData = Meta::OutputData>,
+        Meta::IdMeta: Send + for<'r> FromRow<'r, S::Row, RData = Meta::OutputIdData>,
+        for<'r> LinkMeta::FromRow: FromRow<'r, S::Row>,
     {
-        fn exec_operation(self, _: &mut S::Connection) -> impl Future<Output = Self::Output> + Send
+        fn exec_operation(
+            self,
+            conn: &mut S::Connection,
+        ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send
         where
             S: sqlx::Database,
             Self: Sized,
         {
-            async move { todo!() }
+            async move {
+                if self.rows.is_empty() {
+                    return Ok(Vec::new());
+                }
+
+                let id_meta = self.meta.id_meta();
+                let mut link_metas = Vec::with_capacity(self.rows.len());
+                let mut attributes = Vec::with_capacity(self.rows.len());
+                let mut init_on_inserts = Vec::with_capacity(self.rows.len());
+                let mut init_sql_statements = Vec::with_capacity(self.rows.len());
+                let mut pre_on_inserts = Vec::with_capacity(self.rows.len());
+                let mut pre_sql_statements = Vec::with_capacity(self.rows.len());
+                let mut pre_outputs = Vec::with_capacity(self.rows.len());
+
+                for row in self.rows {
+                    let InsertParts {
+                        link_meta,
+                        pre_operation,
+                        init_on__insert,
+                        init_sql__statement,
+                    } = row.link.init(self.meta.clone());
+
+                    let pre_operation_output = pre_operation
+                        .exec_operation(conn)
+                        .await
+                        .map_err(Into::into)?;
+                    let pre_operation_parts = link_meta.pre_operation_parts(pre_operation_output);
+
+                    link_metas.push(link_meta);
+                    attributes.push(row.attributes);
+                    init_on_inserts.push(init_on__insert);
+                    init_sql_statements.push(init_sql__statement);
+                    pre_on_inserts.push(pre_operation_parts.pre_operation__on_insert);
+                    pre_sql_statements.push(pre_operation_parts.pre_operation__sql_statement);
+                    pre_outputs.push(pre_operation_parts.pre_operation__output);
+                }
+
+                let (sql_string, arguments) = Expression::<'_, S>::sql_statement(InsertStatement {
+                    table_name: self.meta.pascal_case(),
+                    identifiers: (
+                        Nest(self.meta.on_insert_identifiers()),
+                        Nest(link_metas[0].on_insert_identifiers()),
+                    ),
+                    values: InsertManyValues(
+                        attributes
+                            .into_iter()
+                            .zip(init_on_inserts)
+                            .zip(pre_on_inserts)
+                            .zip(link_metas.iter())
+                            .map(
+                                |(
+                                    ((attribute, init_on_insert), pre_operation_on_insert),
+                                    link_meta,
+                                )| {
+                                    (
+                                        Nest(self.meta.on_insert_values(attribute)),
+                                        Nest(link_meta.on_insert_values(OnInsertParts {
+                                            from_init: init_on_insert,
+                                            from_pre_operation: pre_operation_on_insert,
+                                        })),
+                                    )
+                                },
+                            )
+                            .collect::<Vec<_>>(),
+                    ),
+                    returning: (
+                        Nest(id_meta.identifiers()),
+                        Nest(self.meta.identifiers()),
+                        Nest(link_metas[0].indentifiers()),
+                    ),
+                });
+
+                let returned = <S as ExecutorTrait>::fetch_all(
+                    conn,
+                    Executable {
+                        string: sql_string.as_str(),
+                        arguments,
+                    },
+                )
+                .await
+                .map_err(|err| self.infalibility.handle_sqlx_error(err))?;
+
+                if returned.len() != link_metas.len() {
+                    panic!("bug: returning is specified");
+                }
+
+                let mut outputs = Vec::with_capacity(returned.len());
+                for (row, (((link_meta, init_sql_statement), pre_sql), pre_output)) in
+                    returned.into_iter().zip(
+                        link_metas
+                            .into_iter()
+                            .zip(init_sql_statements)
+                            .zip(pre_sql_statements)
+                            .zip(pre_outputs),
+                    )
+                {
+                    let id = id_meta
+                        .from_row_no_alias(&row)
+                        .expect("bug: id returning decode");
+                    let decoded_attributes = self
+                        .meta
+                        .from_row_no_alias(&row)
+                        .expect("bug: attribute returning decode");
+                    let from_row_data = link_meta
+                        .from_row()
+                        .from_row_no_alias(&row)
+                        .expect("bug: link returning decode");
+                    let sql_parts =
+                        link_meta.sql_statement_parts(init_sql_statement, pre_sql, from_row_data);
+                    let post_operation_output = sql_parts
+                        .post_operation
+                        .exec_operation(conn)
+                        .await
+                        .map_err(Into::into)?;
+                    let links = link_meta.output(
+                        pre_output,
+                        sql_parts.sql_statement__output,
+                        post_operation_output,
+                    );
+                    outputs.push(LinkedOutput {
+                        id,
+                        attributes: decoded_attributes,
+                        links,
+                    });
+                }
+
+                Ok(outputs)
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use sqlx::Sqlite;
+    use sqlx::{Sqlite, SqliteConnection};
 
+    use crate::define_collection::collections_example::{Todo, TodoMeta};
+    use crate::extend_sqlx::database_error::{ErrorHandler, PropagateStateErrors, StateError};
+    use crate::from_row::FromRow;
+    use crate::operations::LinkedOutput;
+    use crate::operations_v2::FallibleOperation;
+    use crate::operations_v2::insert_one::insert_id_link::InsertId;
+    use crate::operations_v2::insert_one::{InsertOneLinkMeta, InsertParts, OnInsertParts};
+    use crate::valid_syntax::{MembersExpressions, OnInsert};
     use crate::{
-        collections::{CollectionMeta, CollectionId},
-        define_collection::collections_example::{Todo, TodoMeta},
         execute::Executable,
         extend_sqlx::InMemoryConnection,
         fix_executor::ExecutorTrait,
-        operations::{IdOutput, Operation},
-        operations_v2::fallibility::PanicOnFailure,
         sqlx_query_builder::{
             Expression,
-            statements::insert_statement::{InsertOneValue, InsertStatement},
+            combinators::Nest,
+            statements::insert_statement::{InsertManyValues, InsertStatement},
         },
-        valid_syntax::{MembersExpressions, TableExpressions},
+        valid_syntax::TableExpressions,
     };
 
     use super::*;
 
-    #[linked_ql_macros::skip]
-    #[tokio::test]
-    async fn insert_many_operation_body_types_infered() {
-        let mut conn = Sqlite::in_memory_connection().await;
-        let meta = TodoMeta;
+    type InsertManyOperationResult = Result<Vec<LinkedOutput<i64, Todo, ()>>, StateError>;
 
-        let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
-            table_name: TableExpressions::pascal_case(&meta),
-            identifiers: (
-                MembersExpressions::identifier(&meta),
-                Nest((
-                    ManualIdOfMeta(&meta),
-                    MembersExpressions::identifier(&OneToMany {}),
-                )),
-            ),
-            values: [
-                InsertEntity {
-                    attributes: Todo {
-                        title: "test".to_string(),
-                        done: false,
-                        description: Some("test".to_string()),
-                    },
-                    link: (ManualId(3), IdOutput { id: 3 }),
-                },
-                InsertEntity {
-                    attributes: Todo {
-                        title: "test".to_string(),
-                        done: false,
-                        description: Some("test".to_string()),
-                    },
-                    link: (ManualId(4), IdOutput { id: 4 }),
-                },
-            ],
-            returning: (
-                MembersExpressions::identifier(&meta),
-                MembersExpressions::identifier(&CollectionMeta::id(&meta)),
-            ),
-        });
+    fn todo(title: &str) -> Todo {
+        Todo {
+            title: title.to_string(),
+            done: false,
+            description: Some(title.to_string()),
+        }
+    }
 
-        let res = <Sqlite as ExecutorTrait>::fetch_optional(
-            &mut conn,
-            Executable {
-                string: &sql,
-                arguments: arg,
+    fn rows(
+        first_id: i64,
+        first_title: &str,
+        second_title: &str,
+    ) -> Vec<InsertEntity<Todo, InsertId<i64>>> {
+        vec![
+            InsertEntity {
+                attributes: todo(first_title),
+                link: InsertId(first_id),
             },
-        ) // Pin<Box<Future<Output = ...>>>
-        .await // Result<Option<SqliteRow>, sqlx::Error>
-        .unwrap();
+            InsertEntity {
+                attributes: todo(second_title),
+                link: InsertId(first_id + 1),
+            },
+        ]
     }
 
     #[tokio::test]
-    /// structure of the test
-    /// - arguments typically passed to Operation::execute_operation
-    /// - body of execute_operation coppied almost verbatim
-    ///
-    /// The purpose of this test is to escape the generic types errors
-    /// and better visualize what is going on if all types are infered
-    async fn insert_one_operation_body_types_infered() {
+    async fn insert_many() {
         let mut conn = Sqlite::in_memory_connection().await;
-        let this = InsertMany {
-            meta: TodoMeta,
-            link_meta: (
-                InsertNew {
-                    collection: CategoryMeta,
-                    data: PhantomData::<Category>,
-                },
-                InsertId(PhantomData::<i64>),
-            ),
-            data: [
-                InsertEntity {
-                    attributes: Todo {},
-                    link: (
-                        Category {
-                            title: "test".to_string,
-                        },
-                        3,
-                    ),
-                },
-                InsertEntity {
-                    attributes: Todo {},
-                    link: (
-                        Category {
-                            title: "test".to_string,
-                        },
-                        4,
-                    ),
-                },
-            ],
-            infalibility: PanicOnFailure,
-        };
 
-        let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
-            table_name: TableExpressions::pascal_case(&this.meta),
-            identifiers: MembersExpressions::identifier(&this.meta),
-            values: InsertOneValue(InsertEntity {
-                attributes: this.data.attributes,
-                link: this.data.link,
-            }),
-            returning: (
-                MembersExpressions::identifier(&this.meta),
-                MembersExpressions::identifier(&CollectionMeta::id(&this.meta)),
-            ),
-        });
-
-        let res = <Sqlite as ExecutorTrait>::fetch_optional(
-            &mut conn,
-            Executable {
-                string: &sql,
-                arguments: arg,
-            },
-        ) // Pin<Box<Future<Output = ...>>>
-        .await // Result<Option<SqliteRow>, sqlx::Error>
+        sqlx::query(
+            "
+            CREATE TABLE IF NOT EXISTS todo (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                done BOOLEAN NOT NULL,
+                description TEXT
+            );
+        ",
+        )
+        .execute(&mut conn)
+        .await
         .unwrap();
-    }
 
-    #[linked_ql_macros::skip]
-    async fn test_insert_one() {
-        let mut conn = Sqlite::in_memory_connection().await;
-        let insert_one = Operation::<Sqlite>::exec_operation(
-            InsertOneValue {
+        let from_body = operation_body(
+            InsertMany {
                 meta: TodoMeta,
-                data: InsertEntity {
-                    attributes: Todo {
-                        title: "test".to_string(),
-                        done: false,
-                        description: Some("test".to_string()),
-                    },
-                    link: (),
-                },
-                infalibility: PanicOnFailure,
+                rows: rows(10, "first", "second"),
+                infalibility: PropagateStateErrors,
             },
             &mut conn,
         )
-        .await;
+        .await
+        .unwrap();
+
+        let from_interface = operation_interface(
+            InsertMany {
+                meta: TodoMeta,
+                rows: rows(12, "third", "fourth"),
+                infalibility: PropagateStateErrors,
+            },
+            &mut conn,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            from_body,
+            vec![
+                LinkedOutput {
+                    id: 10,
+                    attributes: todo("first"),
+                    links: (),
+                },
+                LinkedOutput {
+                    id: 11,
+                    attributes: todo("second"),
+                    links: (),
+                },
+            ],
+        );
+        assert_eq!(
+            from_interface,
+            vec![
+                LinkedOutput {
+                    id: 12,
+                    attributes: todo("third"),
+                    links: (),
+                },
+                LinkedOutput {
+                    id: 13,
+                    attributes: todo("fourth"),
+                    links: (),
+                },
+            ],
+        );
+    }
+
+    async fn operation_body(
+        this: InsertMany<TodoMeta, InsertId<i64>, PropagateStateErrors>,
+        conn: &mut SqliteConnection,
+    ) -> InsertManyOperationResult {
+        if this.rows.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let id_meta = this.meta.id_meta();
+        let mut link_metas = Vec::with_capacity(this.rows.len());
+        let mut attributes = Vec::with_capacity(this.rows.len());
+        let mut init_on_inserts = Vec::with_capacity(this.rows.len());
+        let mut init_sql_statements = Vec::with_capacity(this.rows.len());
+        let mut pre_on_inserts = Vec::with_capacity(this.rows.len());
+        let mut pre_sql_statements = Vec::with_capacity(this.rows.len());
+        let mut pre_outputs = Vec::with_capacity(this.rows.len());
+
+        for row in this.rows {
+            let InsertParts {
+                link_meta,
+                pre_operation,
+                init_on__insert,
+                init_sql__statement,
+            } = row.link.init(this.meta.clone());
+
+            let pre_operation_output =
+                FallibleOperation::<Sqlite>::exec_operation(pre_operation, conn).await?;
+            let pre_operation_parts = link_meta.pre_operation_parts(pre_operation_output);
+
+            link_metas.push(link_meta);
+            attributes.push(row.attributes);
+            init_on_inserts.push(init_on__insert);
+            init_sql_statements.push(init_sql__statement);
+            pre_on_inserts.push(pre_operation_parts.pre_operation__on_insert);
+            pre_sql_statements.push(pre_operation_parts.pre_operation__sql_statement);
+            pre_outputs.push(pre_operation_parts.pre_operation__output);
+        }
+
+        let (sql, arg) = Expression::<Sqlite>::sql_statement(InsertStatement {
+            table_name: TableExpressions::pascal_case(&this.meta),
+            identifiers: (
+                Nest(this.meta.on_insert_identifiers()),
+                Nest(link_metas[0].on_insert_identifiers()),
+            ),
+            values: InsertManyValues(
+                attributes
+                    .into_iter()
+                    .zip(init_on_inserts)
+                    .zip(pre_on_inserts)
+                    .zip(link_metas.iter())
+                    .map(
+                        |(((attribute, init_on_insert), pre_operation_on_insert), link_meta)| {
+                            (
+                                Nest(this.meta.on_insert_values(attribute)),
+                                Nest(link_meta.on_insert_values(OnInsertParts {
+                                    from_init: init_on_insert,
+                                    from_pre_operation: pre_operation_on_insert,
+                                })),
+                            )
+                        },
+                    )
+                    .collect::<Vec<_>>(),
+            ),
+            returning: (
+                Nest(id_meta.identifiers()),
+                Nest(this.meta.identifiers()),
+                Nest(link_metas[0].indentifiers()),
+            ),
+        });
+
+        let returned = <Sqlite as ExecutorTrait>::fetch_all(
+            conn,
+            Executable {
+                string: &sql,
+                arguments: arg,
+            },
+        )
+        .await
+        .map_err(|err| this.infalibility.handle_sqlx_error(err))?;
+
+        if returned.len() != link_metas.len() {
+            panic!("bug: returning is specified");
+        }
+
+        let mut outputs = Vec::with_capacity(returned.len());
+        for (row, (((link_meta, init_sql_statement), pre_sql), pre_output)) in
+            returned.into_iter().zip(
+                link_metas
+                    .into_iter()
+                    .zip(init_sql_statements)
+                    .zip(pre_sql_statements)
+                    .zip(pre_outputs),
+            )
+        {
+            let id = id_meta
+                .from_row_no_alias(&row)
+                .expect("bug: id returning decode");
+            let decoded_attributes = this
+                .meta
+                .from_row_no_alias(&row)
+                .expect("bug: attribute returning decode");
+            let from_row_data = link_meta
+                .from_row()
+                .from_row_no_alias(&row)
+                .expect("bug: link returning decode");
+            let sql_parts =
+                link_meta.sql_statement_parts(init_sql_statement, pre_sql, from_row_data);
+            let post_operation_output =
+                FallibleOperation::<Sqlite>::exec_operation(sql_parts.post_operation, conn).await?;
+            let links = link_meta.output(
+                pre_output,
+                sql_parts.sql_statement__output,
+                post_operation_output,
+            );
+            outputs.push(LinkedOutput {
+                id,
+                attributes: decoded_attributes,
+                links,
+            });
+        }
+
+        Ok(outputs)
+    }
+
+    async fn operation_interface(
+        this: InsertMany<TodoMeta, InsertId<i64>, PropagateStateErrors>,
+        conn: &mut SqliteConnection,
+    ) -> InsertManyOperationResult {
+        FallibleOperation::<Sqlite>::exec_operation(this, conn).await
     }
 }
