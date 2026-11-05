@@ -123,10 +123,10 @@
 
 */
 
-pub trait ErrorType {
+pub trait InfalibilityStrategy {
     type Error;
 }
-pub trait ErrorHandler<S>: ErrorType {
+pub trait ErrorHandler<S>: InfalibilityStrategy {
     fn handle_sqlx_error(&self, err: sqlx::Error) -> Self::Error;
 }
 
@@ -146,7 +146,7 @@ pub enum StateError {
     Other,
 }
 
-impl ErrorType for PropagateStateErrors {
+impl InfalibilityStrategy for PropagateStateErrors {
     type Error = StateError;
 }
 
@@ -158,7 +158,7 @@ impl From<std::convert::Infallible> for StateError {
 
 pub struct DeclaritiveInfallible;
 
-impl ErrorType for DeclaritiveInfallible {
+impl InfalibilityStrategy for DeclaritiveInfallible {
     type Error = std::convert::Infallible;
 }
 

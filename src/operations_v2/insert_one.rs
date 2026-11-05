@@ -183,23 +183,23 @@ pub struct InsertOne<Meta: CollectionMeta, Link, Infalibility> {
 mod impl_operation_for_insert_one {
     use super::*;
     use crate::execute::Executable;
+    use crate::extend_sqlx::database_error::{ErrorHandler, InfalibilityStrategy};
     use crate::extend_sqlx::DatabaseStatementBuilder;
-    use crate::extend_sqlx::database_error::{ErrorHandler, ErrorType};
     use crate::fix_executor::ExecutorTrait;
     use crate::from_row::FromRow;
     use crate::operations_v2::{FallibleOperation, FallibleOperationOutput};
-    use crate::sqlx_query_builder::Expression;
     use crate::sqlx_query_builder::combinators::Nest;
     use crate::sqlx_query_builder::statements::insert_statement::{
         InsertOneValue, InsertStatement,
     };
+    use crate::sqlx_query_builder::Expression;
     use crate::valid_syntax::{MembersExpressions, TableExpressions};
     use crate::{collections::CollectionMeta, operations::LinkedOutput};
 
     impl<Meta, Link, LinkSpec, Fallibility> FallibleOperationOutput
         for InsertOne<Meta, Link, Fallibility>
     where
-        Fallibility: ErrorType<Error: Send>,
+        Fallibility: InfalibilityStrategy<Error: Send>,
         Link: InsertOneLink<Meta, LinkMeta = LinkSpec>,
         LinkSpec: InsertOneLinkMeta<Output: Send>,
         Meta: CollectionMeta<OutputData: Send, OutputIdData: Send>,
@@ -351,8 +351,8 @@ pub mod insert_id_link {
 
     use crate::{
         collections::CollectionMeta,
-        operations_v2::FallibleOperationOutput,
         operations_v2::insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
+        operations_v2::FallibleOperationOutput,
         valid_syntax::OnInsert,
     };
 
@@ -376,6 +376,12 @@ pub mod insert_id_link {
     pub struct InsertId<InputIdData>(pub InputIdData);
 
     pub struct InsertIdMeta<IdMeta>(IdMeta);
+
+    impl<IdMeta> InsertIdMeta<IdMeta> {
+        pub fn new(id_meta: IdMeta) -> Self {
+            InsertIdMeta(id_meta)
+        }
+    }
 
     impl<Base> InsertOneLink<Base> for InsertId<Base::InputIdData>
     where
@@ -491,8 +497,8 @@ pub mod insert_id_link {
 mod impl_insert_one_system_for_many_links {
     use crate::{
         operations_v2::{
-            FallibleOperationOutput,
             insert_one::{InsertOneLink, InsertOneLinkMeta, OnInsertParts},
+            FallibleOperationOutput,
         },
         sqlx_query_builder::combinators::Nest,
         valid_syntax::OnInsert,
@@ -821,17 +827,17 @@ mod tests {
     use crate::from_row::FromRow;
     use crate::links::SetNew;
     use crate::operations::LinkedOutput;
-    use crate::operations_v2::FallibleOperation;
     use crate::operations_v2::insert_one::insert_id_link::InsertId;
+    use crate::operations_v2::FallibleOperation;
     use crate::valid_syntax::MembersExpressions;
     use crate::{
         execute::Executable,
         extend_sqlx::InMemoryConnection,
         fix_executor::ExecutorTrait,
         sqlx_query_builder::{
-            Expression,
             combinators::Nest,
             statements::insert_statement::{InsertOneValue, InsertStatement},
+            Expression,
         },
         valid_syntax::{MembersAliasedExpressions, TableExpressions},
     };

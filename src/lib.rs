@@ -455,15 +455,15 @@ pub mod sub_arc {
     use std::ops::{Deref, Range};
     use std::sync::Arc;
 
-    pub type ArcSubStr = SubArc<str>;
+    // pub type ArcSubStr = SubArc<str>;
 
     #[derive(Debug, PartialEq, Eq, Hash)]
-    pub struct SubArc<T: ?Sized> {
-        arc: Arc<T>,
+    pub struct ArcSubStr {
+        arc: Arc<str>,
         range: Range<usize>,
     }
 
-    impl SubArc<str> {
+    impl ArcSubStr {
         pub fn new(arc: Arc<str>, range: Range<usize>) -> Self {
             Self { arc, range }
         }
@@ -479,38 +479,38 @@ pub mod sub_arc {
         }
     }
 
-    impl Clone for SubArc<str> {
+    impl Clone for ArcSubStr {
         fn clone(&self) -> Self {
             Self::new(Arc::clone(&self.arc), self.range.clone())
         }
     }
 
-    impl Deref for SubArc<str> {
+    impl Deref for ArcSubStr {
         type Target = str;
         fn deref(&self) -> &Self::Target {
             &self.arc[self.range.clone()]
         }
     }
 
-    impl AsRef<str> for SubArc<str> {
+    impl AsRef<str> for ArcSubStr {
         fn as_ref(&self) -> &str {
             self.deref()
         }
     }
 
-    impl PartialOrd for SubArc<str> {
+    impl PartialOrd for ArcSubStr {
         fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
             Some(self.as_str().cmp(other.as_str()))
         }
     }
 
-    impl Ord for SubArc<str> {
+    impl Ord for ArcSubStr {
         fn cmp(&self, other: &Self) -> std::cmp::Ordering {
             self.as_str().cmp(other.as_str())
         }
     }
 
-    impl SubArc<str> {
+    impl ArcSubStr {
         pub fn as_str(&self) -> &str {
             self.deref()
         }
@@ -523,7 +523,7 @@ pub mod sub_arc {
         #[test]
         fn main() {
             let arc: Arc<str> = Arc::from("hello world");
-            let sub_arc = SubArc { arc, range: 0..5 };
+            let sub_arc = ArcSubStr { arc, range: 0..5 };
 
             assert_eq!(&*sub_arc, "hello");
         }
@@ -565,45 +565,22 @@ pub mod sub_arc {
             sync::Arc,
         };
 
-        pub struct SubArc<T: ?Sized, FS: FromSource<T>> {
-            arc: Arc<FS::Source>,
-            from_source: FS,
-            _pd: PhantomData<T>,
+        pub struct SubArc<T: ?Sized, From: ?Sized> {
+            arc: Arc<From>,
+            from_source: fn(&From) -> &T,
         }
 
-        impl<T: ?Sized, FS: FromSource<T>> Deref for SubArc<T, FS> {
+        impl<T: ?Sized, From: ?Sized> Deref for SubArc<T, From> {
             type Target = T;
             fn deref(&self) -> &Self::Target {
-                self.from_source.clone().deref(&self.arc)
+                let src = &*self.arc;
+                (self.from_source)(src)
             }
         }
 
-        impl<T: ?Sized, S> SubArc<T, fn(&S) -> &T> {
-            fn new_using_fn(arc: Arc<S>, from_source: fn(&S) -> &T) -> Self {
-                Self {
-                    arc,
-                    from_source,
-                    _pd: PhantomData,
-                }
-            }
-        }
-
-        pub trait FromSource<T: ?Sized>: Clone {
-            type Source: ?Sized;
-            fn deref(self, s: &Self::Source) -> &T;
-        }
-
-        impl FromSource<str> for Range<usize> {
-            type Source = str;
-            fn deref(self, s: &str) -> &str {
-                &s[self.clone()]
-            }
-        }
-
-        impl<Source: ?Sized, T: ?Sized> FromSource<T> for fn(&Source) -> &T {
-            type Source = Source;
-            fn deref(self, s: &Self::Source) -> &T {
-                self(s)
+        impl<T: ?Sized, From: ?Sized> SubArc<T, From> {
+            fn new(arc: Arc<From>, from_source: fn(&From) -> &T) -> Self {
+                Self { arc, from_source }
             }
         }
 
@@ -619,7 +596,7 @@ pub mod sub_arc {
                 f1: 1,
             });
 
-            let sub_arc = SubArc::new_using_fn(arc.clone(), |d: &Dictionary| d.f0.as_str());
+            let sub_arc = SubArc::new(arc.clone(), |d: &Dictionary| d.f0.as_str());
 
             assert_eq!(&*sub_arc, "hello");
         }
